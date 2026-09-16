@@ -1,0 +1,81 @@
+/* =========================================================
+   PMG — wersja 2 („płynna”). Nakładka na ../css/style.css.
+   Tryb pełny (.v2-enhanced) tylko ≥ 961 px i bez prefers-reduced-motion — patrz KONCEPCJA.md.
+   ========================================================= */
+
+/* ---------- Lenis (reguły biblioteki) ---------- */
+html.lenis, html.lenis body { height: auto; }
+.lenis:not(.lenis-autoToggle).lenis-stopped { overflow: clip; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
+.lenis.lenis-smooth dialog iframe { pointer-events: auto; }
+
+/* ---------- Typografia: większa skala, ciaśniejsze wiersze ---------- */
+.v2 .display { font-size: clamp(44px, 7.6vw, 104px); line-height: .92; letter-spacing: -.04em; }
+.v2 .h1,
+.v2 .pms-banner__title,
+.v2 .hub-banner__title { font-size: clamp(36px, 6vw, 72px); line-height: .98; letter-spacing: -.035em; }
+.v2 .contact-hero__title { line-height: .92; letter-spacing: -.04em; }
+.v2 .home-h2, .v2 .pms-h2 { letter-spacing: -.03em; }
+.v2 .home-hero__text { max-width: 800px; flex-basis: 560px; }
+
+/* ---------- Nawigacja → pływająca pigułka po przewinięciu (desktop) ---------- */
+@media (min-width: 961px) {
+  .v2 .site-nav.is-scrolled { background-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom-color: transparent !important; border-image: none !important; }
+  .v2 .site-nav .site-nav__inner { transition: padding var(--ease), max-width .45s ease, margin .45s ease, border-radius .45s ease, background-color var(--ease), box-shadow var(--ease); max-width: 100%; margin: 0 auto; }
+  .v2 .site-nav.is-scrolled .site-nav__inner {
+    max-width: 1120px; margin: 10px auto 0; padding: 6px 10px 6px 18px; border-radius: var(--radius-pill);
+    background: rgba(247,246,243,.84); -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px);
+    box-shadow: 0 14px 34px -14px rgba(20,20,40,.35), 0 0 0 1px rgba(20,20,20,.06);
+  }
+  .v2 .site-nav.is-scrolled .site-nav__logo img { height: 44px; width: 44px; }
+  .v2 .site-nav--dark.is-scrolled .site-nav__inner { background: rgba(12,12,16,.8); box-shadow: 0 14px 34px -14px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.08); }
+}
+
+/* ---------- Przejścia między podstronami (View Transitions, bez biblioteki) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+  ::view-transition-old(root) { animation: v2-fade-out .28s ease both; }
+  ::view-transition-new(root) { animation: v2-fade-in .38s ease both; }
+  ::view-transition-group(*) { animation-duration: .5s; animation-timing-function: cubic-bezier(.2, .7, .1, 1); }
+}
+@keyframes v2-fade-out { to { opacity: 0; transform: translateY(-8px); } }
+@keyframes v2-fade-in { from { opacity: 0; transform: translateY(12px); } }
+.v2 .site-nav { view-transition-name: site-nav; }
+/* karta case'u w hubie → hero podstrony */
+.v2 a[href="case-kola-pwr-racing-team.html"] .case-card__media, .v2 [data-page="case-kola-pwr-racing-team"] .case-hero .media { view-transition-name: case-prt; }
+.v2 a[href="case-kola-debatelab.html"] .case-card__media, .v2 [data-page="case-kola-debatelab"] .case-hero .media { view-transition-name: case-dl; }
+.v2 a[href="case-kola-qubit.html"] .case-card__media, .v2 [data-page="case-kola-qubit"] .case-hero .media { view-transition-name: case-q; }
+.v2 a[href="case-kola-solvro.html"] .case-card__media, .v2 [data-page="case-kola-solvro"] .case-hero .media { view-transition-name: case-s; }
+
+/* ---------- Strona główna: logo WebGL ---------- */
+.v2-enhanced .hero-logo--gl { perspective: 900px; }
+.v2-enhanced .hero-logo--gl .hero-logo__frame,
+.v2-enhanced .hero-logo--gl .hero-logo__bars { display: none; }
+.v2-gl-logo { position: absolute; inset: 0; width: 300px; height: 300px; transform-style: preserve-3d; will-change: transform; }
+.v2-gl-logo canvas { display: block; width: 300px; height: 300px; }
+
+/* ---------- PM Session: zdanie kolorowane słowo po słowie ---------- */
+.v2-enhanced .pms-about { padding-top: 40px; }
+.v2-enhanced .pms-about.v2-words-ready .pms-about__text { font: 500 clamp(22px, 2vw, 28px)/1.4 var(--font-head); letter-spacing: -.01em; color: var(--color-ink); }
+.v2-word { color: rgba(20,20,20,.28); transition: color .15s linear; }
+
+/* ---------- Podcast: fala odcinków ---------- */
+.v2-wave { position: relative; z-index: 1; padding: 10px 0 50px; }
+.v2-wave__stage { position: relative; height: 260px; border-radius: 22px; background: rgba(18,18,22,.55); border: 1px solid rgba(255,255,255,.08); overflow: hidden; }
+.v2-wave__stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.v2-wave__hits { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(4, 1fr); }
+.v2-wave__hit {
+  all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: flex-end; padding: 16px 18px;
+  font: 600 13px/1.35 var(--font-body); color: #d9d9de; border-right: 1px dashed rgba(255,255,255,.1);
+}
+.v2-wave__hit:last-child { border-right: 0; }
+.v2-wave__hit span { background: rgba(10,10,12,.72); padding: 6px 10px; border-radius: 10px; max-width: 100%; }
+.v2-wave__hit:focus-visible { outline: 3px solid #fff; outline-offset: -6px; border-radius: 18px; }
+.v2-wave__hint { font: 400 13px/1.5 var(--font-body); color: #b8b8bf; margin-top: 10px; }
+
+/* ---------- Dołącz: ścieżka procesu ---------- */
+.v2-enhanced .join-page-steps { position: relative; }
+.v2-path { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 0; }
+.v2-enhanced .join-page-steps.v2-path-ready::before { opacity: 0; }
+.v2-enhanced .join-page-steps > li { position: relative; z-index: 1; }
