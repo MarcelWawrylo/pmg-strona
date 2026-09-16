@@ -1,0 +1,8 @@
+# Biała lista: do repozytorium trafia tylko kod strony.
+/*
+!/site/
+!/.gitignore
+!/README.md
+
+# Pliki techniczne w site/
+/site/.gitkeep

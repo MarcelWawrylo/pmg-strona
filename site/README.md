@@ -1,0 +1,60 @@
+# Strona koła naukowego PMG — kod
+
+Strona to zwykłe pliki HTML, CSS i JavaScript. Nie trzeba niczego instalować ani „budować”. Te same pliki działają na GitHub Pages (wersja robocza) i na serwerze Politechniki (Apache).
+
+## Co gdzie leży
+
+| Plik / katalog | Co to jest |
+|---|---|
+| `index.html` | Strona główna |
+| `o-nas.html`, `aktualnosci.html`, `pm-session.html`, `podcast.html`, `dolacz.html`, `kontakt.html` | Podstrony z menu i Aktualności |
+| `case-kola.html` | Lista case'ów (hub) |
+| `case-kola-pwr-racing-team.html`, `case-kola-debatelab.html`, `case-kola-qubit.html`, `case-kola-solvro.html` | Podstrony case'ów |
+| `css/style.css` | Wygląd wszystkich podstron (kolory, fonty, układ) |
+| `js/main.js` | Zachowania: menu, przewijanie, galerie, okna, formularz |
+| `img/` | Zdjęcia i logotypy (WebP + JPG/PNG w dwóch rozmiarach) |
+| `v2/` | Wersja 2 strony („płynna”) |
+| `.nojekyll` | Plik techniczny dla GitHub Pages — nie usuwać |
+
+## Jak podejrzeć stronę na komputerze
+
+1. Otwórz terminal w katalogu `site`.
+2. Wpisz: `python -m http.server 8000`
+3. W przeglądarce wejdź na: http://localhost:8000
+
+## PM Session — jak ukryć sekcję „Prelegenci” albo „Harmonogram”
+
+Obie sekcje są w pliku `pm-session.html`. Każda zaczyna się od takiej linii:
+
+```html
+<section id="prelegenci" class="pms-block container" aria-labelledby="h-speakers">
+<section id="harmonogram" class="pms-block container" aria-labelledby="h-schedule">
+```
+
+Żeby **ukryć** sekcję, dopisz słowo `hidden` przed znakiem `>`:
+
+```html
+<section id="prelegenci" class="pms-block container" aria-labelledby="h-speakers" hidden>
+```
+
+Żeby ją **pokazać**, usuń słowo `hidden`. Zapisz plik i odśwież stronę. Nic więcej nie trzeba zmieniać.
+
+## Formularz kontaktowy (rozwiązanie tymczasowe)
+
+Strona nie ma serwera do wysyłania wiadomości. Przycisk „Wyślij” otwiera program pocztowy odwiedzającego z gotową wiadomością do `pmgroup.kontakt@gmail.com`. Docelowe rozwiązanie jest do decyzji.
+
+## Zasady przy zmianach
+
+- Linki między podstronami są względne (np. `href="kontakt.html"`) — nie dopisuj adresu domeny.
+- Nazwy plików tylko małymi literami, bez polskich znaków i spacji.
+- Nowe zdjęcie: dodaj wersję `.webp` i `.jpg` w dwóch szerokościach i wpisz w HTML `width` i `height` oraz opis w `alt`.
+- Menu i stopka są powtórzone w każdym pliku HTML — przy zmianie popraw je we wszystkich 12 plikach.
+- Dostępność: każdy obraz ma `alt`, przyciski to `<button>`, linki to `<a>`.
+
+## Publikacja na GitHub Pages
+
+Repozytorium: `MarcelWawrylo/pmg-strona`. Strona publikuje się z gałęzi `gh-pages`, do której trafia zawartość katalogu `site/`:
+
+```
+git subtree push --prefix site origin gh-pages
+```
