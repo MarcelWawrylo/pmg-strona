@@ -69,6 +69,7 @@ body {
   font-size: var(--fs-body);
   line-height: 1.6;
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 img, svg, video { max-width: 100%; }
 img { height: auto; }
@@ -97,7 +98,7 @@ button { font: inherit; }
 .skip-link:focus { top: 16px; color: #fff; }
 
 /* ---------- 3. Układ ---------- */
-.page { min-height: 100vh; display: flex; flex-direction: column; }
+.page { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 .page > main { flex: 1 0 auto; }
 .container { max-width: calc(var(--container) + 2 * var(--gutter)); margin: 0 auto; padding-left: var(--gutter); padding-right: var(--gutter); }
 .container--wide { max-width: calc(var(--container-wide) + 2 * var(--gutter)); }
@@ -764,7 +765,6 @@ button { font: inherit; }
 /* Nagłówki sekcji */
 .about-h2 { font: 600 clamp(26px, 3.4vw, 32px)/1.15 var(--font-head); letter-spacing: -.02em; }
 .about-sub { font: 400 15px/1.5 var(--font-body); color: var(--color-text-muted); margin: 8px 0 30px; }
-.about-sub--history { margin-bottom: 34px; }
 
 /* Struktura koła */
 .about-structure { padding: 64px 0; }
@@ -830,61 +830,8 @@ button { font: inherit; }
   .about-board__list { width: 100%; }
 }
 
-/* Oś „Nasza historia” */
-.about-history { padding: 66px 0 74px; background: var(--color-bg); }
-.about-tl__rail { position: relative; margin: 0 0 30px; }
-.about-tl__line { position: absolute; left: 0; right: 0; top: 11px; height: 2px; background: linear-gradient(90deg, #e5185e, #8b2c9c 50%, #1d46e0); }
-.about-tl__points { position: relative; display: flex; justify-content: space-between; gap: 6px; }
-.about-tl__point {
-  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center;
-  background: none; border: 0; padding: 0 2px 4px; margin: 0; cursor: pointer; color: inherit; border-radius: var(--radius-sm);
-}
-.about-tl__dot {
-  display: block; width: 14px; height: 14px; margin: 4px 0; border-radius: 50%;
-  background: #fff; border: 2px solid var(--color-purple); transition: all .25s ease;
-}
-.about-tl__point.is-active .about-tl__dot {
-  width: 18px; height: 18px; margin: 2px 0; background: var(--gradient-mono); border-color: transparent;
-  box-shadow: 0 8px 18px -6px rgba(139, 44, 156, .7);
-}
-.about-tl__point:hover .about-tl__dot { border-color: var(--color-pink); }
-.about-tl__chip { font: 600 12px var(--font-head); color: var(--color-text-muted); margin-top: 12px; transition: color .2s ease; }
-.about-tl__point.is-active .about-tl__chip, .about-tl__point:hover .about-tl__chip { color: var(--color-ink); }
-.about-tl__micro { font: 500 10.5px/1.3 var(--font-body); color: var(--color-text-muted); margin-top: 2px; max-width: 120px; }
-
-@keyframes aboutfade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.about-tl__panel {
-  position: relative; background: var(--color-surface); border: 1px solid rgba(0, 0, 0, .07); border-radius: var(--radius-lg);
-  padding: 30px 32px; overflow: hidden; box-shadow: 0 22px 46px -30px rgba(0, 0, 0, .35);
-}
-.about-tl__panel::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--gradient-vertical); }
-.js .about-tl__detail:not(.is-current) { display: none; }
-.about-tl__detail + .about-tl__detail { margin-top: 28px; } /* bez JS: wszystkie wydarzenia jedno pod drugim */
-.js .about-tl__detail + .about-tl__detail { margin-top: 0; }
-.about-tl__detail.is-anim { animation: aboutfade .4s ease both; }
-.about-tl__meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.about-tl__date { font: 600 12px var(--font-body); color: var(--color-purple); }
-.about-tl__warn { font-size: 10px; letter-spacing: .06em; padding: 3px 9px; border: 1px solid rgba(184, 134, 11, .3); }
-.about-tl__title { font: 600 25px/1.15 var(--font-head); letter-spacing: -.01em; margin-top: 8px; }
-.about-tl__body { font: 400 15.5px/1.7 var(--font-body); color: var(--color-text-muted); margin-top: 12px; max-width: var(--measure); text-wrap: pretty; }
-
-/* < 960 px: punkty w siatce zamiast poziomej osi (bez poziomego scrolla) */
-@media (max-width: 960px) {
-  .about-tl__line { display: none; }
-  .about-tl__points { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-  .about-tl__point { padding: 12px 6px; background: var(--color-surface); border: 1px solid var(--color-border); }
-  .about-tl__point.is-active { border-color: var(--color-purple); box-shadow: 0 10px 22px -16px rgba(139, 44, 156, .8); }
-  .about-tl__chip { margin-top: 8px; }
-}
-@media (max-width: 640px) {
-  .about-history { padding: 48px 0 56px; }
-  .about-tl__points { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .about-tl__panel { padding: 24px 20px 24px 24px; }
-  .about-tl__title { font-size: 22px; }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .about-hero__accent, .about-tl__detail.is-anim { animation: none; }
+  .about-hero__accent { animation: none; }
 }
 
 /* ---------- 10. Aktualności ---------- */
@@ -1172,7 +1119,7 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 
 /* ---------- 11. Lightbox i modal (natywny <dialog>) ---------- */
 .lightbox {
-  border: 0; padding: 0; background: transparent; max-width: 100vw; max-height: 100vh; width: 100vw; height: 100vh;
+  border: 0; padding: 0; background: transparent; max-width: 100vw; max-height: 100vh; max-height: 100dvh; width: 100vw; height: 100vh; height: 100dvh;
   margin: 0; color: #fff;
 }
 .lightbox::backdrop { background: rgba(10,10,10,.92); }
@@ -1180,7 +1127,7 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 .lightbox__img { max-width: min(90vw, 1400px); max-height: 78vh; object-fit: contain; border-radius: 8px; }
 .lightbox__caption { font: 500 14px/1.5 var(--font-body); color: rgba(255,255,255,.88); margin-top: 16px; text-align: center; max-width: 720px; }
 .dialog-close {
-  position: absolute; top: 14px; right: 14px; width: 46px; height: 46px; border-radius: 50%;
+  position: absolute; top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); width: 46px; height: 46px; border-radius: 50%;
   border: 1.5px solid rgba(255,255,255,.4); background: rgba(255,255,255,.08); color: #fff; cursor: pointer;
   font: 400 26px/1 var(--font-body); display: flex; align-items: center; justify-content: center;
 }

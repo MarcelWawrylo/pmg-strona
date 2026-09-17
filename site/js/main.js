@@ -176,66 +176,6 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 
-/* ---------- O nas ---------- */
-/* O nas — interaktywna oś „Nasza historia” (wzorzec tabs). Tymczasowo, do scalenia z main.js. */
-(function () {
-  'use strict';
-
-  function initTimeline() {
-    var PMG = window.PMG || {};
-    var $$ = PMG.$$ || function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
-    var root = document.querySelector('[data-about-tl]');
-    if (!root) return;
-    var tabs = $$('[data-about-point]', root);
-    var panel = root.querySelector('[data-about-panel]');
-    var details = $$('[data-about-detail]', panel);
-    if (!tabs.length || tabs.length !== details.length) return;
-
-    var current = 0;
-    var reduce = PMG.reduceMotion || window.matchMedia('(prefers-reduced-motion: reduce)');
-    var canHover = window.matchMedia('(hover: hover) and (pointer: fine)');
-
-    function select(i, focus) {
-      if (focus) tabs[i].focus();
-      if (i === current) return;
-      current = i;
-      tabs.forEach(function (t, j) {
-        var on = j === i;
-        t.classList.toggle('is-active', on);
-        t.setAttribute('aria-selected', on ? 'true' : 'false');
-        t.tabIndex = on ? 0 : -1;
-      });
-      details.forEach(function (d, j) {
-        var on = j === i;
-        d.classList.toggle('is-current', on);
-        d.classList.remove('is-anim');
-      });
-      if (!reduce.matches) {
-        void details[i].offsetWidth; // restart animacji
-        details[i].classList.add('is-anim');
-      }
-      panel.setAttribute('aria-labelledby', tabs[i].id);
-    }
-
-    tabs.forEach(function (t, i) {
-      t.addEventListener('click', function () { select(i, false); });
-      t.addEventListener('mouseenter', function () { if (canHover.matches) select(i, false); });
-      t.addEventListener('keydown', function (e) {
-        var n = tabs.length, next = null;
-        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % n;
-        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + n) % n;
-        else if (e.key === 'Home') next = 0;
-        else if (e.key === 'End') next = n - 1;
-        if (next === null) return;
-        e.preventDefault();
-        select(next, true);
-      });
-    });
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initTimeline); else initTimeline();
-})();
-
 /* ---------- Aktualności ---------- */
 /* Aktualności: przełączanie widoku lista / artykuł na podstawie location.hash (#wpis-<id>).
    Bez JS: lista i wszystkie artykuły pod spodem, linki kotwiczne działają. Plik tymczasowy do scalenia z main.js. */

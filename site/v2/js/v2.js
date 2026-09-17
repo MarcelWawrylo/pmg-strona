@@ -305,6 +305,14 @@
       initPodcastWave();
       initJoinPath();
       window.ScrollTrigger.refresh();
+
+      // Przelicz pinning/scrub po zmianie rozmiaru okna (np. obrót tabletu, zmiana szerokości
+      // przeglądarki) — bez tego przypięte sekcje (PMS, Dołącz) mogą się rozjechać.
+      var resizeTimer = null;
+      window.addEventListener('resize', function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function () { window.ScrollTrigger.refresh(); }, 200);
+      });
     });
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();

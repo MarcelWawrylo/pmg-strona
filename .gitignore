@@ -6,3 +6,6 @@
 
 # Pliki techniczne w site/
 /site/.gitkeep
+
+# Output graphify (narzędzie lokalne, nie część strony) — patrz CLAUDE.md
+/site/graphify-out/
