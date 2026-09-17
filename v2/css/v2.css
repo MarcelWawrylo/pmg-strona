@@ -58,7 +58,7 @@ html.lenis, html.lenis body { height: auto; }
 /* ---------- PM Session: zdanie kolorowane słowo po słowie ---------- */
 .v2-enhanced .pms-about { padding-top: 40px; }
 .v2-enhanced .pms-about.v2-words-ready .pms-about__text { font: 500 clamp(22px, 2vw, 28px)/1.4 var(--font-head); letter-spacing: -.01em; color: var(--color-ink); }
-.v2-word { color: rgba(20,20,20,.28); transition: color .15s linear; }
+.v2-word { color: var(--color-text-muted); transition: color .15s linear; }
 
 /* ---------- Podcast: fala — czysto dekoracyjna (17.09), bez nakładki z przyciskami ---------- */
 .v2-wave { position: relative; z-index: 1; padding: 10px 0 50px; }

@@ -160,9 +160,12 @@
     p.appendChild(vis);
     section.classList.add('v2-words-ready');
     var words = vis.querySelectorAll('.v2-word');
+    // 17.09 — audyt: pin+scrub dawał ok. 1100px pustego przewijania i kontrast .28 ponizej progu
+    // WCAG (wymog dostepnosci uczelni publicznej z CLAUDE.md). Zwykly, niepiniowany scroll-linked
+    // stagger: krotszy dystans, bez blokowania scrolla, start koloru na tle spelniajacym kontrast.
     window.gsap.to(words, {
-      color: '#141414', stagger: 0.12, ease: 'none',
-      scrollTrigger: { trigger: section, start: 'center center', end: '+=110%', scrub: 0.6, pin: true, pinSpacing: true }
+      color: '#141414', stagger: 0.06, ease: 'none',
+      scrollTrigger: { trigger: section, start: 'top 75%', end: 'top 30%', scrub: 0.6 }
     });
   }
 
