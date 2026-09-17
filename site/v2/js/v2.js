@@ -177,13 +177,10 @@
     var wrap = document.createElement('div');
     wrap.className = 'v2-wave';
     wrap.setAttribute('aria-hidden', 'true');
-    var container = document.createElement('div');
-    container.className = 'container';
-    container.innerHTML = '<div class="v2-wave__stage"><canvas></canvas></div>';
-    wrap.appendChild(container);
+    wrap.innerHTML = '<div class="container"><div class="v2-wave__stage"><canvas></canvas></div></div>';
     hero.parentNode.insertBefore(wrap, hero.nextSibling);
 
-    var stage = container.querySelector('.v2-wave__stage');
+    var stage = wrap.querySelector('.v2-wave__stage');
     var canvas = stage.querySelector('canvas');
     var ctx = canvas.getContext('2d');
     var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
