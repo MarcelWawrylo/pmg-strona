@@ -68,8 +68,7 @@
     '    float s = .35 + .65 * (.5 - .5 * cos((uTime - dl[i]) * 6.2831853 / 2.4));',
     '    float hh = 190.0 * h[i] * s; vec2 c = vec2(x0[i] + w * .5, 63.0 + hh * .5);',
     '    d = min(d, box(p - c, vec2(w * .5, hh * .5), min(13.0, hh * .5))); } return d; }',
-    'float frame(vec2 p){ float d = abs(box(p - vec2(150.0), vec2(144.0), 0.0)) - 1.5;',
-    '  if (p.x > 280.0 && p.y > 85.0 && p.y < 215.0) d = 1e5; return d; }',
+    'float frame(vec2 p){ return abs(box(p - vec2(150.0), vec2(144.0), 0.0)) - 1.5; }',
     'void main(){ vec2 p = gl_FragCoord.xy / uRes * 300.0;',
     '  vec3 col = vec3(0.0); float a = 0.0;',
     '  vec3 wave = brand(p.x / 420.0 - uTime * .12 + .08 * sin(p.y / 40.0 + uTime));',
@@ -168,42 +167,27 @@
   }
 
   /* ---------- Podcast: fala odcinków z „lupą” ---------- */
+  /* Czysto dekoracyjna fala pod hero Podcastu (17.09 — na prośbę Marcela: bez żadnej
+     interaktywności, nie duplikuje otwierania odcinków — to już w pełni robią karty niżej).
+     Bez przycisków, bez śledzenia kursora/focusu, tylko spokojna, zapętlona animacja tła. */
   function initPodcastWave() {
     var hero = document.querySelector('.pod-hero');
-    var eps = Array.prototype.slice.call(document.querySelectorAll('.pod-ep'));
+    var eps = document.querySelectorAll('.pod-ep');
     if (!hero || !eps.length) return;
-    var section = document.createElement('section');
-    section.className = 'v2-wave';
-    section.setAttribute('aria-labelledby', 'v2-wave-h');
+    var wrap = document.createElement('div');
+    wrap.className = 'v2-wave';
+    wrap.setAttribute('aria-hidden', 'true');
     var container = document.createElement('div');
     container.className = 'container';
-    container.innerHTML = '<h2 id="v2-wave-h" class="visually-hidden">Fala odcinków</h2>' +
-      '<div class="v2-wave__stage"><canvas aria-hidden="true"></canvas><div class="v2-wave__hits"></div></div>' +
-      '<p class="v2-wave__hint">Najedź na falę albo przejdź do niej klawiszem Tab — każdy fragment to jeden odcinek.</p>';
-    section.appendChild(container);
-    hero.parentNode.insertBefore(section, hero.nextSibling);
-
-    var hits = container.querySelector('.v2-wave__hits');
-    eps.forEach(function (ep, i) {
-      var title = (ep.querySelector('.pod-ep__title') || ep).textContent.trim();
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'v2-wave__hit';
-      var label = document.createElement('span');
-      label.textContent = '#' + (i + 1) + ' ' + title.split(':')[0];
-      btn.appendChild(label);
-      btn.setAttribute('aria-label', 'Otwórz odcinek #' + (i + 1) + ': ' + title);
-      btn.addEventListener('click', function () { var b = ep.querySelector('.pod-ep__btn'); if (b) b.click(); });
-      btn.addEventListener('focus', function () { focusX = (i + 0.5) / eps.length; });
-      btn.addEventListener('blur', function () { focusX = null; });
-      hits.appendChild(btn);
-    });
+    container.innerHTML = '<div class="v2-wave__stage"><canvas></canvas></div>';
+    wrap.appendChild(container);
+    hero.parentNode.insertBefore(wrap, hero.nextSibling);
 
     var stage = container.querySelector('.v2-wave__stage');
     var canvas = stage.querySelector('canvas');
     var ctx = canvas.getContext('2d');
     var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    var W = 0, H = 0, pointerX = null, focusX = null, lensX = 0.5, lensAmt = 0;
+    var W = 0, H = 0;
     var resize = function () {
       W = stage.clientWidth; H = stage.clientHeight;
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
@@ -211,8 +195,6 @@
     };
     resize();
     window.addEventListener('resize', resize);
-    stage.addEventListener('pointermove', function (e) { pointerX = (e.clientX - stage.getBoundingClientRect().left) / W; });
-    stage.addEventListener('pointerleave', function () { pointerX = null; });
 
     var N = 140;
     var grad = function () {
@@ -222,26 +204,15 @@
     };
     visibilityLoop(stage, function (now) {
       var t = now / 1000;
-      var target = pointerX !== null ? pointerX : focusX;
-      if (target !== null) lensX += (target - lensX) * 0.12;
-      lensAmt += ((target !== null ? 1 : 0) - lensAmt) * 0.08;
       ctx.clearRect(0, 0, W, H);
       var fill = grad();
       var gap = W / N, bw = Math.max(2, gap * 0.55), mid = H * 0.46;
-      var active = Math.floor(lensX * eps.length);
       for (var i = 0; i < N; i++) {
-        var x = i / (N - 1);
-        var amp = 0.35 + 0.3 * Math.sin(i * 0.37 + t * 1.3) * Math.sin(i * 0.11 - t * 0.6) + 0.25 * Math.sin(i * 0.05 + t * 0.4);
-        amp = Math.abs(amp);
-        var d = (x - lensX) * W;
-        var lens = 1 + 1.35 * lensAmt * Math.exp(-(d * d) / (2 * 70 * 70));
-        var h = Math.max(4, amp * H * 0.36 * lens);
-        var seg = Math.min(eps.length - 1, Math.floor(x * eps.length));
-        ctx.globalAlpha = lensAmt > 0.05 && seg !== active ? 0.45 : 1;
+        var amp = 0.4 + 0.16 * Math.sin(i * 0.37 + t * 0.35) + 0.1 * Math.sin(i * 0.09 - t * 0.15);
+        var h = Math.max(4, amp * H * 0.34);
         ctx.fillStyle = fill;
         ctx.fillRect(i * gap + (gap - bw) / 2, mid - h / 2, bw, h);
       }
-      ctx.globalAlpha = 1;
     });
   }
 
