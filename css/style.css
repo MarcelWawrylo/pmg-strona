@@ -448,10 +448,9 @@ button { font: inherit; }
 
 @keyframes pmgwave { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
 @keyframes pmgdraw { to { stroke-dashoffset: 0; } }
-@keyframes pmgletter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .hero-logo { width: 300px; height: 300px; position: relative; flex: none; }
 .hero-logo__frame { position: absolute; inset: 0; width: 300px; height: 300px; overflow: visible; }
-.hero-logo__frame path { stroke-dasharray: 1014; stroke-dashoffset: 1014; animation: pmgdraw 3.2s ease 2s forwards; }
+.hero-logo__frame path { stroke-dasharray: 1144; stroke-dashoffset: 1144; animation: pmgdraw 3.2s ease 2s forwards; }
 .hero-logo__bars { position: absolute; left: 35px; top: 47px; height: 190px; display: flex; align-items: flex-end; gap: 12px; }
 .hero-logo__bar { width: 26px; border-radius: 14px; transform-origin: bottom; animation: pmgwave 2.4s ease-in-out infinite; }
 .hero-logo__bar--1 { height: 44%; background: linear-gradient(180deg, #e5185e, #8b2c9c); }
@@ -460,10 +459,6 @@ button { font: inherit; }
 .hero-logo__bar--4 { height: 100%; width: 29px; background: linear-gradient(180deg, #1d46e0, #3a2fb0); animation-delay: .75s; }
 .hero-logo__bar--5 { height: 88%; background: linear-gradient(180deg, #1d46e0, #3a2fb0); animation-delay: .975s; }
 .hero-logo__bar--6 { height: 66%; background: linear-gradient(180deg, #1d46e0, #5a2fb0); animation-delay: 1.2s; }
-.hero-logo__letters { position: absolute; right: 6px; top: 50%; transform: translate(50%, -50%); display: flex; flex-direction: column; gap: 18px; align-items: center; }
-.hero-logo__letters span { opacity: 0; font: 700 26px/1 var(--font-head); color: var(--color-blue); animation: pmgletter .5s ease .4s forwards; }
-.hero-logo__letters span:nth-child(2) { animation-delay: .9s; }
-.hero-logo__letters span:nth-child(3) { animation-delay: 1.4s; }
 @media (max-width: 960px) { .home-hero__inner { justify-content: flex-start; } }
 @media (max-width: 640px) {
   .home-hero { padding: 44px 0 50px; }
@@ -477,7 +472,6 @@ button { font: inherit; }
   .home-hero__accent { animation: none; }
   .hero-logo__bar { animation: none; }
   .hero-logo__frame path { stroke-dashoffset: 0; }
-  .hero-logo__letters span { opacity: 1; }
 }
 
 .home-news { padding: 66px 0; }
