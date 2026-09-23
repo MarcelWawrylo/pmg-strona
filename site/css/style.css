@@ -787,6 +787,7 @@ button { font: inherit; }
 .about-sec__head { padding: 18px 18px 4px; }
 .about-sec__name { font: 600 17px/1.15 var(--font-head); letter-spacing: 0; }
 .about-sec__count { font: 500 12.5px var(--font-body); color: var(--color-text-muted); margin-top: 6px; }
+.about-sec__desc { font: 400 14px/1.5 var(--font-body); color: var(--color-text-muted); margin-top: 8px; }
 .about-sec__body { padding: 12px 16px 18px; }
 .about-coord { background: var(--about-tint); border: 1px solid var(--about-accent); border-radius: 12px; padding: 12px 13px; margin-bottom: 10px; }
 .about-coord__label { font: 600 10px var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--about-label); }
@@ -1128,3 +1129,12 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 }
 .dialog-close:hover { background: rgba(255,255,255,.2); }
 body.has-dialog { overflow: hidden; }
+.join-page-form__help { font: 400 14px/1.5 var(--font-body); color: var(--color-text-muted); margin-top: 16px; }
+.join-page-form__help a { color: inherit; text-decoration: underline; overflow-wrap: anywhere; }
+/* PM Session: „Co to PM Session?” w pytaniach (v3 zakładki) */
+.pms-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 36px; }
+.pms-facts__item { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 20px 22px; }
+.pms-facts__q { font: 600 18px/1.2 var(--font-head); margin-bottom: 8px; }
+.pms-facts__a { font: 400 15px/1.55 var(--font-body); color: var(--color-text-muted); margin: 0; }
+@media (max-width: 960px) { .pms-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .pms-facts { grid-template-columns: minmax(0, 1fr); } }
