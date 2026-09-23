@@ -112,11 +112,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             if ($f['tytul'] === '' || $f['zajawka'] === '' || $f['tresc'] === '' || $f['kategoria'] === '') throw new RuntimeException('Uzupełnij tytuł, kategorię, zajawkę i treść.');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $f['data'])) throw new RuntimeException('Podaj datę wpisu.');
-            if (!empty($_FILES['zdjecie']['name'])) {
+            $upload = !empty($_FILES['zdjecie']['name']);
+            // opis sprawdzany przed zapisem pliku — inaczej odrzucony wpis zostawiałby osierocone zdjęcie
+            if (($upload || $f['zdjecie']) && $f['zdjecie_alt'] === '') throw new RuntimeException('Dodaj opis zdjęcia (dla osób niewidomych).');
+            if ($upload) {
                 $f['zdjecie'] = save_image($_FILES['zdjecie']);
                 if ($old) drop_image($old['zdjecie']);
             }
-            if ($f['zdjecie'] && $f['zdjecie_alt'] === '') throw new RuntimeException('Dodaj opis zdjęcia (dla osób niewidomych).');
             if ($id && $old) {
                 $st = pmg_db()->prepare('UPDATE pmg_aktualnosci SET data=?, kategoria=?, kolor=?, tytul=?, zajawka=?, tresc=?, zdjecie=?, zdjecie_alt=?, autor=?, opublikowany=? WHERE id=?');
                 $st->execute([$f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $id]);
