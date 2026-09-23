@@ -22,23 +22,6 @@ Strona to zwykłe pliki HTML, CSS i JavaScript. Nie trzeba niczego instalować a
 2. Wpisz: `python -m http.server 8000`
 3. W przeglądarce wejdź na: http://localhost:8000
 
-## PM Session — jak ukryć sekcję „Prelegenci” albo „Harmonogram”
-
-Obie sekcje są w pliku `pm-session.html`. Każda zaczyna się od takiej linii:
-
-```html
-<section id="prelegenci" class="pms-block container" aria-labelledby="h-speakers">
-<section id="harmonogram" class="pms-block container" aria-labelledby="h-schedule">
-```
-
-Żeby **ukryć** sekcję, dopisz słowo `hidden` przed znakiem `>`:
-
-```html
-<section id="prelegenci" class="pms-block container" aria-labelledby="h-speakers" hidden>
-```
-
-Żeby ją **pokazać**, usuń słowo `hidden`. Zapisz plik i odśwież stronę. Nic więcej nie trzeba zmieniać.
-
 ## Formularz kontaktowy i panel Aktualności (PHP — tylko na serwerze PWr)
 
 - `api/kontakt.php` wysyła wiadomość z formularza na `pmgroup.kontakt@gmail.com`. Na GitHub Pages PHP nie działa, więc przycisk „Wyślij” otwiera wtedy program pocztowy (jak dotąd).
