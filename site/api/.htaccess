@@ -1,0 +1,4 @@
+# Konfiguracja i biblioteka nie są dostępne z przeglądarki
+<FilesMatch "^(config|config\.example|lib)\.php$">
+  Require all denied
+</FilesMatch>

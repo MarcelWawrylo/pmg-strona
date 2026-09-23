@@ -9,3 +9,7 @@
 
 # Output graphify (narzędzie lokalne, nie część strony) — patrz CLAUDE.md
 /site/graphify-out/
+# Backend PHP: dane dostępowe i zdjęcia z panelu zostają tylko na serwerze
+/site/api/config.php
+/site/uploads/aktualnosci/*
+!/site/uploads/aktualnosci/.htaccess
