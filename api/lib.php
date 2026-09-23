@@ -1,0 +1,69 @@
+<?php
+// Wspólne funkcje backendu (PHP 7.4). Tylko dołączany, nigdy wywoływany bezpośrednio.
+
+function pmg_config()
+{
+    static $cfg = null;
+    if ($cfg === null) {
+        $file = __DIR__ . '/config.php';
+        if (!is_file($file)) {
+            http_response_code(503);
+            exit('Brak api/config.php');
+        }
+        $cfg = require $file;
+    }
+    return $cfg;
+}
+
+function pmg_db()
+{
+    static $pdo = null;
+    if ($pdo === null) {
+        $c = pmg_config();
+        $pdo = new PDO(
+            'mysql:host=' . $c['db_host'] . ';dbname=' . $c['db_name'] . ';charset=utf8mb4',
+            $c['db_user'],
+            $c['db_pass'],
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_EMULATE_PREPARES => false]
+        );
+        $pdo->exec("CREATE TABLE IF NOT EXISTS pmg_aktualnosci (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            slug VARCHAR(80) NOT NULL UNIQUE,
+            data DATE NOT NULL,
+            kategoria VARCHAR(40) NOT NULL,
+            kolor VARCHAR(10) NOT NULL DEFAULT 'pink',
+            tytul VARCHAR(200) NOT NULL,
+            zajawka VARCHAR(400) NOT NULL,
+            tresc TEXT NOT NULL,
+            zdjecie VARCHAR(200) NULL,
+            zdjecie_alt VARCHAR(200) NOT NULL DEFAULT '',
+            autor VARCHAR(100) NOT NULL DEFAULT '',
+            opublikowany TINYINT(1) NOT NULL DEFAULT 0,
+            zmieniono TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    }
+    return $pdo;
+}
+
+function pmg_json($data, $status = 200)
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    header('X-Content-Type-Options: nosniff');
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+// Prosty limit prób na IP (plik w katalogu tymczasowym): $max zdarzeń w $window sekund.
+function pmg_rate_ok($bucket, $max, $window)
+{
+    $file = sys_get_temp_dir() . '/pmg_' . $bucket . '_' . md5($_SERVER['REMOTE_ADDR'] ?? '');
+    $now = time();
+    $hits = is_file($file) ? array_filter(explode(',', (string) file_get_contents($file)), function ($t) use ($now, $window) {
+        return (int) $t > $now - $window;
+    }) : [];
+    if (count($hits) >= $max) return false;
+    $hits[] = $now;
+    file_put_contents($file, implode(',', $hits), LOCK_EX);
+    return true;
+}

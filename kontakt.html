@@ -81,12 +81,13 @@
             <label class="field__label" for="cf-message">Opisz swój pomysł</label>
             <textarea class="field__input field__input--area" id="cf-message" name="message" rows="3" placeholder="Opisz swoją sprawę..." required></textarea>
           </div>
+          <div class="visually-hidden" aria-hidden="true"><label for="cf-website">Nie wypełniaj tego pola</label><input id="cf-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
           <p class="contact-form__error" data-form-error role="alert" hidden>Uzupełnij wszystkie pola i podaj poprawny adres e-mail.</p>
           <div class="contact-form__foot">
             <p class="contact-form__note" data-form-status aria-live="polite">Postaramy się odpowiedzieć jak najszybciej :)</p>
             <button class="btn btn--dark contact-form__send" type="submit">Wyślij <span aria-hidden="true">→</span></button>
           </div>
-          <p class="contact-form__hint">Przycisk otworzy Twój program pocztowy z gotową wiadomością do <a href="mailto:pmgroup.kontakt@gmail.com">pmgroup.kontakt@gmail.com</a>.</p>
+          <p class="contact-form__hint">Jeśli wysyłka z formularza nie zadziała, otworzymy Twój program pocztowy z gotową wiadomością do <a href="mailto:pmgroup.kontakt@gmail.com">pmgroup.kontakt@gmail.com</a>.</p>
         </form>
       </div>
     </section>

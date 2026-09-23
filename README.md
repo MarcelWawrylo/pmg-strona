@@ -39,9 +39,18 @@ Obie sekcje są w pliku `pm-session.html`. Każda zaczyna się od takiej linii:
 
 Żeby ją **pokazać**, usuń słowo `hidden`. Zapisz plik i odśwież stronę. Nic więcej nie trzeba zmieniać.
 
-## Formularz kontaktowy (rozwiązanie tymczasowe)
+## Formularz kontaktowy i panel Aktualności (PHP — tylko na serwerze PWr)
 
-Strona nie ma serwera do wysyłania wiadomości. Przycisk „Wyślij” otwiera program pocztowy odwiedzającego z gotową wiadomością do `pmgroup.kontakt@gmail.com`. Docelowe rozwiązanie jest do decyzji.
+- `api/kontakt.php` wysyła wiadomość z formularza na `pmgroup.kontakt@gmail.com`. Na GitHub Pages PHP nie działa, więc przycisk „Wyślij” otwiera wtedy program pocztowy (jak dotąd).
+- `panel/` to panel do dodawania wpisów w Aktualnościach (tytuł, data, kategoria, treść, zdjęcie 16:9). Wpisy trafiają do bazy MariaDB i pojawiają się na `aktualnosci.html` oraz jako 3 kafelki na stronie głównej. Bez działającego panelu widać wpisy wpisane na sztywno w HTML.
+
+Uruchomienie na serwerze (jednorazowo):
+1. Skopiuj `api/config.example.php` jako `api/config.php` i wpisz dane bazy oraz adres nadawcy w domenie serwera. `config.php` nie trafia do repozytorium.
+2. Otwórz `…/panel/ustaw-haslo.php`, wpisz hasło (min. 12 znaków) i wklej pokazany hash do `config.php` jako `panel_hash`.
+3. Wejdź na `…/panel/`, zaloguj się i dodaj wpis. Tabela w bazie tworzy się sama.
+4. Wpis bez zaznaczonego „Opublikuj” jest szkicem i nie pokazuje się na stronie.
+
+Uwaga przy wgrywaniu nowej wersji strony: nie nadpisuj ani nie usuwaj na serwerze `api/config.php` i `uploads/aktualnosci/` (zdjęcia z panelu).
 
 ## Zasady przy zmianach
 

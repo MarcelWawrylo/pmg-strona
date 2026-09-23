@@ -6,6 +6,22 @@
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+  // katalog strony (site/) liczony od tego skryptu — tak samo dla v1 i v2/
+  var siteRoot = new URL('../', document.currentScript.src).href;
+
+  // Odpowiedź backendu PHP (serwer PWr) albo null, gdy go nie ma (GitHub Pages zwraca plik .php jako tekst)
+  var api = function (path, opts) {
+    return fetch(siteRoot + 'api/' + path, opts).then(function (r) {
+      return /json/.test(r.headers.get('content-type') || '') ? r.json() : null;
+    }).catch(function () { return null; });
+  };
+  var newsPromise = null;
+  var loadNews = function () {
+    newsPromise = newsPromise || api('aktualnosci.php').then(function (d) { return d && d.wpisy && d.wpisy.length ? d.wpisy : null; });
+    return newsPromise;
+  };
+  var esc = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML.replace(/"/g, '&quot;'); };
+  var fmtDate = function (iso) { var p = String(iso).split('-'); return p[2] + '.' + p[1] + '.' + p[0]; };
 
   /* ---------- Nawigacja: kurczenie przy scrollu + menu mobilne ---------- */
   function initNav() {
@@ -100,7 +116,7 @@
       if (closeBtn) closeBtn.focus();
     };
   }
-  window.PMG = { wireDialog: wireDialog, $: $, $$: $$, reduceMotion: reduceMotion };
+  window.PMG = { wireDialog: wireDialog, $: $, $$: $$, reduceMotion: reduceMotion, root: siteRoot, loadNews: loadNews, esc: esc, fmtDate: fmtDate };
 
   /* ---------- Lightbox galerii ---------- */
   function initLightbox() {
@@ -119,7 +135,7 @@
     });
   }
 
-  /* ---------- Kontakt: formularz bez backendu → link mailto (rozwiązanie tymczasowe) ---------- */
+  /* ---------- Kontakt: wysyłka przez api/kontakt.php; bez backendu (GitHub Pages) → link mailto ---------- */
   function initContactForm() {
     var form = $('[data-contact-form]');
     if (!form) return;
@@ -142,18 +158,29 @@
       }
       error.hidden = true;
       var v = function (n) { return form.elements[n].value; };
-      var bodyText = v('message') + '\n\n—\n' + v('name') + '\n' + v('email');
-      var href = 'mailto:' + form.getAttribute('data-mailto') +
-        '?subject=' + encodeURIComponent(v('subject')) +
-        '&body=' + encodeURIComponent(bodyText);
-      status.textContent = 'Otwieramy Twój program pocztowy z gotową wiadomością…';
-      window.location.href = href;
+      var send = $('.contact-form__send', form);
+      send.disabled = true;
+      status.textContent = 'Wysyłamy wiadomość…';
+      api('kontakt.php', { method: 'POST', body: new FormData(form) }).then(function (res) {
+        send.disabled = false;
+        if (res && res.ok) {
+          form.reset();
+          status.textContent = 'Dziękujemy! Wiadomość wysłana — odpowiemy jak najszybciej.';
+        } else if (res) {
+          status.textContent = res.error || 'Nie udało się wysłać wiadomości.';
+        } else {
+          var bodyText = v('message') + '\n\n—\n' + v('name') + '\n' + v('email');
+          status.textContent = 'Otwieramy Twój program pocztowy z gotową wiadomością…';
+          window.location.href = 'mailto:' + form.getAttribute('data-mailto') +
+            '?subject=' + encodeURIComponent(v('subject')) + '&body=' + encodeURIComponent(bodyText);
+        }
+      });
     });
   }
 
   /* ---------- Rozwijane karty: kafelki aktualności, prelegenci PMS (hover rozwija, klik/dotyk przypina) ---------- */
-  function initNewsTiles() {
-    $$('[data-news], [data-expand]').forEach(function (tile) {
+  function initNewsTiles(scope) {
+    $$('[data-news], [data-expand]', scope).forEach(function (tile) {
       var btn = $('.news-tile__toggle, .expand-toggle', tile);
       if (!btn) return;
       btn.addEventListener('click', function () {
@@ -164,9 +191,27 @@
     });
   }
 
+  /* ---------- Strona główna: 3 najnowsze wpisy z panelu (gdy backend działa) ---------- */
+  function initHomeNews() {
+    var grid = $('.news-grid');
+    if (!grid) return;
+    loadNews().then(function (posts) {
+      if (!posts) return;
+      grid.innerHTML = posts.slice(0, 3).map(function (p, i) {
+        var img = p.zdjecie ? '<img src="' + esc(siteRoot + p.zdjecie) + '" alt="" loading="lazy">' : '<span>[ zdjęcie 16:9 ]</span>';
+        return '<li class="news-tile" data-news><div class="news-tile__img news-tile__img--' + esc(p.kolor) + '" aria-hidden="true">' + img + '</div>' +
+          '<div class="news-tile__body"><p class="news-tile__date">' + fmtDate(p.data) + '</p>' +
+          '<h3 class="news-tile__title"><button class="news-tile__toggle" type="button" aria-expanded="false" aria-controls="news-more-' + (i + 1) + '">' + esc(p.tytul) + '</button></h3>' +
+          '<p class="news-tile__more" id="news-more-' + (i + 1) + '">' + esc(p.zajawka) + ' <a href="aktualnosci.html#wpis-' + esc(p.slug) + '">Czytaj</a></p></div></li>';
+      }).join('');
+      initNewsTiles(grid);
+    });
+  }
+
   document.documentElement.classList.add('js');
   var init = function () {
     initNewsTiles();
+    initHomeNews();
     initNav();
     initToTop();
     initReveal();
@@ -188,46 +233,93 @@
     var list = $('[data-blog-list]');
     var wrap = $('[data-blog-articles]');
     if (!list || !wrap) return;
-    var articles = $$('.blog-article', wrap);
-    var baseTitle = document.title;
-    var listTitle = $('#blog-title', list);
+    if (PMG.loadNews) PMG.loadNews().then(function (posts) { if (posts) render(posts); route(); }); else route();
 
-    var find = function (hash) {
-      if (hash === '' || hash === '#' || hash === '#aktualnosci') return 'list';
-      for (var i = 0; i < articles.length; i++) if ('#' + articles[i].id === hash) return articles[i];
-      return null; // inny hash (np. #main z linku „Przejdź do treści”) — nie zmieniaj widoku
-    };
+    // Wpisy z panelu zastępują statyczne. Wszystkie pola przechodzą przez esc(); treść: akapity
+    // rozdzielone pustą linią, „## ” na początku = śródtytuł.
+    function render(posts) {
+      var esc = PMG.esc, fmt = PMG.fmtDate;
+      var ph = { pink: 'pms', purple: 'podcast', blue: 'case', violet: 'integracja' };
+      var img = function (p, cls, withAlt) {
+        var alt = withAlt && p.zdjecie_alt;
+        return '<div class="blog-ph blog-ph--' + (ph[p.kolor] || 'pms') + ' ' + cls + '"' + (p.zdjecie && alt ? '' : ' aria-hidden="true"') + '>' +
+          (p.zdjecie ? '<img src="' + esc(PMG.root + p.zdjecie) + '" alt="' + (alt ? esc(p.zdjecie_alt) : '') + '">' : '[ zdjęcie 16:9 ]') + '</div>';
+      };
+      var meta = function (p, cls) {
+        return '<div class="blog-meta' + (cls || '') + '"><span class="blog-cat blog-cat--' + esc(p.kolor) + '">' + esc(p.kategoria) + '</span>' +
+          '<span class="blog-date"><time datetime="' + esc(p.data) + '">' + fmt(p.data) + '</time></span></div>';
+      };
+      var body = function (t) {
+        return String(t).split(/\n\s*\n/).map(function (b) {
+          b = b.trim();
+          return /^## /.test(b) ? '<h2 class="blog-article__h2">' + esc(b.slice(3)) + '</h2>' : '<p class="blog-article__p">' + esc(b).replace(/\n/g, '<br>') + '</p>';
+        }).join('');
+      };
+      var link = function (p, tag, cls) {
+        return '<' + tag + ' class="' + cls + '"><a class="blog-link" href="#wpis-' + esc(p.slug) + '">' + esc(p.tytul) + '</a></' + tag + '>';
+      };
+      var f = posts[0];
+      $('.blog-featured', list).innerHTML = img(f, 'blog-featured__img') + '<div class="blog-featured__body">' + meta(f) + link(f, 'h2', 'blog-featured__title') +
+        '<p class="blog-featured__excerpt">' + esc(f.zajawka) + '</p><p class="blog-more blog-more--' + esc(f.kolor) + '" aria-hidden="true">Czytaj artykuł →</p></div>';
+      $('.blog-grid', list).innerHTML = posts.slice(1).map(function (p) {
+        return '<li class="blog-card" data-blog-card>' + img(p, 'blog-card__img') + '<div class="blog-card__body">' + meta(p) + link(p, 'h3', 'blog-card__title') +
+          '<p class="blog-card__excerpt">' + esc(p.zajawka) + '</p><p class="blog-more blog-more--' + esc(p.kolor) + '" aria-hidden="true">Czytaj więcej ↘</p></div></li>';
+      }).join('');
+      $('.blog-posts', list).hidden = posts.length < 2;
+      wrap.innerHTML = posts.map(function (p) {
+        var id = 'wpis-' + esc(p.slug);
+        return '<article id="' + id + '" class="blog-article" aria-labelledby="' + id + '-title">' +
+          '<a class="blog-back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wszystkie aktualności</a>' + meta(p, ' blog-meta--article') +
+          '<h1 class="blog-article__title" id="' + id + '-title" tabindex="-1">' + esc(p.tytul) + '</h1>' +
+          '<p class="blog-article__lead">' + esc(p.zajawka) + '</p>' + img(p, 'blog-article__img', true) +
+          '<div class="blog-article__body">' + body(p.tresc) + '</div><div class="blog-article__foot">' +
+          (p.autor ? '<p class="blog-article__author">Autor: <b>' + esc(p.autor) + '</b></p>' : '<span></span>') +
+          '<a class="btn btn--dark blog-article__back" href="#aktualnosci" data-blog-back>Wróć do listy <span aria-hidden="true">→</span></a></div></article>';
+      }).join('');
+    }
 
-    var current = null;
-    var show = function (target, moveFocus) {
-      var art = target === 'list' ? null : target;
-      list.hidden = !!art;
-      wrap.hidden = !art;
-      articles.forEach(function (a) { a.hidden = a !== art; });
-      var changed = current !== target;
-      current = target;
-      if (art) {
-        var h1 = $('.blog-article__title', art);
-        document.title = h1.textContent + ' — Aktualności — Project Management Group';
-        window.scrollTo(0, 0);
-        if (moveFocus) h1.focus({ preventScroll: true });
-      } else {
-        document.title = baseTitle;
-        if (changed || moveFocus) window.scrollTo(0, 0);
-        if (moveFocus && listTitle) listTitle.focus({ preventScroll: true });
-      }
-    };
+    function route() {
+      var articles = $$('.blog-article', wrap);
+      var baseTitle = document.title;
+      var listTitle = $('#blog-title', list);
 
-    // przewijanie sterujemy sami (Wstecz przeglądarki → góra listy + focus na nagłówku, spójnie z linkami powrotu)
-    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    var initial = find(location.hash);
-    show(initial || 'list', false);
-    document.documentElement.classList.add('blog-ready');
+      var find = function (hash) {
+        if (hash === '' || hash === '#' || hash === '#aktualnosci') return 'list';
+        for (var i = 0; i < articles.length; i++) if ('#' + articles[i].id === hash) return articles[i];
+        return null; // inny hash (np. #main z linku „Przejdź do treści”) — nie zmieniaj widoku
+      };
 
-    window.addEventListener('hashchange', function () {
-      var t = find(location.hash);
-      if (t) show(t, true);
-    });
+      var current = null;
+      var show = function (target, moveFocus) {
+        var art = target === 'list' ? null : target;
+        list.hidden = !!art;
+        wrap.hidden = !art;
+        articles.forEach(function (a) { a.hidden = a !== art; });
+        var changed = current !== target;
+        current = target;
+        if (art) {
+          var h1 = $('.blog-article__title', art);
+          document.title = h1.textContent + ' — Aktualności — Project Management Group';
+          window.scrollTo(0, 0);
+          if (moveFocus) h1.focus({ preventScroll: true });
+        } else {
+          document.title = baseTitle;
+          if (changed || moveFocus) window.scrollTo(0, 0);
+          if (moveFocus && listTitle) listTitle.focus({ preventScroll: true });
+        }
+      };
+
+      // przewijanie sterujemy sami (Wstecz przeglądarki → góra listy + focus na nagłówku, spójnie z linkami powrotu)
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      var initial = find(location.hash);
+      show(initial || 'list', false);
+      document.documentElement.classList.add('blog-ready');
+
+      window.addEventListener('hashchange', function () {
+        var t = find(location.hash);
+        if (t) show(t, true);
+      });
+    }
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
