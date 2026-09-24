@@ -26,7 +26,19 @@ function pmg_db()
             $c['db_pass'],
             [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_EMULATE_PREPARES => false]
         );
-        $pdo->exec("CREATE TABLE IF NOT EXISTS pmg_aktualnosci (
+    }
+    return $pdo;
+}
+
+// Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko). Wywoływana tylko z panelu, przy każdym żądaniu.
+// Kolejne etapy dopiszą tu swoje tabele (pmg_sekcje, pmg_osoby, pmg_edycje, pmg_prelegenci, pmg_harmonogram)
+// i ewentualne ALTER TABLE ... ADD COLUMN IF NOT EXISTS dla już istniejących.
+function pmg_migrate()
+{
+    $pdo = pmg_db();
+    $tabele = [
+        // przeniesiona 1:1 z dawnego pmg_db() — dane zostają
+        "CREATE TABLE IF NOT EXISTS pmg_aktualnosci (
             id INT AUTO_INCREMENT PRIMARY KEY,
             slug VARCHAR(80) NOT NULL UNIQUE,
             data DATE NOT NULL,
@@ -40,9 +52,37 @@ function pmg_db()
             autor VARCHAR(100) NOT NULL DEFAULT '',
             opublikowany TINYINT(1) NOT NULL DEFAULT 0,
             zmieniono TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    }
-    return $pdo;
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS pmg_uzytkownicy (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            imie_nazwisko VARCHAR(100) NOT NULL,
+            email VARCHAR(150) NOT NULL UNIQUE,
+            haslo VARCHAR(255) NULL,
+            rola ENUM('admin','redaktor') NOT NULL DEFAULT 'redaktor',
+            moduly SET('aktualnosci','czlonkowie','pmsession') NOT NULL DEFAULT '',
+            aktywny TINYINT(1) NOT NULL DEFAULT 1,
+            token_hash CHAR(64) NULL UNIQUE,
+            token_do DATETIME NULL,
+            ostatnie_logowanie DATETIME NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS pmg_dziennik (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            kiedy TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            uzytkownik_id INT NOT NULL,
+            modul VARCHAR(20) NOT NULL,
+            akcja VARCHAR(20) NOT NULL,
+            rekord_id INT NULL,
+            FOREIGN KEY (uzytkownik_id) REFERENCES pmg_uzytkownicy(id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS pmg_ustawienia (
+            klucz VARCHAR(40) PRIMARY KEY,
+            wartosc VARCHAR(500) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    ];
+    foreach ($tabele as $sql) $pdo->exec($sql);
 }
 
 function pmg_json($data, $status = 200)
@@ -54,10 +94,11 @@ function pmg_json($data, $status = 200)
     exit;
 }
 
-// Prosty limit prób na IP (plik w katalogu tymczasowym): $max zdarzeń w $window sekund.
-function pmg_rate_ok($bucket, $max, $window)
+// Prosty limit prób ($max zdarzeń w $window sekund), plik w katalogu tymczasowym.
+// $key = klucz zdarzenia (np. e-mail konta); domyślnie adres IP.
+function pmg_rate_ok($bucket, $max, $window, $key = null)
 {
-    $file = sys_get_temp_dir() . '/pmg_' . $bucket . '_' . md5($_SERVER['REMOTE_ADDR'] ?? '');
+    $file = sys_get_temp_dir() . '/pmg_' . $bucket . '_' . md5($key !== null ? $key : ($_SERVER['REMOTE_ADDR'] ?? ''));
     $now = time();
     $hits = is_file($file) ? array_filter(explode(',', (string) file_get_contents($file)), function ($t) use ($now, $window) {
         return (int) $t > $now - $window;

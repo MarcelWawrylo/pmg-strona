@@ -1,8 +1,10 @@
 <?php
-// Panel Aktualności: logowanie hasłem, dodawanie / edycja / usuwanie wpisów (PHP 7.4 + MariaDB).
+// Panel PMG — jedyny punkt wejścia. Sesja, CSRF, logowanie/konta, router modułów (?m=), szablon.
 require __DIR__ . '/../api/lib.php';
+define('PMG_PANEL', 1);
 
 $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+ini_set('session.gc_maxlifetime', 7200);
 session_set_cookie_params(['lifetime' => 0, 'path' => dirname($_SERVER['SCRIPT_NAME']), 'secure' => $https, 'httponly' => true, 'samesite' => 'Strict']);
 session_name('pmgpanel');
 session_start();
@@ -10,145 +12,234 @@ header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
 header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; form-action 'self'; frame-ancestors 'none'");
 header('Cache-Control: no-store');
+header('Referrer-Policy: no-referrer');
 
+pmg_migrate();
+
+// Hasło stałej długości do porównań przy logowaniu na nieistniejące konto (stały czas odpowiedzi).
+const DUMMY_HASH = '$2y$10$orSlF6sUaQo89zN3NskTuOtXFvhAKDwJFtiZnQzJjJnZMJhWciWfy';
 const KOLORY = ['pink' => 'Różowy', 'purple' => 'Fioletowy', 'blue' => 'Niebieski', 'violet' => 'Liliowy'];
-const UPLOAD_DIR = __DIR__ . '/../uploads/aktualnosci/';
+const ZDJECIA = ['aktualnosci' => [16 / 9, 1600], 'czlonkowie' => [1, 800], 'pmsession' => [1, 800]];
+const MODULY = [
+    'aktualnosci' => 'aktualnosci', 'czlonkowie' => 'czlonkowie', 'pmsession' => 'pmsession',
+    'konta' => 'admin', 'dziennik' => 'admin', 'ustawienia' => 'admin', 'kopia' => 'admin',
+];
 
 function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
 function csrf() { return $_SESSION['csrf'] ?? ($_SESSION['csrf'] = bin2hex(random_bytes(32))); }
 function go($query = '') { header('Location: index.php' . $query, true, 303); exit; }
 
-function slugify($text)
+// Czy zalogowany $me ma dostęp do modułu $modul ('admin' = tylko administrator).
+function wolno($modul)
 {
-    $text = strtr(mb_strtolower($text, 'UTF-8'), ['ą' => 'a', 'ć' => 'c', 'ę' => 'e', 'ł' => 'l', 'ń' => 'n', 'ó' => 'o', 'ś' => 's', 'ź' => 'z', 'ż' => 'z']);
-    $text = trim(preg_replace('/[^a-z0-9]+/', '-', $text), '-');
-    return substr($text !== '' ? $text : 'wpis', 0, 60);
+    global $me;
+    return $me && ($me['rola'] === 'admin' || in_array($modul, explode(',', $me['moduly']), true));
 }
 
-// Zapis zdjęcia 16:9. Zwraca ścieżkę względną do katalogu strony albo rzuca komunikat dla użytkownika.
-function save_image($file)
+// Wpis do dziennika zmian po każdym udanym zapisie.
+function loguj($modul, $akcja, $id = null)
 {
+    global $me;
+    pmg_db()->prepare('INSERT INTO pmg_dziennik (uzytkownik_id, modul, akcja, rekord_id) VALUES (?,?,?,?)')
+        ->execute([$me['id'], $modul, $akcja, $id]);
+}
+
+// Puste pole albo adres zaczynający się od https:// i poprawny wg FILTER_VALIDATE_URL.
+function url_ok($v)
+{
+    return $v === '' || (strpos($v, 'https://') === 0 && filter_var($v, FILTER_VALIDATE_URL) !== false);
+}
+
+// Zapis zdjęcia dla modułu $modul (proporcje i szerokość z ZDJECIA). Zwraca ścieżkę względną albo rzuca komunikat.
+function save_image($file, $modul)
+{
+    list($proporcja, $maxSzer) = ZDJECIA[$modul];
     if ($file['error'] !== UPLOAD_ERR_OK) throw new RuntimeException('Nie udało się wgrać pliku (kod ' . (int) $file['error'] . ').');
     if ($file['size'] > 10 * 1024 * 1024) throw new RuntimeException('Zdjęcie jest większe niż 10 MB.');
     $info = @getimagesize($file['tmp_name']);
     $types = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
     if (!$info || !isset($types[$info[2]])) throw new RuntimeException('Dozwolone formaty: JPG, PNG, WebP.');
     list($w, $hgt) = $info;
-    if (abs($w / $hgt - 16 / 9) > 0.03) throw new RuntimeException('Zdjęcie musi mieć proporcje 16:9 (wgrane: ' . $w . '×' . $hgt . ' px).');
-    if (!is_dir(UPLOAD_DIR)) mkdir(UPLOAD_DIR, 0755, true);
+    if (abs($w / $hgt - $proporcja) > 0.03) {
+        $opis = abs($proporcja - 1) < 0.001 ? '1:1 (kwadrat)' : '16:9';
+        throw new RuntimeException('Zdjęcie musi mieć proporcje ' . $opis . ' (wgrane: ' . $w . '×' . $hgt . ' px).');
+    }
+    $dir = __DIR__ . '/../uploads/' . $modul . '/';
+    if (!is_dir($dir)) mkdir($dir, 0755, true);
     $name = date('Ymd') . '-' . bin2hex(random_bytes(6));
 
-    // Z biblioteką GD: zmniejsz do 1600 px i zapisz jako JPG (lżejsza strona). Bez GD: limit 1,5 MB.
+    // Z biblioteką GD: zmniejsz do maxSzer px i zapisz jako JPG (lżejsza strona). Bez GD: limit 1,5 MB.
     $open = ['jpg' => 'imagecreatefromjpeg', 'png' => 'imagecreatefrompng', 'webp' => 'imagecreatefromwebp'][$types[$info[2]]];
     if (function_exists($open) && function_exists('imagejpeg')) {
         $src = $open($file['tmp_name']);
-        $nw = min(1600, $w);
+        $nw = min($maxSzer, $w);
         $dst = imagecreatetruecolor($nw, (int) round($nw * $hgt / $w));
         imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
         imagecopyresampled($dst, $src, 0, 0, 0, 0, imagesx($dst), imagesy($dst), $w, $hgt);
-        imagejpeg($dst, UPLOAD_DIR . $name . '.jpg', 82);
-        return 'uploads/aktualnosci/' . $name . '.jpg';
+        imagejpeg($dst, $dir . $name . '.jpg', 82);
+        return 'uploads/' . $modul . '/' . $name . '.jpg';
     }
     if ($file['size'] > 1536 * 1024) throw new RuntimeException('Serwer nie może zmniejszyć zdjęcia — wgraj plik do 1,5 MB.');
-    move_uploaded_file($file['tmp_name'], UPLOAD_DIR . $name . '.' . $types[$info[2]]);
-    return 'uploads/aktualnosci/' . $name . '.' . $types[$info[2]];
+    move_uploaded_file($file['tmp_name'], $dir . $name . '.' . $types[$info[2]]);
+    return 'uploads/' . $modul . '/' . $name . '.' . $types[$info[2]];
 }
 
 function drop_image($path)
 {
-    if ($path && preg_match('~^uploads/aktualnosci/[0-9a-f-]+\.(jpg|png|webp)$~', $path)) @unlink(__DIR__ . '/../' . $path);
+    if ($path && preg_match('~^uploads/(aktualnosci|czlonkowie|pmsession)/[0-9a-f-]+\.(jpg|png|webp)$~', $path)) @unlink(__DIR__ . '/../' . $path);
 }
 
-$cfg = pmg_config();
+// Sprawdza opis zdjęcia (wymagany przy nowym pliku i przy zachowaniu istniejącego) i wgrywa nowy plik, jeśli podano.
+// Zwraca ścieżkę do zapisania w bazie (nową albo — bez wgrania — dotychczasową $old).
+function zdjecie($modul, $old)
+{
+    $alt = trim((string) ($_POST['zdjecie_alt'] ?? ''));
+    $upload = !empty($_FILES['zdjecie']['name']);
+    if (($upload || $old) && $alt === '') throw new RuntimeException('Dodaj opis zdjęcia (dla osób niewidomych).');
+    return $upload ? save_image($_FILES['zdjecie'], $modul) : $old;
+}
+
+// ---------- $me: ładowany z bazy przy każdym żądaniu (blokada/zmiana roli działa od razu) ----------
+$me = null;
+$wygasla = false;
+if (!empty($_SESSION['uid'])) {
+    if (time() - ($_SESSION['t'] ?? 0) > 7200) {
+        $wygasla = true;
+        session_regenerate_id(true);
+        $_SESSION = [];
+    } else {
+        $_SESSION['t'] = time();
+        $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ? AND aktywny = 1');
+        $st->execute([(int) $_SESSION['uid']]);
+        $me = $st->fetch() ?: null;
+        if (!$me) { session_regenerate_id(true); $_SESSION = []; }
+    }
+}
+
+// ---------- CSRF: jedno miejsce dla każdego POST (formularze przed i po zalogowaniu) ----------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !hash_equals(csrf(), (string) ($_POST['csrf'] ?? ''))) {
+    http_response_code(400);
+    exit('Sesja wygasła — odśwież stronę i spróbuj ponownie.');
+}
+
 $error = '';
 $flash = $_SESSION['flash'] ?? '';
 unset($_SESSION['flash']);
 
-// ---------- POST: każda akcja wymaga tokenu CSRF ----------
+// ---------- Akcje poza modułami: pierwsze konto / logowanie / ustawienie hasła / wylogowanie ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!hash_equals(csrf(), (string) ($_POST['csrf'] ?? ''))) { http_response_code(400); exit('Sesja wygasła — odśwież stronę.'); }
     $action = $_POST['a'] ?? '';
 
-    if ($action === 'login') {
-        if (!pmg_rate_ok('login', 5, 900)) {
-            $error = 'Za dużo prób logowania. Spróbuj za 15 minut.';
-        } elseif ($cfg['panel_hash'] !== '' && password_verify((string) ($_POST['haslo'] ?? ''), $cfg['panel_hash'])) {
-            session_regenerate_id(true);
-            $_SESSION['ok'] = true;
-            go();
-        } else {
-            $error = 'Nieprawidłowe hasło.';
-        }
-    } elseif (empty($_SESSION['ok'])) {
-        go();
-    } elseif ($action === 'logout') {
+    if ($action === 'logout') {
         $_SESSION = [];
         session_destroy();
         go();
-    } elseif ($action === 'delete') {
-        $st = pmg_db()->prepare('SELECT zdjecie FROM pmg_aktualnosci WHERE id = ?');
-        $st->execute([(int) $_POST['id']]);
-        drop_image($st->fetchColumn());
-        pmg_db()->prepare('DELETE FROM pmg_aktualnosci WHERE id = ?')->execute([(int) $_POST['id']]);
-        $_SESSION['flash'] = 'Wpis usunięty.';
-        go();
-    } elseif ($action === 'save') {
-        $id = (int) ($_POST['id'] ?? 0);
-        $f = [];
-        foreach (['tytul' => 200, 'zajawka' => 400, 'kategoria' => 40, 'autor' => 100, 'zdjecie_alt' => 200] as $k => $max) {
-            $f[$k] = mb_substr(trim((string) ($_POST[$k] ?? '')), 0, $max);
-        }
-        $f['tresc'] = trim(str_replace("\r\n", "\n", (string) ($_POST['tresc'] ?? '')));
-        $f['data'] = (string) ($_POST['data'] ?? '');
-        $f['kolor'] = array_key_exists((string) ($_POST['kolor'] ?? ''), KOLORY) ? $_POST['kolor'] : 'pink';
-        $f['opublikowany'] = empty($_POST['opublikowany']) ? 0 : 1;
-        $old = null;
-        if ($id) {
-            $st = pmg_db()->prepare('SELECT * FROM pmg_aktualnosci WHERE id = ?');
-            $st->execute([$id]);
-            $old = $st->fetch() ?: null;
-        }
-        $f['zdjecie'] = $old['zdjecie'] ?? null;
-        try {
-            if ($f['tytul'] === '' || $f['zajawka'] === '' || $f['tresc'] === '' || $f['kategoria'] === '') throw new RuntimeException('Uzupełnij tytuł, kategorię, zajawkę i treść.');
-            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $f['data'])) throw new RuntimeException('Podaj datę wpisu.');
-            $upload = !empty($_FILES['zdjecie']['name']);
-            // opis sprawdzany przed zapisem pliku — inaczej odrzucony wpis zostawiałby osierocone zdjęcie
-            if (($upload || $f['zdjecie']) && $f['zdjecie_alt'] === '') throw new RuntimeException('Dodaj opis zdjęcia (dla osób niewidomych).');
-            if ($upload) {
-                $f['zdjecie'] = save_image($_FILES['zdjecie']);
-                if ($old) drop_image($old['zdjecie']);
-            }
-            if ($id && $old) {
-                $st = pmg_db()->prepare('UPDATE pmg_aktualnosci SET data=?, kategoria=?, kolor=?, tytul=?, zajawka=?, tresc=?, zdjecie=?, zdjecie_alt=?, autor=?, opublikowany=? WHERE id=?');
-                $st->execute([$f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $id]);
+    }
+
+    if (!$me && $action === 'pierwsze') {
+        $cnt = (int) pmg_db()->query('SELECT COUNT(*) FROM pmg_uzytkownicy')->fetchColumn();
+        if ($cnt > 0) { http_response_code(403); exit('To konto już istnieje — zaloguj się.'); }
+        $cfg = pmg_config();
+        if (!pmg_rate_ok('login', 20, 900)) {
+            $error = 'Za dużo prób. Spróbuj za 15 minut.';
+        } elseif (($cfg['panel_hash'] ?? '') !== '' && !password_verify((string) ($_POST['stare_haslo'] ?? ''), $cfg['panel_hash'])) {
+            $error = 'Nieprawidłowe dotychczasowe hasło panelu.';
+        } else {
+            $imie = mb_substr(trim((string) ($_POST['imie_nazwisko'] ?? '')), 0, 100);
+            $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
+            $haslo = (string) ($_POST['haslo'] ?? '');
+            if ($imie === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $error = 'Podaj imię i nazwisko oraz poprawny e-mail.';
+            } elseif (mb_strlen($haslo) < 12) {
+                $error = 'Hasło musi mieć co najmniej 12 znaków.';
             } else {
-                $base = $slug = slugify($f['tytul']);
-                $st = pmg_db()->prepare('SELECT 1 FROM pmg_aktualnosci WHERE slug = ?');
-                for ($n = 2; $st->execute([$slug]) && $st->fetchColumn(); $n++) $slug = $base . '-' . $n;
-                $st = pmg_db()->prepare('INSERT INTO pmg_aktualnosci (slug, data, kategoria, kolor, tytul, zajawka, tresc, zdjecie, zdjecie_alt, autor, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
-                $st->execute([$slug, $f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany']]);
+                $st = pmg_db()->prepare('INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, haslo, rola, moduly, aktywny) VALUES (?,?,?,?,?,1)');
+                $st->execute([$imie, $email, password_hash($haslo, PASSWORD_DEFAULT), 'admin', 'aktualnosci,czlonkowie,pmsession']);
+                session_regenerate_id(true);
+                $_SESSION['uid'] = (int) pmg_db()->lastInsertId();
+                $_SESSION['t'] = time();
+                go();
             }
-            $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano.' : 'Zapisano jako szkic (niewidoczny na stronie).';
+        }
+    }
+
+    if (!$me && $action === 'login') {
+        $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
+        $haslo = (string) ($_POST['haslo'] ?? '');
+        if (!pmg_rate_ok('login', 20, 900) || !pmg_rate_ok('login_konto', 5, 900, $email)) {
+            $error = 'Za dużo prób logowania. Spróbuj za 15 minut.';
+        } else {
+            $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE email = ? AND aktywny = 1');
+            $st->execute([$email]);
+            $u = $st->fetch();
+            $ma_haslo = $u && $u['haslo'] !== null;
+            $ok = password_verify($haslo, $ma_haslo ? $u['haslo'] : DUMMY_HASH) && $ma_haslo;
+            if ($ok) {
+                session_regenerate_id(true);
+                $_SESSION['uid'] = (int) $u['id'];
+                $_SESSION['t'] = time();
+                pmg_db()->prepare('UPDATE pmg_uzytkownicy SET ostatnie_logowanie = NOW() WHERE id = ?')->execute([$u['id']]);
+                go();
+            } else {
+                $error = 'Nieprawidłowy e-mail lub hasło.';
+            }
+        }
+    }
+
+    if (!$me && $action === 'haslo') {
+        $t = (string) ($_POST['t'] ?? '');
+        $haslo = (string) ($_POST['haslo'] ?? '');
+        $st = pmg_db()->prepare('SELECT id FROM pmg_uzytkownicy WHERE token_hash = ? AND token_do > NOW() AND aktywny = 1');
+        $st->execute([hash('sha256', $t)]);
+        $u = $st->fetch();
+        if (!$u) {
+            $error = 'Link jest nieważny lub wygasł — poproś administratora o nowy.';
+        } elseif (mb_strlen($haslo) < 12) {
+            $error = 'Hasło musi mieć co najmniej 12 znaków.';
+        } else {
+            pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo = ?, token_hash = NULL, token_do = NULL WHERE id = ?')
+                ->execute([password_hash($haslo, PASSWORD_DEFAULT), $u['id']]);
+            $_SESSION['flash'] = 'Hasło ustawione — możesz się zalogować.';
             go();
-        } catch (RuntimeException $e) {
-            $error = $e->getMessage();
-            $edit = array_merge($old ?: [], $f, ['id' => $id]);
         }
     }
 }
 
-$logged = !empty($_SESSION['ok']);
-if ($logged && !isset($edit)) {
-    if (isset($_GET['nowy'])) {
-        $edit = ['id' => 0, 'data' => date('Y-m-d'), 'kolor' => 'pink', 'opublikowany' => 0];
-    } elseif (isset($_GET['id'])) {
-        $st = pmg_db()->prepare('SELECT * FROM pmg_aktualnosci WHERE id = ?');
-        $st->execute([(int) $_GET['id']]);
-        $edit = $st->fetch() ?: null;
+// ---------- Widok bez zalogowania ----------
+$widok = '';
+if (!$me) {
+    $liczbaKont = (int) pmg_db()->query('SELECT COUNT(*) FROM pmg_uzytkownicy')->fetchColumn();
+    if ($liczbaKont === 0) $widok = 'pierwsze';
+    elseif (isset($_GET['t'])) $widok = 'haslo';
+    else $widok = 'logowanie';
+}
+
+// ---------- Router modułów ----------
+$m = $_GET['m'] ?? '';
+$tresc = null;
+if ($me && $m !== '') {
+    if (!isset(MODULY[$m])) {
+        http_response_code(404);
+        $tresc = '<p class="msg msg--err" role="alert">Nieznany moduł.</p>';
+    } elseif (!wolno(MODULY[$m])) {
+        http_response_code(403);
+        $tresc = '<p class="msg msg--err" role="alert">Nie masz dostępu do tego modułu. Jeśli to pomyłka, poproś administratora.</p>';
+    } else {
+        $plik = __DIR__ . '/_' . (MODULY[$m] === 'admin' ? 'admin' : $m) . '.php';
+        if (!is_file($plik)) {
+            $tresc = '<p class="msg msg--info">Moduł w przygotowaniu.</p>';
+        } else {
+            ob_start();
+            require $plik;
+            $tresc = ob_get_clean();
+        }
     }
 }
-$v = function ($k) use (&$edit) { return h($edit[$k] ?? ''); };
+
+$etykietyModulow = [
+    'aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session',
+    'konta' => 'Konta', 'dziennik' => 'Dziennik zmian', 'ustawienia' => 'Ustawienia strony', 'kopia' => 'Kopia bazy danych',
+];
 ?>
 <!DOCTYPE html>
 <html lang="pl">
@@ -156,16 +247,21 @@ $v = function ($k) use (&$edit) { return h($edit[$k] ?? ''); };
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Panel Aktualności — PMG</title>
+<title>Panel PMG</title>
 <style>
-  body { font: 16px/1.5 system-ui, sans-serif; color: #141414; background: #F7F6F3; margin: 0; padding: 24px 16px 60px; }
-  main { max-width: 820px; margin: 0 auto; }
-  h1 { font-size: 26px; margin: 0 0 20px; }
+  * { box-sizing: border-box; }
+  body { font: 16px/1.5 system-ui, sans-serif; color: #141414; background: #F7F6F3; margin: 0; padding: 0 16px 60px; }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 26px; margin: 24px 0 16px; }
+  h2 { font-size: 20px; }
   a { color: #1d46e0; }
   .box { background: #fff; border: 1px solid #e3e1dc; border-radius: 14px; padding: 20px; margin-bottom: 18px; }
   label { display: block; font-weight: 600; margin: 14px 0 4px; }
-  input[type=text], input[type=date], input[type=password], select, textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 10px 12px; border: 1px solid #b9b6ae; border-radius: 8px; background: #fff; }
-  textarea { min-height: 260px; }
+  fieldset { border: 1px solid #e3e1dc; border-radius: 10px; margin: 14px 0; padding: 10px 14px; }
+  fieldset label { display: inline-block; font-weight: 400; margin-right: 16px; }
+  legend { font-weight: 600; padding: 0 6px; }
+  input[type=text], input[type=email], input[type=date], input[type=time], input[type=password], select, textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid #b9b6ae; border-radius: 8px; background: #fff; }
+  textarea { min-height: 200px; }
   .hint { font-size: 14px; color: #555; margin: 4px 0 0; }
   button, .btn { font: inherit; font-weight: 600; padding: 10px 18px; border-radius: 999px; border: 0; background: #141414; color: #fff; cursor: pointer; text-decoration: none; display: inline-block; }
   .btn--light { background: #e9e7e2; color: #141414; }
@@ -174,79 +270,101 @@ $v = function ($k) use (&$edit) { return h($edit[$k] ?? ''); };
   .msg { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; }
   .msg--err { background: #fde8ee; color: #8a0f33; }
   .msg--ok { background: #e7f5ea; color: #1b5e2b; }
+  .msg--info { background: #eef1fd; color: #1d2c8b; }
+  .tabela { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; }
   td, th { text-align: left; padding: 10px 6px; border-bottom: 1px solid #eee; vertical-align: top; }
   .draft { font-size: 13px; background: #eee; border-radius: 6px; padding: 2px 8px; }
   img.preview { max-width: 320px; width: 100%; border-radius: 8px; display: block; margin-top: 8px; }
+  .topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid #e3e1dc; margin-bottom: 20px; }
+  .topbar a { text-decoration: none; }
+  .topbar__nav { display: flex; flex-wrap: wrap; gap: 12px; margin-left: auto; }
+  .topbar form { margin: 0; }
+  .kafelki { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+  .kafelek { display: block; background: #fff; border: 1px solid #e3e1dc; border-radius: 14px; padding: 22px 18px; text-decoration: none; color: #141414; font-weight: 600; }
+  .kafelek:hover, .kafelek:focus-visible { border-color: #1d46e0; }
   :focus-visible { outline: 3px solid #1d46e0; outline-offset: 2px; }
+  @media (max-width: 480px) { body { padding: 0 12px 40px; } .topbar__nav { gap: 8px 14px; } }
 </style>
 </head>
 <body>
 <main>
-<h1>Panel Aktualności PMG</h1>
+<h1>Panel PMG</h1>
+
+<?php if ($me): ?>
+  <div class="topbar">
+    <span>Zalogowano: <strong><?= h($me['imie_nazwisko']) ?></strong></span>
+    <nav class="topbar__nav">
+      <?php foreach ($etykietyModulow as $mk => $ml): if (wolno(MODULY[$mk])): ?>
+        <a href="?m=<?= $mk ?>"<?= $mk === $m ? ' aria-current="page"' : '' ?>><?= h($ml) ?></a>
+      <?php endif; endforeach; ?>
+    </nav>
+    <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="logout"><button class="btn--light" type="submit">Wyloguj</button></form>
+  </div>
+<?php endif; ?>
+
 <?php if ($error): ?><p class="msg msg--err" role="alert"><?= h($error) ?></p><?php endif; ?>
 <?php if ($flash): ?><p class="msg msg--ok" role="status"><?= h($flash) ?></p><?php endif; ?>
+<?php if ($wygasla): ?><p class="msg msg--err" role="alert">Sesja wygasła z powodu bezczynności — zaloguj się ponownie.</p><?php endif; ?>
 
-<?php if (!$logged): ?>
-  <?php if ($cfg['panel_hash'] === ''): ?>
-    <p class="msg msg--err">Panel nie ma jeszcze hasła. Otwórz <a href="ustaw-haslo.php">ustaw-haslo.php</a> i wklej wynik do <code>api/config.php</code>.</p>
+<?php if (!$me): ?>
+
+  <?php if ($widok === 'pierwsze'): $cfg = pmg_config(); ?>
+    <div class="box">
+      <h2>Pierwsze konto administratora</h2>
+      <p class="hint">Tabela kont jest pusta — to jednorazowy ekran. Załóż konto administratora, żeby dalej zarządzać panelem.</p>
+      <form method="post">
+        <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="pierwsze">
+        <?php if (($cfg['panel_hash'] ?? '') !== ''): ?>
+          <label for="stare_haslo">Dotychczasowe hasło panelu Aktualności</label>
+          <p class="hint" id="stare_haslo_h">Ta instalacja miała wcześniej wspólne hasło do panelu — potwierdź je, żeby przejąć dostęp.</p>
+          <input type="password" id="stare_haslo" name="stare_haslo" autocomplete="current-password" required aria-describedby="stare_haslo_h">
+        <?php endif; ?>
+        <label for="imie_nazwisko">Imię i nazwisko</label>
+        <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" required autofocus>
+        <label for="email">E-mail (login)</label>
+        <input type="email" id="email" name="email" maxlength="150" required>
+        <label for="haslo">Hasło (min. 12 znaków)</label>
+        <p class="hint" id="haslo_h">Użyj hasła, którego nie używasz nigdzie indziej.</p>
+        <input type="password" id="haslo" name="haslo" minlength="12" required autocomplete="new-password" aria-describedby="haslo_h">
+        <div class="row"><button type="submit">Załóż konto</button></div>
+      </form>
+    </div>
+
+  <?php elseif ($widok === 'haslo'): ?>
+    <div class="box">
+      <h2>Ustaw hasło</h2>
+      <form method="post">
+        <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="haslo">
+        <input type="hidden" name="t" value="<?= h($_GET['t'] ?? '') ?>">
+        <label for="haslo">Nowe hasło (min. 12 znaków)</label>
+        <input type="password" id="haslo" name="haslo" minlength="12" required autocomplete="new-password" autofocus>
+        <div class="row"><button type="submit">Ustaw hasło</button></div>
+      </form>
+    </div>
+
   <?php else: ?>
     <form class="box" method="post">
       <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="login">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" name="email" autocomplete="username" required autofocus>
       <label for="haslo">Hasło</label>
-      <input type="password" id="haslo" name="haslo" autocomplete="current-password" required autofocus>
+      <input type="password" id="haslo" name="haslo" autocomplete="current-password" required>
       <div class="row"><button type="submit">Zaloguj</button></div>
     </form>
   <?php endif; ?>
 
-<?php elseif (isset($edit) && $edit !== null): ?>
-  <form class="box" method="post" enctype="multipart/form-data">
-    <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="save"><input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
-    <h2><?= $edit['id'] ? 'Edycja wpisu' : 'Nowy wpis' ?></h2>
-    <label for="tytul">Tytuł</label>
-    <input type="text" id="tytul" name="tytul" maxlength="200" value="<?= $v('tytul') ?>" required>
-    <label for="data">Data wpisu</label>
-    <input type="date" id="data" name="data" value="<?= $v('data') ?>" required>
-    <label for="kategoria">Kategoria</label>
-    <input type="text" id="kategoria" name="kategoria" maxlength="40" value="<?= $v('kategoria') ?>" placeholder="np. Życie koła, Wydarzenie, Rekrutacja" required>
-    <label for="kolor">Kolor etykiety kategorii</label>
-    <select id="kolor" name="kolor"><?php foreach (KOLORY as $k => $n): ?><option value="<?= $k ?>"<?= ($edit['kolor'] ?? '') === $k ? ' selected' : '' ?>><?= $n ?></option><?php endforeach; ?></select>
-    <label for="zajawka">Zajawka (1–2 zdania na liście wpisów)</label>
-    <input type="text" id="zajawka" name="zajawka" maxlength="400" value="<?= $v('zajawka') ?>" required>
-    <label for="tresc">Treść</label>
-    <textarea id="tresc" name="tresc" required><?= $v('tresc') ?></textarea>
-    <p class="hint">Akapity oddzielaj pustą linią. Śródtytuł: linia zaczynająca się od <code>## </code>. Bez HTML — znaczniki pokażą się jako zwykły tekst.</p>
-    <label for="zdjecie">Zdjęcie 16:9 (JPG, PNG albo WebP)</label>
-    <input type="file" id="zdjecie" name="zdjecie" accept="image/jpeg,image/png,image/webp">
-    <?php if (!empty($edit['zdjecie'])): ?><img class="preview" src="../<?= h($edit['zdjecie']) ?>" alt=""><p class="hint">Wgranie nowego pliku zastąpi to zdjęcie.</p><?php endif; ?>
-    <label for="zdjecie_alt">Opis zdjęcia (co na nim widać — dla osób niewidomych)</label>
-    <input type="text" id="zdjecie_alt" name="zdjecie_alt" maxlength="200" value="<?= $v('zdjecie_alt') ?>">
-    <label for="autor">Autor</label>
-    <input type="text" id="autor" name="autor" maxlength="100" value="<?= $v('autor') ?>" placeholder="np. Sekcja Marketing">
-    <label><input type="checkbox" name="opublikowany" value="1"<?= !empty($edit['opublikowany']) ? ' checked' : '' ?>> Opublikuj na stronie (bez zaznaczenia zostaje szkicem)</label>
-    <div class="row"><button type="submit">Zapisz</button><a class="btn btn--light" href="index.php">Anuluj</a></div>
-  </form>
-  <?php if ($edit['id']): ?>
-    <form method="post">
-      <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
-      <div class="row"><label style="margin:0;font-weight:400"><input type="checkbox" required> Tak, usuń ten wpis na stałe</label><button class="btn--danger" type="submit">Usuń wpis</button></div>
-    </form>
-  <?php endif; ?>
+<?php elseif ($m === ''): ?>
+  <div class="kafelki">
+    <?php foreach ($etykietyModulow as $mk => $ml): if (wolno(MODULY[$mk])): ?>
+      <a class="kafelek" href="?m=<?= $mk ?>"><?= h($ml) ?></a>
+    <?php endif; endforeach; ?>
+  </div>
 
 <?php else: ?>
-  <div class="row" style="margin: 0 0 18px"><a class="btn" href="?nowy">+ Nowy wpis</a><a class="btn btn--light" href="../aktualnosci.html" target="_blank" rel="noopener">Zobacz stronę</a>
-    <form method="post" style="margin-left:auto"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="logout"><button class="btn--light" type="submit">Wyloguj</button></form></div>
-  <div class="box">
-    <table>
-      <thead><tr><th>Data</th><th>Tytuł</th><th>Status</th></tr></thead>
-      <tbody>
-      <?php foreach (pmg_db()->query('SELECT id, data, tytul, opublikowany FROM pmg_aktualnosci ORDER BY data DESC, id DESC') as $r): ?>
-        <tr><td><?= h($r['data']) ?></td><td><a href="?id=<?= (int) $r['id'] ?>"><?= h($r['tytul']) ?></a></td><td><?= $r['opublikowany'] ? 'Opublikowany' : '<span class="draft">Szkic</span>' ?></td></tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
+  <?= $tresc ?>
 <?php endif; ?>
+
 </main>
 </body>
 </html>

@@ -1,0 +1,4 @@
+# Tylko zdjęcia wgrane z panelu — żadnych skryptów
+<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh)$">
+  Require all denied
+</FilesMatch>
