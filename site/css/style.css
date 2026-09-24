@@ -1138,3 +1138,18 @@ body.has-dialog { overflow: hidden; }
 .pms-facts__a { font: 400 15px/1.55 var(--font-body); color: var(--color-text-muted); margin: 0; }
 @media (max-width: 960px) { .pms-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .pms-facts { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- 12. Strony prawne (polityka prywatności, deklaracja dostępności) + 404 ---------- */
+.legal-hero__lead { margin-top: 14px; }
+.legal { max-width: var(--measure); overflow-wrap: anywhere; }
+.legal h2 { font: 600 var(--fs-h3) var(--font-head); letter-spacing: -.01em; margin: 40px 0 14px; }
+.legal h2:first-child { margin-top: 0; }
+.legal h3 { font: 600 17px var(--font-head); margin: 26px 0 10px; }
+.legal p { font: 400 var(--fs-body)/1.75 var(--font-body); color: var(--color-text); margin: 0 0 14px; }
+.legal ul { margin: 0 0 14px; padding-left: 22px; }
+.legal li { font: 400 var(--fs-body)/1.7 var(--font-body); color: var(--color-text); margin-bottom: 6px; }
+.legal a { text-decoration: underline; text-underline-offset: 2px; }
+.legal__updated { font: 600 13px var(--font-body); color: var(--color-text-muted); margin-bottom: 30px; }
+.error-404 { text-align: center; }
+.error-404__lead { max-width: 44ch; margin: 16px auto 0; }
+.error-404__actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }

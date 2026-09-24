@@ -1,0 +1,38 @@
+# Konfiguracja Apache 2.4 dla strony PMG (produkcja: serwer PWr/WCSS).
+# Uwaga: site/uploads/aktualnosci/.htaccess (osobny plik, nie ruszany tutaj) dalej działa —
+# Apache scala reguły z katalogów nadrzędnych, więc blokada skryptów w uploads/ zostaje.
+
+# Własna strona błędu 404
+ErrorDocument 404 /404.html
+
+# Bez listowania katalogów
+Options -Indexes
+
+# Blokada plików zaczynających się od kropki (Apache i tak nie serwuje .ht*, to dodatkowe zabezpieczenie)
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+# .htaccess i .htpasswd muszą zostać czytelne dla samego Apache (powyższa reguła tylko blokuje
+# wydawanie ich klientom przez mod_dav/serwowanie plików — nie wyłącza działania .htaccess).
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+  # Środowisko testowe (dev.pmgroup...) — proś roboty, żeby nie indeksowały
+  <If "%{HTTP_HOST} =~ /^dev\./">
+    Header set X-Robots-Tag "noindex, nofollow"
+  </If>
+</IfModule>
+
+# Włączyć na produkcji, gdy HTTPS na serwerze PWr będzie działać:
+# <IfModule mod_headers.c>
+#   Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+# </IfModule>
+# <IfModule mod_rewrite.c>
+#   RewriteEngine On
+#   RewriteCond %{HTTPS} off
+#   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# </IfModule>
