@@ -13,3 +13,5 @@
 /site/api/config.php
 /site/uploads/aktualnosci/*
 !/site/uploads/aktualnosci/.htaccess
+/site/uploads/czlonkowie/
+/site/uploads/pmsession/
