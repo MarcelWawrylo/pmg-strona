@@ -143,6 +143,75 @@
     });
   }
 
+  /* ---------- PM Session: bieżąca edycja z panelu (baner, prelegenci, harmonogram, liczby przez data-set) ---------- */
+  /* Fallback: brak backendu / błąd / edycja: null = strona zostaje statyczna. Prelegenci i harmonogram
+     aktualizowane niezależnie od banera — pusta lista jednego z nich zostawia odpowiedni fragment statyczny. */
+  function initPmSession() {
+    var speakersList = $('.speakers');
+    var scheduleList = $('.schedule');
+    if (!speakersList && !scheduleList) return;
+
+    var speakerCard = function (p, i) {
+      var name = esc(p.imie_nazwisko);
+      var id = 'spk-' + (i + 1);
+      var img = p.zdjecie
+        ? '<img class="speaker__img" src="' + esc(siteRoot + p.zdjecie) + '" width="560" height="560" alt="' + esc(p.zdjecie_alt) + '" loading="lazy" decoding="async">'
+        : '<div class="speaker__img" aria-hidden="true"></div>';
+      var note = p.notatka ? '<p class="speaker__note">' + esc(p.notatka) + '</p>' : '';
+      var links = (p.linkedin && p.linkedin.indexOf('https://') === 0)
+        ? '<p class="speaker__links"><a class="chip-link" href="' + esc(p.linkedin) + '" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — ' + name + ' (otwiera się w nowej karcie)</span></a></p>'
+        : '';
+      return '<li class="speaker" data-expand>' + img +
+        '<h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="' + id + '">' + name + '<span class="visually-hidden"> — pokaż biogram</span></button></h3>' +
+        note + '<p class="speaker__topic">' + esc(p.temat) + '</p>' +
+        '<div class="speaker__more" id="' + id + '"><div class="speaker__more-inner"><p class="speaker__bio">' + esc(p.bio) + '</p>' + links + '</div></div></li>';
+    };
+
+    var scheduleRow = function (items) {
+      var time = items[0].godzina;
+      if (items.length === 1) {
+        var it = items[0];
+        var body = it.prelegent ? esc(it.prelegent) + ' <span class="muted">' + esc(it.tytul) + '</span>' : esc(it.tytul);
+        return '<li class="schedule__row"><p class="schedule__time">' + esc(time) + '</p><p class="schedule__item">' + body + '</p></li>';
+      }
+      var tag = items.length + ' ' + plural(items.length, 'sesja', 'sesje', 'sesji') + '<br> równoległe';
+      var sessions = items.map(function (it) {
+        return '<li class="schedule__session"><p class="schedule__who">' + esc(it.prelegent) + '</p><p class="schedule__what">' + esc(it.tytul) + '</p></li>';
+      }).join('');
+      return '<li class="schedule__row schedule__row--parallel"><p class="schedule__time">' + esc(time) + '<span class="schedule__tag">' + tag + '</span></p><ul class="schedule__sessions">' + sessions + '</ul></li>';
+    };
+
+    api('pmsession.php').then(function (data) {
+      if (!data || !data.edycja) return;
+      var ed = data.edycja;
+
+      var titleEl = $('.pms-banner__title');
+      if (titleEl) titleEl.textContent = 'PM Session ' + ed.numer;
+      var pillEl = $('.date-pill');
+      if (pillEl) {
+        var p = String(ed.data).split('-');
+        var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        pillEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + ed.miejsce;
+      }
+      var themeEl = $('.pms-banner__theme');
+      if (themeEl) themeEl.textContent = ed.temat;
+      document.title = document.title.replace(/PM Session \S+/, 'PM Session ' + ed.numer);
+
+      if (speakersList && data.prelegenci && data.prelegenci.length) {
+        speakersList.innerHTML = data.prelegenci.map(speakerCard).join('');
+        initNewsTiles(speakersList);
+      }
+      if (scheduleList && data.harmonogram && data.harmonogram.length) {
+        var groups = [];
+        data.harmonogram.forEach(function (h) {
+          var last = groups[groups.length - 1];
+          if (last && last[0].godzina === h.godzina) last.push(h); else groups.push([h]);
+        });
+        scheduleList.innerHTML = groups.map(scheduleRow).join('');
+      }
+    });
+  }
+
   /* ---------- Przycisk „Wróć na górę” ---------- */
   function initToTop() {
     $$('[data-totop]').forEach(function (b) {
@@ -299,6 +368,7 @@
     initHomeNews();
     initSettings();
     initTeam();
+    initPmSession();
     initNav();
     initToTop();
     initReveal();

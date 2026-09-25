@@ -113,6 +113,39 @@ function pmg_migrate()
             aktywna TINYINT(1) NOT NULL DEFAULT 1,
             FOREIGN KEY (sekcja_id) REFERENCES pmg_sekcje(id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS pmg_edycje (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            numer VARCHAR(10) NOT NULL UNIQUE,
+            temat VARCHAR(200) NOT NULL,
+            data DATE NOT NULL,
+            miejsce VARCHAR(200) NOT NULL,
+            status ENUM('szkic','biezaca','zakonczona') NOT NULL DEFAULT 'szkic'
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // notatka: odstępstwo od projektu (decyzja orkiestratora) — opcjonalna, np. "Wspólny warsztat z ...".
+        "CREATE TABLE IF NOT EXISTS pmg_prelegenci (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            edycja_id INT NOT NULL,
+            imie_nazwisko VARCHAR(100) NOT NULL,
+            temat VARCHAR(300) NOT NULL,
+            bio VARCHAR(1500) NOT NULL DEFAULT '',
+            notatka VARCHAR(200) NOT NULL DEFAULT '',
+            zdjecie VARCHAR(200) NULL,
+            zdjecie_alt VARCHAR(200) NOT NULL DEFAULT '',
+            linkedin VARCHAR(200) NOT NULL DEFAULT '',
+            kolejnosc SMALLINT NOT NULL DEFAULT 0,
+            FOREIGN KEY (edycja_id) REFERENCES pmg_edycje(id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS pmg_harmonogram (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            edycja_id INT NOT NULL,
+            godzina TIME NOT NULL,
+            tytul VARCHAR(300) NOT NULL,
+            prelegent VARCHAR(150) NOT NULL DEFAULT '',
+            FOREIGN KEY (edycja_id) REFERENCES pmg_edycje(id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
     foreach ($tabele as $sql) $pdo->exec($sql);
 }
