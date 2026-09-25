@@ -1,6 +1,15 @@
 <?php
 // Wspólne funkcje backendu (PHP 7.4). Tylko dołączany, nigdy wywoływany bezpośrednio.
 
+// Błędy nie trafiają do odpowiedzi (mogłyby ujawnić np. hasło do bazy ze stack trace) — tylko do logu serwera.
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+set_exception_handler(function ($e) {
+    error_log((string) $e);
+    http_response_code(500);
+    echo 'Błąd serwera. Spróbuj za chwilę.';
+});
+
 function pmg_config()
 {
     static $cfg = null;
@@ -160,16 +169,28 @@ function pmg_json($data, $status = 200)
 }
 
 // Prosty limit prób ($max zdarzeń w $window sekund), plik w katalogu tymczasowym.
-// $key = klucz zdarzenia (np. e-mail konta); domyślnie adres IP.
-function pmg_rate_ok($bucket, $max, $window, $key = null)
+// $key = klucz zdarzenia (np. id konta); domyślnie adres IP.
+// $licz = false: tylko sprawdza, czy limit nie jest przekroczony, bez dopisywania nowej próby
+// (do sprawdzenia limitu PRZED weryfikacją hasła — udane logowanie nie ma zużywać limitu konta).
+// Cały odczyt+decyzja+zapis w jednej sekcji krytycznej (flock) — odporne na dwa równoczesne żądania.
+function pmg_rate_ok($bucket, $max, $window, $key = null, $licz = true)
 {
     $file = sys_get_temp_dir() . '/pmg_' . $bucket . '_' . md5($key !== null ? $key : ($_SERVER['REMOTE_ADDR'] ?? ''));
+    $fh = fopen($file, 'c+');
+    if ($fh === false) return true; // ponytail: fail-open, gdy katalog tymczasowy niedostępny — limit nie jest jedyną obroną
+    flock($fh, LOCK_EX);
     $now = time();
-    $hits = is_file($file) ? array_filter(explode(',', (string) file_get_contents($file)), function ($t) use ($now, $window) {
+    $hits = array_filter(explode(',', (string) stream_get_contents($fh)), function ($t) use ($now, $window) {
         return (int) $t > $now - $window;
-    }) : [];
-    if (count($hits) >= $max) return false;
-    $hits[] = $now;
-    file_put_contents($file, implode(',', $hits), LOCK_EX);
-    return true;
+    });
+    $ok = count($hits) < $max;
+    if ($ok && $licz) {
+        $hits[] = $now;
+        rewind($fh);
+        ftruncate($fh, 0);
+        fwrite($fh, implode(',', $hits));
+    }
+    flock($fh, LOCK_UN);
+    fclose($fh);
+    return $ok;
 }

@@ -44,6 +44,13 @@ function loguj($modul, $akcja, $id = null)
         ->execute([$me['id'], $modul, $akcja, $id]);
 }
 
+// Czy ekran "pierwsze konto" może w ogóle przyjąć zgłoszenie: albo instalacja ma z przeszłości
+// wspólne hasło panelu (panel_hash), albo w config.php jest ustawione jednorazowe setup_haslo (min. 12 znaków).
+function pierwsze_ok($cfg)
+{
+    return ($cfg['panel_hash'] ?? '') !== '' || mb_strlen((string) ($cfg['setup_haslo'] ?? '')) >= 12;
+}
+
 // Puste pole albo adres zaczynający się od https:// i poprawny wg FILTER_VALIDATE_URL.
 function url_ok($v)
 {
@@ -60,6 +67,7 @@ function save_image($file, $modul)
     $types = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
     if (!$info || !isset($types[$info[2]])) throw new RuntimeException('Dozwolone formaty: JPG, PNG, WebP.');
     list($w, $hgt) = $info;
+    if ($w * $hgt > 40000000) throw new RuntimeException('Zdjęcie ma za dużą rozdzielczość (maks. ok. 40 megapikseli).');
     if (abs($w / $hgt - $proporcja) > 0.03) {
         $opis = abs($proporcja - 1) < 0.001 ? '1:1 (kwadrat)' : '16:9';
         throw new RuntimeException('Zdjęcie musi mieć proporcje ' . $opis . ' (wgrane: ' . $w . '×' . $hgt . ' px).');
@@ -112,6 +120,8 @@ if (!empty($_SESSION['uid'])) {
         $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ? AND aktywny = 1');
         $st->execute([(int) $_SESSION['uid']]);
         $me = $st->fetch() ?: null;
+        // Reset/zmiana hasła (haslo=NULL albo nowy hash) musi kończyć starą sesję od razu, nie dopiero po jej wygaśnięciu.
+        if ($me && !hash_equals($_SESSION['ph'] ?? '', hash('sha256', (string) $me['haslo']))) $me = null;
         if (!$me) { session_regenerate_id(true); $_SESSION = []; }
     }
 }
@@ -137,13 +147,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$me && $action === 'pierwsze') {
-        $cnt = (int) pmg_db()->query('SELECT COUNT(*) FROM pmg_uzytkownicy')->fetchColumn();
-        if ($cnt > 0) { http_response_code(403); exit('To konto już istnieje — zaloguj się.'); }
         $cfg = pmg_config();
+        if (!pierwsze_ok($cfg)) {
+            http_response_code(403);
+            exit("Aby założyć pierwsze konto, wpisz w api/config.php hasło instalacyjne 'setup_haslo' (min. 12 znaków) — patrz README.");
+        }
+        $panelHash = (string) ($cfg['panel_hash'] ?? '');
         if (!pmg_rate_ok('login', 20, 900)) {
             $error = 'Za dużo prób. Spróbuj za 15 minut.';
-        } elseif (($cfg['panel_hash'] ?? '') !== '' && !password_verify((string) ($_POST['stare_haslo'] ?? ''), $cfg['panel_hash'])) {
+        } elseif ($panelHash !== '' && !password_verify((string) ($_POST['stare_haslo'] ?? ''), $panelHash)) {
             $error = 'Nieprawidłowe dotychczasowe hasło panelu.';
+        } elseif ($panelHash === '' && !hash_equals((string) $cfg['setup_haslo'], (string) ($_POST['setup_haslo'] ?? ''))) {
+            $error = 'Nieprawidłowe hasło instalacyjne.';
         } else {
             $imie = mb_substr(trim((string) ($_POST['imie_nazwisko'] ?? '')), 0, 100);
             $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
@@ -153,11 +168,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (mb_strlen($haslo) < 12) {
                 $error = 'Hasło musi mieć co najmniej 12 znaków.';
             } else {
-                $st = pmg_db()->prepare('INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, haslo, rola, moduly, aktywny) VALUES (?,?,?,?,?,1)');
-                $st->execute([$imie, $email, password_hash($haslo, PASSWORD_DEFAULT), 'admin', 'aktualnosci,czlonkowie,pmsession']);
+                // Wyścig dwóch równoczesnych POST-ów "pierwsze konto": INSERT wykonuje się tylko, gdy tabela
+                // wciąż jest pusta (jedno zapytanie, bez osobnego SELECT COUNT przed nim).
+                $hash = password_hash($haslo, PASSWORD_DEFAULT);
+                $st = pmg_db()->prepare(
+                    'INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, haslo, rola, moduly, aktywny)
+                     SELECT ?,?,?,?,?,1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM pmg_uzytkownicy)'
+                );
+                $st->execute([$imie, $email, $hash, 'admin', 'aktualnosci,czlonkowie,pmsession']);
+                if ($st->rowCount() === 0) {
+                    http_response_code(403);
+                    exit('To konto już istnieje — zaloguj się.');
+                }
                 session_regenerate_id(true);
                 $_SESSION['uid'] = (int) pmg_db()->lastInsertId();
                 $_SESSION['t'] = time();
+                $_SESSION['ph'] = hash('sha256', $hash);
                 go();
             }
         }
@@ -166,22 +192,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$me && $action === 'login') {
         $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
         $haslo = (string) ($_POST['haslo'] ?? '');
-        if (!pmg_rate_ok('login', 20, 900) || !pmg_rate_ok('login_konto', 5, 900, $email)) {
+        if (!pmg_rate_ok('login', 20, 900)) {
             $error = 'Za dużo prób logowania. Spróbuj za 15 minut.';
         } else {
+            // Limit na konto: najpierw SELECT, żeby kluczem był id konta (nie surowy e-mail z żądania) —
+            // MariaDB (utf8mb4_unicode_ci) dopasowuje konto również po wariantach z akcentami, więc klucz
+            // po samym stringu dałby się obejść. Konto nieistniejące -> klucz to znormalizowany e-mail.
             $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE email = ? AND aktywny = 1');
             $st->execute([$email]);
             $u = $st->fetch();
-            $ma_haslo = $u && $u['haslo'] !== null;
-            $ok = password_verify($haslo, $ma_haslo ? $u['haslo'] : DUMMY_HASH) && $ma_haslo;
-            if ($ok) {
-                session_regenerate_id(true);
-                $_SESSION['uid'] = (int) $u['id'];
-                $_SESSION['t'] = time();
-                pmg_db()->prepare('UPDATE pmg_uzytkownicy SET ostatnie_logowanie = NOW() WHERE id = ?')->execute([$u['id']]);
-                go();
+            $klucz = $u ? 'u' . $u['id'] : $email;
+            if (!pmg_rate_ok('login_konto', 5, 900, $klucz, false)) {
+                $error = 'Za dużo prób logowania. Spróbuj za 15 minut.';
             } else {
-                $error = 'Nieprawidłowy e-mail lub hasło.';
+                $ma_haslo = $u && $u['haslo'] !== null;
+                $ok = password_verify($haslo, $ma_haslo ? $u['haslo'] : DUMMY_HASH) && $ma_haslo;
+                if ($ok) {
+                    session_regenerate_id(true);
+                    $_SESSION['uid'] = (int) $u['id'];
+                    $_SESSION['t'] = time();
+                    $_SESSION['ph'] = hash('sha256', (string) $u['haslo']);
+                    pmg_db()->prepare('UPDATE pmg_uzytkownicy SET ostatnie_logowanie = NOW() WHERE id = ?')->execute([$u['id']]);
+                    go();
+                } else {
+                    pmg_rate_ok('login_konto', 5, 900, $klucz); // liczy się tylko nieudana próba
+                    $error = 'Nieprawidłowy e-mail lub hasło.';
+                }
             }
         }
     }
@@ -312,23 +348,31 @@ $etykietyModulow = [
   <?php if ($widok === 'pierwsze'): $cfg = pmg_config(); ?>
     <div class="box">
       <h2>Pierwsze konto administratora</h2>
-      <p class="hint">Tabela kont jest pusta — to jednorazowy ekran. Załóż konto administratora, żeby dalej zarządzać panelem.</p>
-      <form method="post">
-        <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="pierwsze">
-        <?php if (($cfg['panel_hash'] ?? '') !== ''): ?>
-          <label for="stare_haslo">Dotychczasowe hasło panelu Aktualności</label>
-          <p class="hint" id="stare_haslo_h">Ta instalacja miała wcześniej wspólne hasło do panelu — potwierdź je, żeby przejąć dostęp.</p>
-          <input type="password" id="stare_haslo" name="stare_haslo" autocomplete="current-password" required aria-describedby="stare_haslo_h">
-        <?php endif; ?>
-        <label for="imie_nazwisko">Imię i nazwisko</label>
-        <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" required autofocus>
-        <label for="email">E-mail (login)</label>
-        <input type="email" id="email" name="email" maxlength="150" required>
-        <label for="haslo">Hasło (min. 12 znaków)</label>
-        <p class="hint" id="haslo_h">Użyj hasła, którego nie używasz nigdzie indziej.</p>
-        <input type="password" id="haslo" name="haslo" minlength="12" required autocomplete="new-password" aria-describedby="haslo_h">
-        <div class="row"><button type="submit">Załóż konto</button></div>
-      </form>
+      <?php if (!pierwsze_ok($cfg)): ?>
+        <p class="hint">Aby założyć pierwsze konto, wpisz w <code>api/config.php</code> hasło instalacyjne <code>'setup_haslo'</code> (min. 12 znaków) — patrz README.</p>
+      <?php else: ?>
+        <p class="hint">Tabela kont jest pusta — to jednorazowy ekran. Załóż konto administratora, żeby dalej zarządzać panelem.</p>
+        <form method="post">
+          <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="pierwsze">
+          <?php if (($cfg['panel_hash'] ?? '') !== ''): ?>
+            <label for="stare_haslo">Dotychczasowe hasło panelu Aktualności</label>
+            <p class="hint" id="stare_haslo_h">Ta instalacja miała wcześniej wspólne hasło do panelu — potwierdź je, żeby przejąć dostęp.</p>
+            <input type="password" id="stare_haslo" name="stare_haslo" autocomplete="current-password" required aria-describedby="stare_haslo_h">
+          <?php else: ?>
+            <label for="setup_haslo">Hasło instalacyjne (z pliku api/config.php)</label>
+            <p class="hint" id="setup_haslo_h">Jednorazowe hasło ustawione w <code>api/config.php</code> jako <code>setup_haslo</code>.</p>
+            <input type="password" id="setup_haslo" name="setup_haslo" autocomplete="off" required aria-describedby="setup_haslo_h">
+          <?php endif; ?>
+          <label for="imie_nazwisko">Imię i nazwisko</label>
+          <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" required autofocus>
+          <label for="email">E-mail (login)</label>
+          <input type="email" id="email" name="email" maxlength="150" required>
+          <label for="haslo">Hasło (min. 12 znaków)</label>
+          <p class="hint" id="haslo_h">Użyj hasła, którego nie używasz nigdzie indziej.</p>
+          <input type="password" id="haslo" name="haslo" minlength="12" required autocomplete="new-password" aria-describedby="haslo_h">
+          <div class="row"><button type="submit">Załóż konto</button></div>
+        </form>
+      <?php endif; ?>
     </div>
 
   <?php elseif ($widok === 'haslo'): ?>
