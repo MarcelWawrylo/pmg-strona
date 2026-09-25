@@ -22,6 +22,12 @@
   };
   var esc = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML.replace(/"/g, '&quot;'); };
   var fmtDate = function (iso) { var p = String(iso).split('-'); return p[2] + '.' + p[1] + '.' + p[0]; };
+  // Polska odmiana liczebników: 1 -> one, 2-4 (poza 12-14) -> few, reszta -> many.
+  var plural = function (n, one, few, many) {
+    if (n === 1) return one;
+    var r10 = n % 10, r100 = n % 100;
+    return (r10 >= 2 && r10 <= 4 && (r100 < 10 || r100 >= 20)) ? few : many;
+  };
 
   /* ---------- Nawigacja: kurczenie przy scrollu + menu mobilne ---------- */
   function initNav() {
@@ -85,6 +91,55 @@
       if (data.rekrutacja_otwarta === '0') {
         $$('[data-set="rekrutacja_link"], .join-page-form__help').forEach(function (el) { el.hidden = true; });
       }
+    });
+  }
+
+  /* ---------- Struktura koła (O nas): zarząd + sekcje z panelu ---------- */
+  /* Fallback: brak backendu / błąd / pusta lista sekcji i pusty zarząd = strona zostaje statyczna.
+     Zarząd i sekcje aktualizowane niezależnie — jeśli jedna z list jest pusta, ten fragment zostaje bez zmian.
+     .about-sub (liczba osób) NIE jest tu dotykane — zostaje tekstem statycznym. */
+  function initTeam() {
+    var boardList = $('.about-board__list');
+    var sectionsList = $('.about-sections');
+    if (!boardList && !sectionsList) return;
+
+    var MAIL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.5 7 8.5 6.5L20.5 7"/></svg>';
+    var LI_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="fill:currentColor;stroke:none"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.064 2.064 0 1 1 0-4.128 2.064 2.064 0 0 1 0 4.128zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>';
+
+    var icons = function (o, klasa) {
+      var name = esc(o.imie + ' ' + o.nazwisko);
+      var html = '<a class="about-ico' + klasa + '" href="mailto:' + esc(o.email) + '" title="' + esc(o.email) + '" aria-label="Napisz e-mail do: ' + name + '">' + MAIL_SVG + '</a>';
+      if (o.linkedin && o.linkedin.indexOf('https://') === 0) {
+        html += '<a class="about-ico' + klasa + '" href="' + esc(o.linkedin) + '" target="_blank" rel="noopener" aria-label="Profil LinkedIn: ' + name + '">' + LI_SVG + '</a>';
+      }
+      return html;
+    };
+    var fullName = function (o) { return esc(o.imie + ' ' + o.nazwisko); };
+
+    var boardCard = function (o) {
+      return '<li class="about-board__card about-person"><p class="about-board__who"><span class="about-board__role">' + esc(o.funkcja) + '</span> <span class="about-board__name">' + fullName(o) + '</span></p>' +
+        '<div class="about-act">' + icons(o, ' about-ico--light') + '</div></li>';
+    };
+    var coordBlock = function (o) {
+      return '<div class="about-coord about-person"><p class="about-coord__label">' + esc(o.funkcja) + '</p>' +
+        '<div class="about-coord__row"><p class="about-coord__name">' + fullName(o) + '</p><span class="about-act">' + icons(o, '') + '</span></div></div>';
+    };
+    var memberItem = function (o) {
+      return '<li class="about-member about-person"><span class="about-member__name">' + fullName(o) + '</span><span class="about-act">' + icons(o, '') + '</span></li>';
+    };
+    var sectionCard = function (s) {
+      var n = s.koordynatorzy.length + s.czlonkowie.length;
+      var members = s.czlonkowie.length ? '<ul class="about-sec__members" aria-label="Członkowie sekcji ' + esc(s.nazwa) + '">' + s.czlonkowie.map(memberItem).join('') + '</ul>' : '';
+      return '<li class="about-sec about-sec--' + esc(s.kolor) + '"><div class="about-sec__head"><h3 class="about-sec__name">' + esc(s.nazwa) + '</h3>' +
+        '<p class="about-sec__count">' + n + ' ' + plural(n, 'osoba', 'osoby', 'osób') + '</p>' +
+        (s.opis ? '<p class="about-sec__desc">' + esc(s.opis) + '</p>' : '') + '</div>' +
+        '<div class="about-sec__body">' + s.koordynatorzy.map(coordBlock).join('') + members + '</div></li>';
+    };
+
+    api('czlonkowie.php').then(function (data) {
+      if (!data) return;
+      if (boardList && data.zarzad && data.zarzad.length) boardList.innerHTML = data.zarzad.map(boardCard).join('');
+      if (sectionsList && data.sekcje && data.sekcje.length) sectionsList.innerHTML = data.sekcje.map(sectionCard).join('');
     });
   }
 
@@ -243,6 +298,7 @@
     initNewsTiles();
     initHomeNews();
     initSettings();
+    initTeam();
     initNav();
     initToTop();
     initReveal();

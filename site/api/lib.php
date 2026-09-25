@@ -89,6 +89,30 @@ function pmg_migrate()
             klucz VARCHAR(40) PRIMARY KEY,
             wartosc VARCHAR(500) NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS pmg_sekcje (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nazwa VARCHAR(60) NOT NULL,
+            kolor ENUM('pink','purple','blue','violet') NOT NULL DEFAULT 'pink',
+            opis VARCHAR(300) NOT NULL DEFAULT '',
+            kolejnosc SMALLINT NOT NULL DEFAULT 0
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS pmg_osoby (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            imie VARCHAR(50) NOT NULL,
+            nazwisko VARCHAR(60) NOT NULL,
+            funkcja VARCHAR(60) NOT NULL DEFAULT '',
+            sekcja_id INT NULL,
+            koordynator TINYINT(1) NOT NULL DEFAULT 0,
+            email VARCHAR(150) NOT NULL,
+            linkedin VARCHAR(200) NOT NULL DEFAULT '',
+            zdjecie VARCHAR(200) NULL,
+            zdjecie_alt VARCHAR(200) NOT NULL DEFAULT '',
+            kolejnosc SMALLINT NOT NULL DEFAULT 0,
+            aktywna TINYINT(1) NOT NULL DEFAULT 1,
+            FOREIGN KEY (sekcja_id) REFERENCES pmg_sekcje(id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
     foreach ($tabele as $sql) $pdo->exec($sql);
 }
