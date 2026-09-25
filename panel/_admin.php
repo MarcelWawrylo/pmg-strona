@@ -30,8 +30,92 @@ if ($sub === 'kopia') {
 }
 
 // ---------- Ustawienia: etap 2b ----------
+// Pola tego formularza. Liczby "PM Session w liczbach" (pms_*) są też w białej liście USTAWIENIA
+// (lib.php), ale edytuje je moduł pmsession w etapie 2d — nie ten formularz.
 if ($sub === 'ustawienia') {
-    echo '<h2>Ustawienia strony</h2><p class="msg msg--info">Moduł w przygotowaniu.</p>';
+    $pola = ['instagram', 'facebook', 'linkedin', 'tiktok', 'email', 'rekrutacja_otwarta', 'rekrutacja_link', 'rekrutacja_tekst'];
+
+    $st = pmg_db()->prepare('SELECT klucz, wartosc FROM pmg_ustawienia WHERE klucz IN (' . implode(',', array_fill(0, count($pola), '?')) . ')');
+    $st->execute($pola);
+    $wartosci = array_fill_keys($pola, '');
+    foreach ($st->fetchAll() as $r) $wartosci[$r['klucz']] = $r['wartosc'];
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $wejscie = [
+            'instagram' => trim((string) ($_POST['instagram'] ?? '')),
+            'facebook' => trim((string) ($_POST['facebook'] ?? '')),
+            'linkedin' => trim((string) ($_POST['linkedin'] ?? '')),
+            'tiktok' => trim((string) ($_POST['tiktok'] ?? '')),
+            'email' => trim((string) ($_POST['email'] ?? '')),
+            'rekrutacja_otwarta' => ($_POST['rekrutacja_otwarta'] ?? '') === '0' ? '0' : '1',
+            'rekrutacja_link' => trim((string) ($_POST['rekrutacja_link'] ?? '')),
+            'rekrutacja_tekst' => trim((string) ($_POST['rekrutacja_tekst'] ?? '')),
+        ];
+        $wartosci = $wejscie; // formularz zachowuje wpisane wartości, jeśli coś jest nie tak
+
+        if (!url_ok($wejscie['instagram'])) $error = 'Instagram: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        elseif (!url_ok($wejscie['facebook'])) $error = 'Facebook: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        elseif (!url_ok($wejscie['linkedin'])) $error = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        elseif (!url_ok($wejscie['tiktok'])) $error = 'TikTok: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        elseif ($wejscie['email'] !== '' && !filter_var($wejscie['email'], FILTER_VALIDATE_EMAIL)) $error = 'Podaj poprawny adres e-mail albo zostaw puste pole.';
+        elseif (!url_ok($wejscie['rekrutacja_link'])) $error = 'Link do formularza rekrutacyjnego: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        elseif (mb_strlen($wejscie['rekrutacja_tekst']) > 300) $error = 'Tekst o rekrutacji może mieć maksymalnie 300 znaków.';
+
+        if ($error === '') {
+            $pdo = pmg_db();
+            $pdo->beginTransaction();
+            $upd = $pdo->prepare('REPLACE INTO pmg_ustawienia (klucz, wartosc) VALUES (?,?)');
+            foreach ($pola as $k) $upd->execute([$k, $wejscie[$k]]);
+            $pdo->commit();
+            loguj('ustawienia', 'edycja');
+            $_SESSION['flash'] = 'Zapisano. Zmiany widać na stronie w ciągu 5 minut.';
+            go('?m=ustawienia');
+        }
+    }
+    ?>
+    <h2>Ustawienia strony</h2>
+    <?php // Błąd ($error) wyświetla wspólny szablon w index.php — nie powielamy go tutaj. ?>
+    <form class="box" method="post">
+      <input type="hidden" name="csrf" value="<?= h(csrf()) ?>">
+
+      <label for="instagram">Instagram</label>
+      <p class="hint" id="instagram_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
+      <input type="text" id="instagram" name="instagram" value="<?= h($wartosci['instagram']) ?>" aria-describedby="instagram_h">
+
+      <label for="facebook">Facebook</label>
+      <p class="hint" id="facebook_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
+      <input type="text" id="facebook" name="facebook" value="<?= h($wartosci['facebook']) ?>" aria-describedby="facebook_h">
+
+      <label for="linkedin">LinkedIn</label>
+      <p class="hint" id="linkedin_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
+      <input type="text" id="linkedin" name="linkedin" value="<?= h($wartosci['linkedin']) ?>" aria-describedby="linkedin_h">
+
+      <label for="tiktok">TikTok</label>
+      <p class="hint" id="tiktok_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
+      <input type="text" id="tiktok" name="tiktok" value="<?= h($wartosci['tiktok']) ?>" aria-describedby="tiktok_h">
+
+      <label for="email">E-mail kontaktowy</label>
+      <p class="hint" id="email_h">Adres pokazywany na stronie (stopka, Kontakt). Puste pole = strona pokazuje obecny adres.</p>
+      <input type="email" id="email" name="email" value="<?= h($wartosci['email']) ?>" aria-describedby="email_h">
+
+      <fieldset>
+        <legend>Rekrutacja</legend>
+        <label><input type="radio" name="rekrutacja_otwarta" value="1"<?= $wartosci['rekrutacja_otwarta'] !== '0' ? ' checked' : '' ?>> Otwarta</label>
+        <label><input type="radio" name="rekrutacja_otwarta" value="0"<?= $wartosci['rekrutacja_otwarta'] === '0' ? ' checked' : '' ?>> Zamknięta</label>
+      </fieldset>
+      <p class="hint">Przy „Zamknięta” strona Dołącz ukrywa przycisk do formularza i podpowiedź pod nim.</p>
+
+      <label for="rekrutacja_link">Link do formularza rekrutacyjnego</label>
+      <p class="hint" id="rekrutacja_link_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
+      <input type="text" id="rekrutacja_link" name="rekrutacja_link" value="<?= h($wartosci['rekrutacja_link']) ?>" aria-describedby="rekrutacja_link_h">
+
+      <label for="rekrutacja_tekst">Krótki tekst o rekrutacji</label>
+      <p class="hint" id="rekrutacja_tekst_h">Maksymalnie 300 znaków. Puste pole = strona pokazuje obecny tekst.</p>
+      <textarea id="rekrutacja_tekst" name="rekrutacja_tekst" maxlength="300" aria-describedby="rekrutacja_tekst_h"><?= h($wartosci['rekrutacja_tekst']) ?></textarea>
+
+      <div class="row"><button type="submit">Zapisz</button></div>
+    </form>
+    <?php
     return;
 }
 
