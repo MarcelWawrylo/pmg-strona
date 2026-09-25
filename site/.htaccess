@@ -17,10 +17,10 @@ Options -Indexes
 
 <IfModule mod_headers.c>
   Header set X-Content-Type-Options "nosniff"
-  # setifempty (nie set): panel/index.php wysyła własne, ściślejsze Referrer-Policy i X-Frame-Options —
-  # Apache scala reguły z katalogów nadrzędnych, więc "set" tutaj nadpisywałoby to, co ustawił panel.
-  Header setifempty Referrer-Policy "strict-origin-when-cross-origin"
-  Header setifempty X-Frame-Options "SAMEORIGIN"
+  # Panel ma ściślejsze wartości w panel/.htaccess (nadpisuje te poniżej; "setifempty" byłoby prostsze,
+  # ale wymaga Apache 2.4.7+, a na starszym 2.4.x cała strona dałaby błąd 500).
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set X-Frame-Options "SAMEORIGIN"
   Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
 
   # Środowisko testowe (dev.pmgroup...) — proś roboty, żeby nie indeksowały

@@ -3,6 +3,7 @@
 
 // Błędy nie trafiają do odpowiedzi (mogłyby ujawnić np. hasło do bazy ze stack trace) — tylko do logu serwera.
 ini_set('display_errors', '0');
+ini_set('zend.exception_ignore_args', '1'); // stack trace w logu bez argumentów (np. hasła z new PDO)
 ini_set('log_errors', '1');
 set_exception_handler(function ($e) {
     error_log((string) $e);
@@ -169,22 +170,24 @@ function pmg_json($data, $status = 200)
 }
 
 // Prosty limit prób ($max zdarzeń w $window sekund), plik w katalogu tymczasowym.
-// $key = klucz zdarzenia (np. id konta); domyślnie adres IP.
-// $licz = false: tylko sprawdza, czy limit nie jest przekroczony, bez dopisywania nowej próby
-// (do sprawdzenia limitu PRZED weryfikacją hasła — udane logowanie nie ma zużywać limitu konta).
-// Cały odczyt+decyzja+zapis w jednej sekcji krytycznej (flock) — odporne na dwa równoczesne żądania.
-function pmg_rate_ok($bucket, $max, $window, $key = null, $licz = true)
+// $key = klucz zdarzenia (np. id konta); domyślnie adres IP. Każde wywołanie liczy się jako próba.
+// Cały odczyt+decyzja+zapis w jednej sekcji krytycznej (flock) — równoległe żądania nie przejdą ponad limit.
+function pmg_rate_file($bucket, $key)
 {
-    $file = sys_get_temp_dir() . '/pmg_' . $bucket . '_' . md5($key !== null ? $key : ($_SERVER['REMOTE_ADDR'] ?? ''));
-    $fh = fopen($file, 'c+');
-    if ($fh === false) return true; // ponytail: fail-open, gdy katalog tymczasowy niedostępny — limit nie jest jedyną obroną
+    return sys_get_temp_dir() . '/pmg_' . $bucket . '_' . md5($key !== null ? $key : ($_SERVER['REMOTE_ADDR'] ?? ''));
+}
+
+function pmg_rate_ok($bucket, $max, $window, $key = null)
+{
+    $fh = fopen(pmg_rate_file($bucket, $key), 'c+');
+    if ($fh === false) { error_log('pmg_rate_ok: brak zapisu w ' . sys_get_temp_dir()); return true; } // ponytail: fail-open — limit nie jest jedyną obroną
     flock($fh, LOCK_EX);
     $now = time();
     $hits = array_filter(explode(',', (string) stream_get_contents($fh)), function ($t) use ($now, $window) {
         return (int) $t > $now - $window;
     });
     $ok = count($hits) < $max;
-    if ($ok && $licz) {
+    if ($ok) {
         $hits[] = $now;
         rewind($fh);
         ftruncate($fh, 0);
@@ -193,4 +196,10 @@ function pmg_rate_ok($bucket, $max, $window, $key = null, $licz = true)
     flock($fh, LOCK_UN);
     fclose($fh);
     return $ok;
+}
+
+// Po udanym logowaniu: licznik prób konta od zera (udane logowania nie blokują konta).
+function pmg_rate_clear($bucket, $key)
+{
+    @unlink(pmg_rate_file($bucket, $key));
 }

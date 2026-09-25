@@ -1,0 +1,5 @@
+# Panel: ściślejsze nagłówki niż w ../.htaccess (token zaproszenia jest w adresie URL, panel nigdy w ramce).
+<IfModule mod_headers.c>
+  Header set Referrer-Policy "no-referrer"
+  Header set X-Frame-Options "DENY"
+</IfModule>

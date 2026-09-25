@@ -44,7 +44,7 @@ Na GitHub Pages PHP nie działa — strona pokazuje wtedy treść wpisaną na sz
 3. Od razu po wgraniu wejdź na `…/panel/`. Przy pustej bazie kont panel pokaże **„Pierwsze konto administratora”**: imię i nazwisko, e-mail (login), hasło (min. 12 znaków). Przy starym `panel_hash` trzeba też podać dotychczasowe hasło panelu; bez niego trzeba podać hasło instalacyjne z `setup_haslo`. Tabele w bazie tworzą się same przy wejściu do panelu (istniejące wpisy Aktualności zostają).
 4. Po założeniu konta usuń linie `panel_hash` i `setup_haslo` z `config.php` (nie są już używane).
 5. Kolejne osoby: **Konta → + Nowe konto** (rola: administrator albo redaktor z wybranymi modułami). Panel pokaże link ważny 72 h — skopiuj go i przekaż tej osobie (np. na Messengerze). Zapomniane hasło = **Resetuj hasło** i nowy link. Kont się nie usuwa, tylko blokuje.
-6. Kopia bazy: **Kopia bazy danych** w menu panelu pobiera plik `.sql` (zawiera e-maile i skróty haseł — przechowuj bezpiecznie; nie zawiera zdjęć z `uploads/`). Przywracanie: import w phpMyAdmin.
+6. Kopia bazy: **Kopia bazy danych** w menu panelu pobiera plik `.sql` (zawiera e-maile i skróty haseł — przechowuj bezpiecznie; nie zawiera zdjęć z `uploads/`). Pełna kopia kończy się linią `-- KONIEC KOPII` — jeśli jej nie ma, pobieranie zostało przerwane. Przywracanie: import w phpMyAdmin.
 
 Zmiany zapisane w panelu widać na stronie w ciągu 5 minut (pamięć podręczna przeglądarki).
 
