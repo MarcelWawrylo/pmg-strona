@@ -158,7 +158,8 @@ $sekcjeLista = pmg_db()->query('SELECT * FROM pmg_sekcje ORDER BY kolejnosc, id'
     </select>
     <label><input type="checkbox" name="koordynator" value="1"<?= !empty($editOsoba['koordynator']) ? ' checked' : '' ?>> Koordynator/-ka sekcji</label>
     <label for="email">E-mail</label>
-    <input type="email" id="email" name="email" maxlength="150" value="<?= $v('email') ?>" required>
+    <p class="hint" id="email_h">Adres będzie widoczny na stronie O nas.</p>
+    <input type="email" id="email" name="email" maxlength="150" value="<?= $v('email') ?>" required aria-describedby="email_h">
     <label for="linkedin">LinkedIn</label>
     <p class="hint" id="linkedin_h">Pełny adres zaczynający się od https://. Pole opcjonalne.</p>
     <input type="text" id="linkedin" name="linkedin" maxlength="200" value="<?= $v('linkedin') ?>" aria-describedby="linkedin_h">

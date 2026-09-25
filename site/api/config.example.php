@@ -8,6 +8,9 @@ return [
     'db_user' => 'do_ustalenia',
     'db_pass' => 'do_ustalenia',
 
+    // Jednorazowe hasło do założenia pierwszego konta admina (min. 12 znaków, losowe) — po założeniu konta usuń.
+    'setup_haslo' => '',
+
     // Formularz kontaktowy
     'mail_to'   => 'pmgroup.kontakt@gmail.com',
     'mail_from' => 'noreply@pmgroup.pwr.edu.pl', // adres w domenie serwera, inaczej Gmail odrzuca jako spam

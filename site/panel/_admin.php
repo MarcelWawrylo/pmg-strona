@@ -178,8 +178,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($action === 'zapros') {
             try {
                 $token = bin2hex(random_bytes(32));
-                $st = pmg_db()->prepare('INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, rola, moduly, aktywny, token_hash, token_do) VALUES (?,?,?,?,1,?,?)');
-                $st->execute([$imie, $email, $rola, $moduly, hash('sha256', $token), date('Y-m-d H:i:s', time() + 72 * 3600)]);
+                $st = pmg_db()->prepare('INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, rola, moduly, aktywny, token_hash, token_do) VALUES (?,?,?,?,1,?,DATE_ADD(NOW(), INTERVAL 72 HOUR))');
+                $st->execute([$imie, $email, $rola, $moduly, hash('sha256', $token)]);
                 $nowyId = (int) pmg_db()->lastInsertId();
                 loguj('konta', 'zaproszenie', $nowyId);
                 $_SESSION['flash'] = 'Konto utworzone.';
@@ -243,8 +243,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Nie można zresetować hasła ostatniego aktywnego administratora — najpierw dodaj drugiego.';
         } else {
             $token = bin2hex(random_bytes(32));
-            pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo=NULL, token_hash=?, token_do=? WHERE id=?')
-                ->execute([hash('sha256', $token), date('Y-m-d H:i:s', time() + 72 * 3600), $id]);
+            pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo=NULL, token_hash=?, token_do=DATE_ADD(NOW(), INTERVAL 72 HOUR) WHERE id=?')
+                ->execute([hash('sha256', $token), $id]);
             loguj('konta', 'reset', $id);
             $_SESSION['flash'] = 'Nowy link gotowy do przekazania.';
             $_SESSION['flash_link'] = link_zaproszenia($token);
