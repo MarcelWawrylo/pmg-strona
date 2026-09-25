@@ -58,6 +58,36 @@
     if (mq.addEventListener) mq.addEventListener('change', onMq); else mq.addListener(onMq);
   }
 
+  /* ---------- Ustawienia strony z panelu: linki społecznościowe, e-mail, rekrutacja ---------- */
+  /* Fallback: brak backendu / brak danych / pusta wartość klucza = element zostaje bez zmian (statyczny HTML). */
+  function initSettings() {
+    var els = $$('[data-set]');
+    if (!els.length) return;
+    api('ustawienia.php').then(function (data) {
+      if (!data) return;
+      els.forEach(function (el) {
+        var v = data[el.getAttribute('data-set')];
+        if (!v) return;
+        if (el.tagName === 'A') {
+          if (el.getAttribute('data-set') === 'email') {
+            el.href = 'mailto:' + v;
+            if (el.childElementCount === 0) el.textContent = v;
+          } else if (v.indexOf('https://') === 0) {
+            el.href = v; // obrona w głębi — url_ok() w panelu już to wymusza
+          }
+        } else {
+          el.textContent = v;
+        }
+      });
+      if (data.email) {
+        $$('[data-contact-form]').forEach(function (f) { f.setAttribute('data-mailto', data.email); });
+      }
+      if (data.rekrutacja_otwarta === '0') {
+        $$('[data-set="rekrutacja_link"], .join-page-form__help').forEach(function (el) { el.hidden = true; });
+      }
+    });
+  }
+
   /* ---------- Przycisk „Wróć na górę” ---------- */
   function initToTop() {
     $$('[data-totop]').forEach(function (b) {
@@ -212,6 +242,7 @@
   var init = function () {
     initNewsTiles();
     initHomeNews();
+    initSettings();
     initNav();
     initToTop();
     initReveal();

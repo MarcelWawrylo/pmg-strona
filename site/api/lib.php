@@ -30,6 +30,14 @@ function pmg_db()
     return $pdo;
 }
 
+// Biała lista kluczy pmg_ustawienia — używana przez panel (_admin.php) i api/ustawienia.php.
+// pms_* (liczby "PM Session w liczbach") edytuje moduł pmsession w etapie 2d, ale klucze są tu od razu.
+const USTAWIENIA = [
+    'instagram', 'facebook', 'linkedin', 'tiktok', 'email',
+    'rekrutacja_otwarta', 'rekrutacja_link', 'rekrutacja_tekst',
+    'pms_edycji', 'pms_prelekcji', 'pms_prelegentow', 'pms_uczestnikow', 'pms_warsztatow', 'pms_symulacji',
+];
+
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko). Wywoływana tylko z panelu, przy każdym żądaniu.
 // Kolejne etapy dopiszą tu swoje tabele (pmg_sekcje, pmg_osoby, pmg_edycje, pmg_prelegenci, pmg_harmonogram)
 // i ewentualne ALTER TABLE ... ADD COLUMN IF NOT EXISTS dla już istniejących.
