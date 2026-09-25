@@ -67,7 +67,7 @@ function save_image($file, $modul)
     $types = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
     if (!$info || !isset($types[$info[2]])) throw new RuntimeException('Dozwolone formaty: JPG, PNG, WebP.');
     list($w, $hgt) = $info;
-    if ($w * $hgt > 40000000) throw new RuntimeException('Zdjęcie ma za dużą rozdzielczość (maks. ok. 40 megapikseli).');
+    if ($w * $hgt > 25000000) throw new RuntimeException('Zdjęcie ma za dużą rozdzielczość (maks. ok. 25 megapikseli) — zmniejsz je przed wgraniem.');
     if (abs($w / $hgt - $proporcja) > 0.03) {
         $opis = abs($proporcja - 1) < 0.001 ? '1:1 (kwadrat)' : '16:9';
         throw new RuntimeException('Zdjęcie musi mieć proporcje ' . $opis . ' (wgrane: ' . $w . '×' . $hgt . ' px).');
@@ -202,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$email]);
             $u = $st->fetch();
             $klucz = $u ? 'u' . $u['id'] : $email;
-            if (!pmg_rate_ok('login_konto', 5, 900, $klucz, false)) {
+            if (!pmg_rate_ok('login_konto', 5, 900, $klucz)) { // liczone od razu — równoległe żądania nie obejdą limitu
                 $error = 'Za dużo prób logowania. Spróbuj za 15 minut.';
             } else {
                 $ma_haslo = $u && $u['haslo'] !== null;
@@ -212,10 +212,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['uid'] = (int) $u['id'];
                     $_SESSION['t'] = time();
                     $_SESSION['ph'] = hash('sha256', (string) $u['haslo']);
+                    pmg_rate_clear('login_konto', $klucz);
                     pmg_db()->prepare('UPDATE pmg_uzytkownicy SET ostatnie_logowanie = NOW() WHERE id = ?')->execute([$u['id']]);
                     go();
                 } else {
-                    pmg_rate_ok('login_konto', 5, 900, $klucz); // liczy się tylko nieudana próba
                     $error = 'Nieprawidłowy e-mail lub hasło.';
                 }
             }

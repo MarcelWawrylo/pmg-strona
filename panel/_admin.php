@@ -25,6 +25,8 @@ if ($sub === 'kopia') {
         }
         echo "\n";
     }
+    echo "-- KONIEC KOPII
+"; // brak tej linii = kopia przerwana w trakcie
     loguj('kopia', 'pobranie');
     exit;
 }
