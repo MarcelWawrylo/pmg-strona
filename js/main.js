@@ -203,12 +203,22 @@
      aktualizowane niezależnie od banera — pusta lista jednego z nich zostawia odpowiedni fragment statyczny. */
   function initPmSession() {
     var speakersList = $('.speakers');
-    var scheduleList = $('.schedule');
-    if (!speakersList && !scheduleList) return;
+    var scheduleTableBody = $('.schedule-table tbody');
+    var scheduleList = $('.schedule'); // stary <ol> — tylko robocza v3
+    if (!speakersList && !scheduleTableBody && !scheduleList) return;
+    // nowy markup (xiv+): kafelek-przycisk + wspólny dialog [data-speaker-modal]. Stary (v3): expand-toggle inline.
+    var newSpeakerMarkup = !!$('[data-speaker-modal]');
 
     var speakerCard = function (p, i) {
       var name = esc(p.imie_nazwisko);
       var id = 'spk-' + (i + 1);
+      if (newSpeakerMarkup) {
+        var img2 = p.zdjecie
+          ? '<img class="speaker__img" src="' + esc(siteRoot + p.zdjecie) + '" width="560" height="560" alt="" loading="lazy" decoding="async">'
+          : '<div class="speaker__img" aria-hidden="true"></div>';
+        return '<li class="speaker"><button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="' + id + '">' + img2 +
+          '<span class="speaker__name">' + name + '</span></button></li>';
+      }
       var img = p.zdjecie
         ? '<img class="speaker__img" src="' + esc(siteRoot + p.zdjecie) + '" width="560" height="560" alt="' + esc(p.zdjecie_alt) + '" loading="lazy" decoding="async">'
         : '<div class="speaker__img" aria-hidden="true"></div>';
@@ -220,6 +230,17 @@
         '<h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="' + id + '">' + name + '<span class="visually-hidden"> — pokaż biogram</span></button></h3>' +
         note + '<p class="speaker__topic">' + esc(p.temat) + '</p>' +
         '<div class="speaker__more" id="' + id + '"><div class="speaker__more-inner"><p class="speaker__bio">' + esc(p.bio) + '</p>' + links + '</div></div></li>';
+    };
+
+    // treść dialogu prelegenta (nowy markup): jeden <template id="spk-N"> na osobę, jak w statycznym HTML.
+    var speakerTemplate = function (p, i) {
+      var name = esc(p.imie_nazwisko);
+      var note = p.notatka ? '<p class="speaker__note">' + esc(p.notatka) + '</p>' : '';
+      var links = (p.linkedin && p.linkedin.indexOf('https://') === 0)
+        ? '<p class="pod-modal__links"><a class="chip-link" href="' + esc(p.linkedin) + '" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — ' + name + ' (otwiera się w nowej karcie)</span></a></p>'
+        : '';
+      return '<template id="spk-' + (i + 1) + '"><h2 class="pod-modal__title" id="speaker-modal-title">' + name + '</h2>' + note +
+        '<p class="pod-modal__num">' + esc(p.temat) + '</p><p class="pod-modal__desc">' + esc(p.bio) + '</p>' + links + '</template>';
     };
 
     var scheduleRow = function (items) {
@@ -236,17 +257,29 @@
       return '<li class="schedule__row schedule__row--parallel"><p class="schedule__time">' + esc(time) + '<span class="schedule__tag">' + tag + '</span></p><ul class="schedule__sessions">' + sessions + '</ul></li>';
     };
 
+    var scheduleTableRows = function (items) {
+      var time = items[0].godzina;
+      var tag = items.length > 1 ? '<span class="schedule-table__tag">' + items.length + ' ' + plural(items.length, 'sesja', 'sesje', 'sesji') + ' równoległe</span>' : '';
+      return items.map(function (it, i) {
+        var first = i === 0 ? '<td' + (items.length > 1 ? ' rowspan="' + items.length + '"' : '') + '>' + esc(time) + tag + '</td>' : '';
+        return '<tr>' + first + '<td>' + esc(it.tytul) + '</td><td>' + (it.prelegent ? esc(it.prelegent) : '–') + '</td></tr>';
+      }).join('');
+    };
+
     api('pmsession.php').then(function (data) {
       if (!data || !data.edycja) return;
       var ed = data.edycja;
 
       var titleEl = $('.pms-banner__title');
       if (titleEl) titleEl.textContent = 'PM Session ' + ed.numer;
-      var pillEl = $('.date-pill');
-      if (pillEl) {
-        var p = String(ed.data).split('-');
-        var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
-        pillEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + ed.miejsce;
+      var p = String(ed.data).split('-');
+      var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+      var pillEl = $('.date-pill'); // stary — tylko robocza v3
+      if (pillEl) pillEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + ed.miejsce;
+      var dateTimeEl = $('.pms-banner__date time');
+      if (dateTimeEl) {
+        dateTimeEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+        dateTimeEl.setAttribute('datetime', ed.data);
       }
       var themeEl = $('.pms-banner__theme');
       if (themeEl) themeEl.textContent = ed.temat;
@@ -254,15 +287,22 @@
 
       if (speakersList && data.prelegenci && data.prelegenci.length) {
         speakersList.innerHTML = data.prelegenci.map(speakerCard).join('');
-        initNewsTiles(speakersList);
+        if (newSpeakerMarkup) {
+          var tplContainer = speakersList.parentNode;
+          $$('template[id^="spk-"]', tplContainer).forEach(function (t) { t.remove(); });
+          tplContainer.insertAdjacentHTML('beforeend', data.prelegenci.map(speakerTemplate).join(''));
+        } else {
+          initNewsTiles(speakersList);
+        }
       }
-      if (scheduleList && data.harmonogram && data.harmonogram.length) {
+      if ((scheduleTableBody || scheduleList) && data.harmonogram && data.harmonogram.length) {
         var groups = [];
         data.harmonogram.forEach(function (h) {
           var last = groups[groups.length - 1];
           if (last && last[0].godzina === h.godzina) last.push(h); else groups.push([h]);
         });
-        scheduleList.innerHTML = groups.map(scheduleRow).join('');
+        if (scheduleTableBody) scheduleTableBody.innerHTML = groups.map(scheduleTableRows).join('');
+        else scheduleList.innerHTML = groups.map(scheduleRow).join('');
       }
     });
   }
@@ -281,9 +321,8 @@
   /* ---------- Odsłanianie przy scrollu ---------- */
   function initReveal() {
     var items = $$('[data-reveal]');
-    var tl = $$('[data-tl-item]');
     if (!('IntersectionObserver' in window) || reduceMotion.matches) {
-      items.concat(tl).forEach(function (el) { el.classList.add('is-in'); });
+      items.forEach(function (el) { el.classList.add('is-in'); });
       return;
     }
     var io = new IntersectionObserver(function (entries) {
@@ -292,16 +331,6 @@
       });
     }, { threshold: 0.1 });
     items.forEach(function (el) { io.observe(el); });
-
-    var io2 = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e, i) {
-        if (e.isIntersecting) {
-          setTimeout(function () { e.target.classList.add('is-in'); }, i * 90);
-          io2.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.15 });
-    tl.forEach(function (el) { io2.observe(el); });
   }
 
   /* ---------- Dialogi: wspólna obsługa zamykania i przywracania focusu ---------- */
@@ -820,6 +849,24 @@
           dialog.scrollTop = 0;
           open(btn);
         });
+      });
+    }
+
+    /* ---------- Modal prelegenta (PM Session) ---------- */
+    /* Delegacja na document: działa też na kafelkach wyrenderowanych później przez initPmSession(). */
+    var speakerDialog = $('[data-speaker-modal]');
+    if (speakerDialog) {
+      var speakerContent = $('[data-speaker-modal-content]', speakerDialog);
+      var openSpeaker = PMG.wireDialog(speakerDialog, function () { speakerContent.textContent = ''; });
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('[data-speaker-trigger]');
+        if (!btn) return;
+        var tpl = document.getElementById(btn.getAttribute('data-speaker-tpl'));
+        if (!tpl) return;
+        speakerContent.textContent = '';
+        speakerContent.appendChild(tpl.content.cloneNode(true));
+        speakerDialog.scrollTop = 0;
+        openSpeaker(btn);
       });
     }
   }
