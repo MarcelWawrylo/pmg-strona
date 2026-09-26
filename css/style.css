@@ -1083,7 +1083,7 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 .pod-bg__blob--purple { background: var(--color-purple); top: 38%; left: 46%; transform: translate(120px, 120px); }
 .pod-bg__logo {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: min(120vw, 1400px); aspect-ratio: 1 / 1;
+  width: min(140vw, 1700px); aspect-ratio: 1600 / 1439;
   -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 68%); mask-image: radial-gradient(circle, #000 30%, transparent 68%);
 }
 .pod-bg__logo picture, .pod-bg__logo img { width: 100%; height: 100%; }
