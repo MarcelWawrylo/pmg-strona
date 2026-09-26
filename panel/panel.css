@@ -238,6 +238,7 @@ a, button, summary, label, input, select, textarea {
 .pmg-tile:active { transform: translateY(1px); background: var(--pmg-surface-hover); }
 
 /* ===================== 8. Przyciski ===================== */
+.pmg-btn[hidden] { display: none; }
 .pmg-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 44px; padding: 0 18px; border: 1px solid transparent; border-radius: var(--pmg-r);
@@ -283,6 +284,7 @@ a, button, summary, label, input, select, textarea {
 .pmg-ext { width: 16px; height: 16px; }
 .pmg-row-link { text-decoration: none; font-weight: 600; color: var(--pmg-text); }
 @media (hover: hover) { tr:hover .pmg-row-link { text-decoration: underline; } }
+.pmg-row-sub { display: block; font: 400 14px/1.4 var(--pmg-font-body); color: var(--pmg-text-2); font-weight: 400; margin-top: 2px; }
 
 /* ===================== 10. Pola ===================== */
 input[type=text], input[type=email], input[type=password], input[type=date], input[type=time],
