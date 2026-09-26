@@ -85,6 +85,70 @@
     });
   }
 
+  /* ---------- PM Session „Czym jest”: zdanie jedzie poziomo, napędzane pionowym przewijaniem ---------- */
+  // Sekcja ma 4× wysokość okna, wrapper w środku jest przypięty przez position: sticky (v2.css).
+  // Zdanie to pierwszy ekran strony, więc wejście słów i tła gra od razu po otwarciu (a nie na początku scrubu),
+  // żeby pierwszy ekran nie był pusty. Scrub: 0–0.15 pauza, 0.15–0.9 przesuw w poziomie, 0.8–1 ostatnie słowo 0.3 → 1.
+  function initPmsIntro() {
+    var section = document.querySelector('[data-pms-intro]');
+    var title = section && section.querySelector('.pms-intro__title');
+    if (!title) return;
+    var gsap = window.gsap;
+
+    // czytnik ekranu dostaje całe zdanie jednym tekstem; słowa w spanach są tylko wizualne
+    var sr = document.createElement('span');
+    sr.className = 'visually-hidden';
+    sr.textContent = title.textContent.replace(/\s+/g, ' ').trim();
+    var line = document.createElement('span');
+    line.className = 'pms-intro__line';
+    line.setAttribute('aria-hidden', 'true');
+    var addWord = function (inner) {
+      if (line.childNodes.length) line.appendChild(document.createTextNode(' '));
+      var w = document.createElement('span');
+      w.className = 'pms-intro__word';
+      w.appendChild(inner);
+      line.appendChild(w);
+    };
+    Array.prototype.slice.call(title.childNodes).forEach(function (node) {
+      if (node.nodeType === 3) {
+        node.textContent.split(/\s+/).forEach(function (part) {
+          if (!part) return;
+          var s = document.createElement('span');
+          s.textContent = part;
+          addWord(s);
+        });
+      } else if (node.nodeType === 1) {
+        addWord(node.cloneNode(true));
+      }
+    });
+    title.textContent = '';
+    title.appendChild(sr);
+    title.appendChild(line);
+    section.classList.add('is-scrub');
+
+    var words = line.querySelectorAll('.pms-intro__word');
+    var lastInner = words[words.length - 1].firstChild;
+    var bg = section.querySelector('.pms-intro__bg');
+    var START_X = 100;
+    var endX = function () { return -(line.offsetWidth - window.innerWidth + START_X); };
+
+    // wejście (czasowe, raz): tło i słowa kolejno z dołu
+    gsap.set(lastInner, { opacity: 0.3 });
+    if (bg) gsap.fromTo(bg, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 1.1, ease: 'power2.out' });
+    gsap.fromTo(words, { opacity: 0, y: 64 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.07, delay: 0.15 });
+
+    // scrub: przesuw całego zdania i dojście ostatniego słowa
+    var tl = gsap.timeline({
+      scrollTrigger: { trigger: section, start: 'top top', end: 'bottom bottom', scrub: 0.5, invalidateOnRefresh: true }
+    });
+    tl.fromTo(line, { x: START_X }, { x: endX, ease: 'none', duration: 0.75 }, 0.15)
+      .fromTo(lastInner, { opacity: 0.3 }, { opacity: 1, ease: 'none', duration: 0.2 }, 0.8);
+    tl.set({}, {}, 1);
+
+    // szerokość zdania zależy od fontu Space Grotesk: przelicz po jego wczytaniu
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { window.ScrollTrigger.refresh(); });
+  }
+
   /* ---------- Podcast: fala odcinków z „lupą” ---------- */
   function initPodcastWave() {
     var hero = document.querySelector('.pod-hero');
@@ -239,6 +303,7 @@
       }
       window.gsap.registerPlugin(window.ScrollTrigger);
       initScroll();
+      initPmsIntro();
       initPmsWords();
       initPodcastWave();
       initJoinPath();
