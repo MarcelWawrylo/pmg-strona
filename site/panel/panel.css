@@ -346,6 +346,7 @@ input[type=file]::file-selector-button {
   font: 400 14px/1.45 var(--pmg-font-body); color: var(--pmg-text-2); margin: 0 0 8px;
 }
 .pmg-hint--check { margin-left: 36px; margin-top: -4px; }
+.pmg-hint.is-warning { color: #7A4E00; }
 
 /* ===================== 11. Checkbox / radio ===================== */
 input[type=checkbox], input[type=radio] { width: 24px; height: 24px; margin: 0; flex: none; accent-color: #141414; cursor: pointer; }
