@@ -151,7 +151,7 @@ if ($sub === 'dziennik') {
       <table class="pmg-table">
         <caption class="pmg-vh">Dziennik zmian</caption>
         <thead><tr>
-          <th scope="col">Kiedy</th><th scope="col">Kto</th><th scope="col">Moduł</th><th scope="col">Akcja</th><th scope="col">Rekord</th>
+          <th scope="col">Kiedy</th><th scope="col">Kto</th><th scope="col">Moduł</th><th scope="col">Akcja</th><th scope="col" class="pmg-num">Rekord</th>
         </tr></thead>
         <tbody>
         <?php foreach ($wpisy as $w): ?>

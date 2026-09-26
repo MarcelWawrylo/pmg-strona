@@ -338,12 +338,12 @@ $tresc = null;
 if ($me && $m !== '') {
     if (!isset(MODULY[$m])) {
         http_response_code(404);
-        $pmgNaglowek = ['tytul' => 'Nie ma takiego modułu'];
+        $pmgNaglowek = ['tytul' => 'Nie ma takiego modułu', 'opis' => ''];
         $tresc = '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nieznany moduł.</p></div>'
             . '<p class="pmg-after-alert"><a class="pmg-btn pmg-btn--secondary" href="index.php">Wróć do strony startowej</a></p>';
     } elseif (!wolno(MODULY[$m])) {
         http_response_code(403);
-        $pmgNaglowek = ['tytul' => 'Brak dostępu'];
+        $pmgNaglowek = ['tytul' => 'Brak dostępu', 'opis' => ''];
         $tresc = '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nie masz dostępu do tego modułu. Jeśli to pomyłka, poproś administratora.</p></div>'
             . '<p class="pmg-after-alert"><a class="pmg-btn pmg-btn--secondary" href="index.php">Wróć do strony startowej</a></p>';
     } else {

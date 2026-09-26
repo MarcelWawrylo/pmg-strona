@@ -355,7 +355,7 @@
         var img = p.zdjecie ? '<img src="' + esc(siteRoot + p.zdjecie) + '" alt="" loading="lazy">' : '<span>[ zdjęcie 16:9 ]</span>';
         var href = 'aktualnosci.html#wpis-' + esc(p.slug);
         return '<li class="news-tile"><div class="news-tile__img news-tile__img--' + esc(p.kolor) + '" aria-hidden="true">' + img + '</div>' +
-          '<div class="news-tile__body"><p class="news-tile__date"><time datetime="' + esc(p.data) + '">' + fmtDate(p.data) + '</time></p>' +
+          '<div class="news-tile__body"><p class="news-tile__date"><time datetime="' + esc(p.data) + '">' + esc(fmtDate(p.data)) + '</time></p>' +
           '<h3 class="news-tile__title"><a class="news-tile__link" href="' + href + '">' + esc(p.tytul) + '</a></h3>' +
           '<p class="news-tile__more">' + esc(p.zajawka) + '</p>' +
           '<span class="news-tile__cta" aria-hidden="true">Czytaj więcej →</span></div></li>';
@@ -405,7 +405,7 @@
       };
       var meta = function (p, cls) {
         return '<div class="blog-meta' + (cls || '') + '"><span class="blog-cat blog-cat--' + esc(p.kolor) + '">' + esc(p.kategoria) + '</span>' +
-          '<span class="blog-date"><time datetime="' + esc(p.data) + '">' + fmt(p.data) + '</time></span></div>';
+          '<span class="blog-date"><time datetime="' + esc(p.data) + '">' + esc(fmt(p.data)) + '</time></span></div>';
       };
       var body = function (t) {
         return String(t).split(/\n\s*\n/).map(function (b) {
