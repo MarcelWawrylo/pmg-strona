@@ -59,7 +59,7 @@ html.lenis, html.lenis body { height: auto; }
 .v2-enhanced .pms-intro.is-scrub { height: 400vh; }
 .v2-enhanced .pms-intro.is-scrub .pms-intro__pin { position: sticky; top: 0; height: 100vh; min-height: 0; padding: 0; }
 .v2-enhanced .pms-intro.is-scrub .pms-intro__inner { max-width: none; padding: 0; }
-.v2-enhanced .pms-intro.is-scrub .pms-intro__title { font-size: clamp(72px, 8.5vw, 150px); white-space: nowrap; text-wrap: nowrap; }
+.v2-enhanced .pms-intro.is-scrub .pms-intro__title { font-size: clamp(60px, 7vw, 124px); white-space: nowrap; text-wrap: nowrap; }
 .pms-intro__line { display: inline-block; white-space: nowrap; will-change: transform; }
 .pms-intro__word { display: inline-block; }
 .pms-intro__bg { transform-origin: 50% 50%; }
