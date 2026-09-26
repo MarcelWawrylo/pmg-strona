@@ -387,6 +387,26 @@
     });
   }
 
+  /* ---------- „Zgłoś błąd” w stopce → formularz kontaktowy z tematem i adresem strony ---------- */
+  /* Link dostaje &strona=<ścieżka bieżącej strony> (sama ścieżka, bez parametrów i danych osobowych).
+     Na kontakt.html?temat=blad pusty temat i wiadomość są wstępnie wypełniane. */
+  function initReportBug() {
+    $$('a[data-report-bug]').forEach(function (a) {
+      var url = new URL(a.getAttribute('href'), location.href);
+      url.searchParams.set('strona', location.pathname);
+      a.href = url.href;
+    });
+    var form = $('[data-contact-form]');
+    if (!form) return;
+    var params = new URLSearchParams(location.search);
+    if (params.get('temat') !== 'blad') return;
+    var subject = $('[name="subject"]', form);
+    var message = $('[name="message"]', form);
+    if (subject && !subject.value) subject.value = 'Zgłoszenie błędu na stronie';
+    var strona = params.get('strona') || '';
+    if (message && !message.value && /^\/[\w\/.-]*$/.test(strona)) message.value = 'Strona: ' + strona + '\n\n';
+  }
+
   /* ---------- Rozwijane karty: kafelki aktualności, prelegenci PMS (hover rozwija, klik/dotyk przypina) ---------- */
   function initNewsTiles(scope) {
     $$('[data-news], [data-expand]', scope).forEach(function (tile) {
@@ -431,6 +451,7 @@
     initReveal();
     initLightbox();
     initContactForm();
+    initReportBug();
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
