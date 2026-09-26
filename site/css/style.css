@@ -859,9 +859,9 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-board__list { display: flex; flex-direction: column; gap: 14px; align-items: stretch; max-width: 100%; }
 .about-board__card {
   min-width: min(280px, 100%); display: flex; align-items: center; justify-content: space-between; gap: 18px;
-  /* start gradientu przyciemniony (#c8124f) — biały tekst ≥ 4.5:1 */
-  background: linear-gradient(110deg, #c8124f, #8b2c9c 45%, #1d46e0); border-radius: var(--radius-md); padding: 16px 22px;
-  box-shadow: 0 14px 30px -14px rgba(139, 44, 156, .6);
+  /* struktura koła jest monochromatyczna — tło w kolorze --color-ink, biały tekst ≥ 4.5:1 */
+  background: var(--color-ink); border-radius: var(--radius-md); padding: 16px 22px;
+  box-shadow: 0 14px 30px -14px rgba(20, 20, 20, .5);
 }
 .about-board__who { min-width: 0; }
 .about-board__role { display: block; font: 600 10px var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: #fff; }
@@ -890,10 +890,12 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-unit__desc { grid-column: 1 / -1; font: 400 14px/1.55 var(--font-body); color: var(--color-text-muted); margin-top: 16px; }
 
 .about-sections { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: start; }
-.about-sec--pink   { --about-accent: #e5185e; --about-label: var(--color-pink-text); --about-tint: rgba(229, 24, 94, .07); }
-.about-sec--purple { --about-accent: #8b2c9c; --about-label: #8b2c9c; --about-tint: rgba(139, 44, 156, .07); }
-.about-sec--blue   { --about-accent: #1d46e0; --about-label: #1d46e0; --about-tint: rgba(29, 70, 224, .07); }
-.about-sec--violet { --about-accent: #6a2fb8; --about-label: #6a2fb8; --about-tint: rgba(106, 47, 184, .07); }
+/* Kolory sekcji: tylko kafelki "Nasze sekcje" (.about-units__list) — Struktura koła (.about-sections) jest monochromatyczna, patrz reguła .about-sections .about-sec niżej */
+.about-units__list .about-sec--pink   { --about-accent: #e5185e; --about-label: var(--color-pink-text); --about-tint: rgba(229, 24, 94, .07); }
+.about-units__list .about-sec--purple { --about-accent: #8b2c9c; --about-label: #8b2c9c; --about-tint: rgba(139, 44, 156, .07); }
+.about-units__list .about-sec--blue   { --about-accent: #1d46e0; --about-label: #1d46e0; --about-tint: rgba(29, 70, 224, .07); }
+.about-units__list .about-sec--violet { --about-accent: #6a2fb8; --about-label: #6a2fb8; --about-tint: rgba(106, 47, 184, .07); }
+.about-sections .about-sec { --about-accent: var(--color-ink); --about-label: var(--color-ink); --about-tint: rgba(20, 20, 20, .05); }
 .about-sec {
   background: var(--color-bg); border: 1px solid var(--color-border); border-top: 4px solid var(--about-accent);
   border-radius: var(--radius-md); overflow: hidden;
