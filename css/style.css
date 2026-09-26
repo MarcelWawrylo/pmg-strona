@@ -680,7 +680,6 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .schedule-table th, .schedule-table td { text-align: left; padding: 4px 12px 4px 0; border-top: 1px solid rgba(0,0,0,.08); vertical-align: top; font: 400 13px/1.35 var(--font-body); color: var(--color-ink); }
 .schedule-table th { font: 600 10px var(--font-body); letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-muted); padding-bottom: 8px; border-top: 0; }
 .schedule-table td:first-child { font: 600 14px var(--font-head); color: var(--color-pink-text); white-space: nowrap; }
-.schedule-table__tag { display: block; font: 600 10px var(--font-body); letter-spacing: .04em; text-transform: uppercase; color: var(--color-text-muted); margin-top: 2px; white-space: normal; }
 @media (max-width: 640px) {
   .schedule__row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .schedule__tag br { display: none; }
