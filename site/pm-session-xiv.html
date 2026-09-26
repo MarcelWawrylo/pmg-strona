@@ -27,8 +27,8 @@
         <a class="site-nav__link" href="index.html">Strona główna</a>
         <a class="site-nav__link" href="o-nas.html">O nas</a>
         <div class="site-nav__item" data-subnav>
-          <a class="site-nav__link" href="pm-session.html">PM Session</a>
-          <button class="site-nav__subtoggle" type="button" aria-expanded="false" aria-controls="subnav-pms"><span class="visually-hidden">PM Session: podstrony</span><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button>
+          <a class="site-nav__link" href="pm-session.html">Project Management Session</a>
+          <button class="site-nav__subtoggle" type="button" aria-expanded="false" aria-controls="subnav-pms"><span class="visually-hidden">Project Management Session: podstrony</span><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button>
           <ul class="site-nav__sub" id="subnav-pms">
             <li><a class="site-nav__sublink" href="pm-session.html">Czym jest PM Session?</a></li>
             <li><a class="site-nav__sublink" href="pm-session-xv.html">Aktualna edycja</a></li>
@@ -39,7 +39,7 @@
           <a class="site-nav__link" href="case-kola.html">Case Koła</a>
           <button class="site-nav__subtoggle" type="button" aria-expanded="false" aria-controls="subnav-case"><span class="visually-hidden">Case Koła: podstrony</span><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button>
           <ul class="site-nav__sub" id="subnav-case">
-            <li><a class="site-nav__sublink" href="case-kola.html">Case Koła</a></li>
+            <li><a class="site-nav__sublink" href="case-kola.html">Czym jest Case Koła?</a></li>
             <li><a class="site-nav__sublink" href="case-kola-solvro.html">Solvro</a></li>
             <li><a class="site-nav__sublink" href="case-kola-qubit.html">Qubit</a></li>
             <li><a class="site-nav__sublink" href="case-kola-debatelab.html">Debate Lab</a></li>
@@ -56,153 +56,182 @@
   <main id="main" tabindex="-1">
     <section class="pms-banner">
       <div class="container rise">
-        <p class="eyebrow eyebrow--pink">Project Management Session</p>
         <div class="pms-banner__head">
           <h1 class="pms-banner__title">PM Session XIV</h1>
-          <span class="date-pill">25 kwietnia 2026 · Budynek B-4, Politechnika Wrocławska</span>
         </div>
         <p class="pms-banner__theme">Zarządzanie zmianą</p>
-        <p class="lead pms-banner__lead">10 prelegentów, 3 prelekcje i 6 sesji warsztatowych wokół jednego tematu: jak prowadzić zmianę w projektach i w sobie.</p>
+        <p class="pms-banner__date"><time datetime="2026-04-25">25 kwietnia 2026</time></p>
+        <p class="lead pms-banner__lead pms-banner__lead--full">10 prelegentów, 3 prelekcje i 6 sesji warsztatowych wokół jednego tematu: jak prowadzić zmianę w projektach i w sobie.</p>
       </div>
     </section>
 
     <div class="pms-main bg-surface">
+      <section id="harmonogram" class="pms-block container" aria-labelledby="h-schedule">
+        <h2 id="h-schedule" class="pms-h2" data-reveal>Harmonogram</h2>
+        <div class="schedule-table-wrap" data-reveal>
+        <table class="schedule-table">
+          <caption class="visually-hidden">Harmonogram PM Session XIV</caption>
+          <thead>
+            <tr><th scope="col">Godzina</th><th scope="col">Punkt programu</th><th scope="col">Prowadzący</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>8:30</td><td>Rejestracja</td><td>–</td></tr>
+            <tr><td>9:00</td><td>Oficjalne rozpoczęcie konferencji</td><td>–</td></tr>
+            <tr><td>9:15</td><td>„Project Manager – influencer zmiany”</td><td>Paweł Sawicki</td></tr>
+            <tr><td rowspan="3">10:30<span class="schedule-table__tag">3 sesje równoległe</span></td><td>„Zapomnij o wszystkim, czego się nauczyłeś na studiach. Oduczanie jako Twoja supermoc w zarządzaniu projektami”</td><td>Marcin Orocz</td></tr>
+            <tr><td>„Od strategii do codziennych działań: czego podejście Toyoty uczy o zarządzaniu zmianą”</td><td>Bartosz Misiurek + Wiktor Wołoszczuk</td></tr>
+            <tr><td>„Dyrektywa NIS2 jako projekt zmiany w czasie transformacji energetycznej”</td><td>Paweł Sukiennik</td></tr>
+            <tr><td>12:15</td><td>„21,5 miliona złotych i zero przychodów – jak zarządzać zmianą, kiedy kończy się paliwo”</td><td>Wojciech Buła</td></tr>
+            <tr><td>13:15</td><td>Poczęstunek w Kawiarence</td><td>–</td></tr>
+            <tr><td>13:45</td><td>Networking</td><td>–</td></tr>
+            <tr><td rowspan="3">14:15<span class="schedule-table__tag">3 sesje równoległe</span></td><td>„Zarządzanie zmianą w formie projektu: wyznaczenie i sterowanie zakresem zmiany”</td><td>Yevhen Khimichuk</td></tr>
+            <tr><td>„Zmiana 2.0 – Rapid Change Management z pomocą AI”</td><td>Marek Malinowski</td></tr>
+            <tr><td>„Kapitał psychologiczny: ukryty zasób Project Managera”</td><td>Aleksandra Penza</td></tr>
+            <tr><td>16:00</td><td>„Kim jestem tak naprawdę, czyli dlaczego to zmiana mnie przeraża?”</td><td>Andrzej Klose</td></tr>
+            <tr><td>17:00</td><td>Oficjalne zakończenie konferencji</td><td>–</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </section>
+
       <section id="prelegenci" class="pms-block container" aria-labelledby="h-speakers">
         <h2 id="h-speakers" class="pms-h2" data-reveal>Prelegenci</h2>
         <ul class="speakers">
-          <li class="speaker" data-expand>
-            <picture><source type="image/webp" srcset="img/portret-05-pawel-sawicki-280.webp 280w, img/portret-05-pawel-sawicki-560.webp 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px"><img class="speaker__img" src="img/portret-05-pawel-sawicki-280.jpg" srcset="img/portret-05-pawel-sawicki-280.jpg 280w, img/portret-05-pawel-sawicki-560.jpg 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px" width="560" height="560" alt="Paweł Sawicki" loading="lazy" decoding="async"></picture>
-            <h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="spk-1">Paweł Sawicki<span class="visually-hidden"> — pokaż biogram</span></button></h3>
-            <p class="speaker__topic">Prelekcja: „Project Manager – influencer zmiany”</p>
-            <div class="speaker__more" id="spk-1">
-              <div class="speaker__more-inner">
-                <p class="speaker__bio">Lider transformacji technologicznej i operacyjnej, na co dzień związany z globalną firmą konsultingową BPX S.A. Realizował strategiczne projekty m.in. dla BMW, Scanii, agencji bezpieczeństwa UE oraz w sektorach bankowym i FMCG. Wykładowca, mentor i ekspert NCBR.</p>
-                <p class="speaker__links"><a class="chip-link" href="https://www.linkedin.com/in/pawel-sawicki-6169116a/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Paweł Sawicki (otwiera się w nowej karcie)</span></a></p>
-              </div>
-            </div>
+          <li class="speaker">
+            <button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="spk-1">
+              <picture><source type="image/webp" srcset="img/portret-05-pawel-sawicki-280.webp 280w, img/portret-05-pawel-sawicki-560.webp 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px"><img class="speaker__img" src="img/portret-05-pawel-sawicki-280.jpg" srcset="img/portret-05-pawel-sawicki-280.jpg 280w, img/portret-05-pawel-sawicki-560.jpg 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px" width="560" height="560" alt="" loading="lazy" decoding="async"></picture>
+              <span class="speaker__name">Paweł Sawicki</span>
+            </button>
           </li>
-          <li class="speaker" data-expand>
-            <picture><source type="image/webp" srcset="img/portret-03-marcin-orocz-280.webp 280w, img/portret-03-marcin-orocz-560.webp 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px"><img class="speaker__img" src="img/portret-03-marcin-orocz-280.jpg" srcset="img/portret-03-marcin-orocz-280.jpg 280w, img/portret-03-marcin-orocz-560.jpg 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px" width="560" height="560" alt="Marcin Orocz" loading="lazy" decoding="async"></picture>
-            <h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="spk-2">Marcin Orocz<span class="visually-hidden"> — pokaż biogram</span></button></h3>
-            <p class="speaker__topic">Warsztat: „Zapomnij o wszystkim, czego się nauczyłeś na studiach. Oduczanie jako Twoja supermoc w zarządzaniu projektami”</p>
-            <div class="speaker__more" id="spk-2">
-              <div class="speaker__more-inner">
-                <p class="speaker__bio">Doradca biznesowy z 15-letnim stażem w globalnym biznesie (IT, Sales, Omnichannel). W zarządzaniu zmianą stawia na praktykę.</p>
-                <p class="speaker__links"><a class="chip-link" href="https://www.linkedin.com/in/marcinorocz/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Marcin Orocz (otwiera się w nowej karcie)</span></a></p>
-              </div>
-            </div>
+          <li class="speaker">
+            <button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="spk-2">
+              <picture><source type="image/webp" srcset="img/portret-03-marcin-orocz-280.webp 280w, img/portret-03-marcin-orocz-560.webp 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px"><img class="speaker__img" src="img/portret-03-marcin-orocz-280.jpg" srcset="img/portret-03-marcin-orocz-280.jpg 280w, img/portret-03-marcin-orocz-560.jpg 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px" width="560" height="560" alt="" loading="lazy" decoding="async"></picture>
+              <span class="speaker__name">Marcin Orocz</span>
+            </button>
           </li>
-          <li class="speaker" data-expand>
-            <picture><source type="image/webp" srcset="img/portret-09-bartosz-misiurek-280.webp 280w, img/portret-09-bartosz-misiurek-560.webp 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px"><img class="speaker__img" src="img/portret-09-bartosz-misiurek-280.jpg" srcset="img/portret-09-bartosz-misiurek-280.jpg 280w, img/portret-09-bartosz-misiurek-560.jpg 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px" width="560" height="560" alt="Bartosz Misiurek" loading="lazy" decoding="async"></picture>
-            <h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="spk-3">Bartosz Misiurek<span class="visually-hidden"> — pokaż biogram</span></button></h3>
-              <p class="speaker__note">Wspólny warsztat z Wiktorem Wołoszczukiem</p>
-            <p class="speaker__topic">Warsztat: „Od strategii do codziennych działań: czego podejście Toyoty uczy o zarządzaniu zmianą”</p>
-            <div class="speaker__more" id="spk-3">
-              <div class="speaker__more-inner">
-                <p class="speaker__bio">dr inż., adiunkt na PWr i globalny ekspert TWI/Lean. Szkolił kadrę w ponad 60 zakładach na 4 kontynentach (m.in. Volvo, IKEA, Philips). Łączy Lean z AI i technologią blockchain.</p>
-                <p class="speaker__links"><a class="chip-link" href="https://www.linkedin.com/in/bartosz-misiurek/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Bartosz Misiurek (otwiera się w nowej karcie)</span></a></p>
-              </div>
-            </div>
+          <li class="speaker">
+            <button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="spk-3">
+              <picture><source type="image/webp" srcset="img/portret-09-bartosz-misiurek-280.webp 280w, img/portret-09-bartosz-misiurek-560.webp 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px"><img class="speaker__img" src="img/portret-09-bartosz-misiurek-280.jpg" srcset="img/portret-09-bartosz-misiurek-280.jpg 280w, img/portret-09-bartosz-misiurek-560.jpg 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px" width="560" height="560" alt="" loading="lazy" decoding="async"></picture>
+              <span class="speaker__name">Bartosz Misiurek</span>
+            </button>
           </li>
-          <li class="speaker" data-expand>
-            <picture><source type="image/webp" srcset="img/portret-10-wiktor-woloszczuk-243.webp 243w" sizes="(max-width: 640px) calc(100vw - 68px), 300px"><img class="speaker__img" src="img/portret-10-wiktor-woloszczuk-243.jpg" srcset="img/portret-10-wiktor-woloszczuk-243.jpg 243w" sizes="(max-width: 640px) calc(100vw - 68px), 300px" width="243" height="243" alt="Wiktor Wołoszczuk" loading="lazy" decoding="async"></picture>
-            <h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="spk-4">Wiktor Wołoszczuk<span class="visually-hidden"> — pokaż biogram</span></button></h3>
-              <p class="speaker__note">Wspólny warsztat z Bartoszem Misiurkiem</p>
-            <p class="speaker__topic">Warsztat: „Od strategii do codziennych działań: czego podejście Toyoty uczy o zarządzaniu zmianą”</p>
-            <div class="speaker__more" id="spk-4">
-              <div class="speaker__more-inner">
-                <p class="speaker__bio">Psycholog biznesu i współzałożyciel Kata School Poland. Ponad 20 lat doświadczenia menedżerskiego. Ekspert od budowania zaangażowania i przywództwa w zmiennym środowisku VUCA.</p>
-                <p class="speaker__links"><a class="chip-link" href="https://www.linkedin.com/in/wiktorwoloszczuk/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Wiktor Wołoszczuk (otwiera się w nowej karcie)</span></a></p>
-              </div>
-            </div>
+          <li class="speaker">
+            <button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="spk-4">
+              <picture><source type="image/webp" srcset="img/portret-10-wiktor-woloszczuk-243.webp 243w" sizes="(max-width: 640px) calc(50vw - 40px), 200px"><img class="speaker__img" src="img/portret-10-wiktor-woloszczuk-243.jpg" srcset="img/portret-10-wiktor-woloszczuk-243.jpg 243w" sizes="(max-width: 640px) calc(50vw - 40px), 200px" width="243" height="243" alt="" loading="lazy" decoding="async"></picture>
+              <span class="speaker__name">Wiktor Wołoszczuk</span>
+            </button>
           </li>
-          <li class="speaker" data-expand>
-            <picture><source type="image/webp" srcset="img/portret-07-pawel-sukiennik-280.webp 280w, img/portret-07-pawel-sukiennik-560.webp 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px"><img class="speaker__img" src="img/portret-07-pawel-sukiennik-280.jpg" srcset="img/portret-07-pawel-sukiennik-280.jpg 280w, img/portret-07-pawel-sukiennik-560.jpg 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px" width="560" height="560" alt="Paweł Sukiennik" loading="lazy" decoding="async"></picture>
-            <h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="spk-5">Paweł Sukiennik<span class="visually-hidden"> — pokaż biogram</span></button></h3>
-            <p class="speaker__topic">Warsztat: „Dyrektywa NIS2 jako projekt zmiany w czasie transformacji energetycznej”</p>
-            <div class="speaker__more" id="spk-5">
-              <div class="speaker__more-inner">
-                <p class="speaker__bio">Dyrektor ds. Cyberbezpieczeństwa OT w Transition Technologies-Control Solutions. Absolwent Politechniki Wrocławskiej, certyfikowany specjalista normy ISA/IEC 62443. Praktyk z 10-letnim stażem w integracji systemów automatyki i cyberbezpieczeństwa.</p>
-                <p class="speaker__links"><a class="chip-link" href="https://www.linkedin.com/in/pawe%C5%82-sukiennik-242386199/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Paweł Sukiennik (otwiera się w nowej karcie)</span></a></p>
-              </div>
-            </div>
+          <li class="speaker">
+            <button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="spk-5">
+              <picture><source type="image/webp" srcset="img/portret-07-pawel-sukiennik-280.webp 280w, img/portret-07-pawel-sukiennik-560.webp 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px"><img class="speaker__img" src="img/portret-07-pawel-sukiennik-280.jpg" srcset="img/portret-07-pawel-sukiennik-280.jpg 280w, img/portret-07-pawel-sukiennik-560.jpg 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px" width="560" height="560" alt="" loading="lazy" decoding="async"></picture>
+              <span class="speaker__name">Paweł Sukiennik</span>
+            </button>
           </li>
-          <li class="speaker" data-expand>
-            <picture><source type="image/webp" srcset="img/portret-02-wojciech-bula-280.webp 280w, img/portret-02-wojciech-bula-560.webp 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px"><img class="speaker__img" src="img/portret-02-wojciech-bula-280.jpg" srcset="img/portret-02-wojciech-bula-280.jpg 280w, img/portret-02-wojciech-bula-560.jpg 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px" width="560" height="560" alt="Wojciech Buła" loading="lazy" decoding="async"></picture>
-            <h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="spk-6">Wojciech Buła<span class="visually-hidden"> — pokaż biogram</span></button></h3>
-            <p class="speaker__topic">Prelekcja: „21,5 miliona złotych i zero przychodów – jak zarządzać zmianą, kiedy kończy się paliwo”</p>
-            <div class="speaker__more" id="spk-6">
-              <div class="speaker__more-inner">
-                <p class="speaker__bio">Absolwent PWr, doktor nanotechnologii z 20-letnim globalnym doświadczeniem (m.in. współpraca ze SpaceX i ASIC). Seryjny startupowiec deep-tech, laureat Edison Award i CES Innovation. Obecnie CTO Orthoget S.A. oraz wykładowca SGH.</p>
-                <p class="speaker__links"><a class="chip-link" href="https://www.linkedin.com/in/wpbula/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Wojciech Buła (otwiera się w nowej karcie)</span></a></p>
-              </div>
-            </div>
+          <li class="speaker">
+            <button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="spk-6">
+              <picture><source type="image/webp" srcset="img/portret-02-wojciech-bula-280.webp 280w, img/portret-02-wojciech-bula-560.webp 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px"><img class="speaker__img" src="img/portret-02-wojciech-bula-280.jpg" srcset="img/portret-02-wojciech-bula-280.jpg 280w, img/portret-02-wojciech-bula-560.jpg 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px" width="560" height="560" alt="" loading="lazy" decoding="async"></picture>
+              <span class="speaker__name">Wojciech Buła</span>
+            </button>
           </li>
-          <li class="speaker" data-expand>
-            <picture><source type="image/webp" srcset="img/portret-04-yevhen-khimichuk-280.webp 280w, img/portret-04-yevhen-khimichuk-560.webp 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px"><img class="speaker__img" src="img/portret-04-yevhen-khimichuk-280.jpg" srcset="img/portret-04-yevhen-khimichuk-280.jpg 280w, img/portret-04-yevhen-khimichuk-560.jpg 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px" width="560" height="560" alt="Yevhen Khimichuk" loading="lazy" decoding="async"></picture>
-            <h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="spk-7">Yevhen Khimichuk<span class="visually-hidden"> — pokaż biogram</span></button></h3>
-            <p class="speaker__topic">Warsztat: „Zarządzanie zmianą w formie projektu: wyznaczenie i sterowanie zakresem zmiany”</p>
-            <div class="speaker__more" id="spk-7">
-              <div class="speaker__more-inner">
-                <p class="speaker__bio">Kierownik finansów i Przewodniczący Komisji Rewizyjnej w IPMA Young Crew. Wieloletni analityk ds. bezpieczeństwa i obronności w Klubie Jagiellońskim. Praktyk z korporacyjnym doświadczeniem.</p>
-                <p class="speaker__links"><a class="chip-link" href="https://www.linkedin.com/in/yevhen-khimichuk-272198b2/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Yevhen Khimichuk (otwiera się w nowej karcie)</span></a></p>
-              </div>
-            </div>
+          <li class="speaker">
+            <button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="spk-7">
+              <picture><source type="image/webp" srcset="img/portret-04-yevhen-khimichuk-280.webp 280w, img/portret-04-yevhen-khimichuk-560.webp 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px"><img class="speaker__img" src="img/portret-04-yevhen-khimichuk-280.jpg" srcset="img/portret-04-yevhen-khimichuk-280.jpg 280w, img/portret-04-yevhen-khimichuk-560.jpg 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px" width="560" height="560" alt="" loading="lazy" decoding="async"></picture>
+              <span class="speaker__name">Yevhen Khimichuk</span>
+            </button>
           </li>
-          <li class="speaker" data-expand>
-            <picture><source type="image/webp" srcset="img/portret-06-marek-malinowski-280.webp 280w, img/portret-06-marek-malinowski-560.webp 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px"><img class="speaker__img" src="img/portret-06-marek-malinowski-280.jpg" srcset="img/portret-06-marek-malinowski-280.jpg 280w, img/portret-06-marek-malinowski-560.jpg 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px" width="560" height="560" alt="Marek Malinowski" loading="lazy" decoding="async"></picture>
-            <h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="spk-8">Marek Malinowski<span class="visually-hidden"> — pokaż biogram</span></button></h3>
-            <p class="speaker__topic">Warsztat: „Zmiana 2.0 – Rapid Change Management z pomocą AI”</p>
-            <div class="speaker__more" id="spk-8">
-              <div class="speaker__more-inner">
-                <p class="speaker__bio">Ekspert IT Operations &amp; Support, łączący świat biznesu i innowacji. Prowadzi szkolenia z AI i Design Thinking. Specjalista od automatyzacji i „ogarniania chaosu”, z 20-letnim doświadczeniem.</p>
-                <p class="speaker__links"><a class="chip-link" href="https://www.linkedin.com/in/malinowski-marek/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Marek Malinowski (otwiera się w nowej karcie)</span></a></p>
-              </div>
-            </div>
+          <li class="speaker">
+            <button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="spk-8">
+              <picture><source type="image/webp" srcset="img/portret-06-marek-malinowski-280.webp 280w, img/portret-06-marek-malinowski-560.webp 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px"><img class="speaker__img" src="img/portret-06-marek-malinowski-280.jpg" srcset="img/portret-06-marek-malinowski-280.jpg 280w, img/portret-06-marek-malinowski-560.jpg 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px" width="560" height="560" alt="" loading="lazy" decoding="async"></picture>
+              <span class="speaker__name">Marek Malinowski</span>
+            </button>
           </li>
-          <li class="speaker" data-expand>
-            <picture><source type="image/webp" srcset="img/portret-08-aleksandra-penza-280.webp 280w, img/portret-08-aleksandra-penza-560.webp 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px"><img class="speaker__img" src="img/portret-08-aleksandra-penza-280.jpg" srcset="img/portret-08-aleksandra-penza-280.jpg 280w, img/portret-08-aleksandra-penza-560.jpg 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px" width="560" height="560" alt="Aleksandra Penza" loading="lazy" decoding="async"></picture>
-            <h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="spk-9">Aleksandra Penza<span class="visually-hidden"> — pokaż biogram</span></button></h3>
-            <p class="speaker__topic">Warsztat: „Kapitał psychologiczny: ukryty zasób Project Managera”</p>
-            <div class="speaker__more" id="spk-9">
-              <div class="speaker__more-inner">
-                <p class="speaker__bio">Ekspertka od „ludzkiej strony projektu” — opowiada o kapitale psychologicznym, budowaniu odporności zespołu na zmianę i metodach z psychologii biznesu stosowanych w zarządzaniu projektami.</p>
-                <p class="speaker__links"><a class="chip-link" href="https://www.linkedin.com/in/aleksandrapenza/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Aleksandra Penza (otwiera się w nowej karcie)</span></a></p>
-              </div>
-            </div>
+          <li class="speaker">
+            <button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="spk-9">
+              <picture><source type="image/webp" srcset="img/portret-08-aleksandra-penza-280.webp 280w, img/portret-08-aleksandra-penza-560.webp 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px"><img class="speaker__img" src="img/portret-08-aleksandra-penza-280.jpg" srcset="img/portret-08-aleksandra-penza-280.jpg 280w, img/portret-08-aleksandra-penza-560.jpg 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px" width="560" height="560" alt="" loading="lazy" decoding="async"></picture>
+              <span class="speaker__name">Aleksandra Penza</span>
+            </button>
           </li>
-          <li class="speaker" data-expand>
-            <picture><source type="image/webp" srcset="img/portret-01-andrzej-klose-280.webp 280w, img/portret-01-andrzej-klose-560.webp 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px"><img class="speaker__img" src="img/portret-01-andrzej-klose-280.jpg" srcset="img/portret-01-andrzej-klose-280.jpg 280w, img/portret-01-andrzej-klose-560.jpg 560w" sizes="(max-width: 640px) calc(100vw - 68px), 300px" width="560" height="560" alt="Andrzej Klose" loading="lazy" decoding="async"></picture>
-            <h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="spk-10">Andrzej Klose<span class="visually-hidden"> — pokaż biogram</span></button></h3>
-            <p class="speaker__topic">Prelekcja: „Kim jestem tak naprawdę, czyli dlaczego to zmiana mnie przeraża?”</p>
-            <div class="speaker__more" id="spk-10">
-              <div class="speaker__more-inner">
-                <p class="speaker__bio">Przedsiębiorca, trener i coach biznesu, speaker. Dyrektor zarządzający w Klose Brothers Polska oraz wykładowca PASB. Ponad 25-letnie doświadczenie w tradycyjnych i nowoczesnych przedsiębiorstwach. Twórca programu „Wewnętrzna Siła”.</p>
-                <p class="speaker__links"><a class="chip-link" href="https://www.linkedin.com/in/andrzej-klose/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Andrzej Klose (otwiera się w nowej karcie)</span></a></p>
-              </div>
-            </div>
+          <li class="speaker">
+            <button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="spk-10">
+              <picture><source type="image/webp" srcset="img/portret-01-andrzej-klose-280.webp 280w, img/portret-01-andrzej-klose-560.webp 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px"><img class="speaker__img" src="img/portret-01-andrzej-klose-280.jpg" srcset="img/portret-01-andrzej-klose-280.jpg 280w, img/portret-01-andrzej-klose-560.jpg 560w" sizes="(max-width: 640px) calc(50vw - 40px), 200px" width="560" height="560" alt="" loading="lazy" decoding="async"></picture>
+              <span class="speaker__name">Andrzej Klose</span>
+            </button>
           </li>
         </ul>
-      </section>
 
-      <section id="harmonogram" class="pms-block container" aria-labelledby="h-schedule">
-        <h2 id="h-schedule" class="pms-h2" data-reveal>Harmonogram</h2>
-        <ol class="schedule" data-reveal>
-          <li class="schedule__row"><p class="schedule__time">8:30</p><p class="schedule__item">Rejestracja</p></li>
-          <li class="schedule__row"><p class="schedule__time">9:00</p><p class="schedule__item">Oficjalne rozpoczęcie konferencji</p></li>
-          <li class="schedule__row"><p class="schedule__time">9:15</p><p class="schedule__item">Paweł Sawicki <span class="muted">„Project Manager – influencer zmiany”</span></p></li>
-          <li class="schedule__row schedule__row--parallel"><p class="schedule__time">10:30<span class="schedule__tag">3 sesje<br> równoległe</span></p><ul class="schedule__sessions"><li class="schedule__session"><p class="schedule__who">Marcin Orocz</p><p class="schedule__what">„Zapomnij o wszystkim, czego się nauczyłeś na studiach. Oduczanie jako Twoja supermoc w zarządzaniu projektami”</p></li><li class="schedule__session"><p class="schedule__who">Bartosz Misiurek + Wiktor Wołoszczuk</p><p class="schedule__what">„Od strategii do codziennych działań: czego podejście Toyoty uczy o zarządzaniu zmianą”</p></li><li class="schedule__session"><p class="schedule__who">Paweł Sukiennik</p><p class="schedule__what">„Dyrektywa NIS2 jako projekt zmiany w czasie transformacji energetycznej”</p></li></ul></li>
-          <li class="schedule__row"><p class="schedule__time">12:15</p><p class="schedule__item">Wojciech Buła <span class="muted">„21,5 miliona złotych i zero przychodów – jak zarządzać zmianą, kiedy kończy się paliwo”</span></p></li>
-          <li class="schedule__row"><p class="schedule__time">13:15</p><p class="schedule__item">Poczęstunek w Kawiarence</p></li>
-          <li class="schedule__row"><p class="schedule__time">13:45</p><p class="schedule__item">Networking</p></li>
-          <li class="schedule__row schedule__row--parallel"><p class="schedule__time">14:15<span class="schedule__tag">3 sesje<br> równoległe</span></p><ul class="schedule__sessions"><li class="schedule__session"><p class="schedule__who">Yevhen Khimichuk</p><p class="schedule__what">„Zarządzanie zmianą w formie projektu: wyznaczenie i sterowanie zakresem zmiany”</p></li><li class="schedule__session"><p class="schedule__who">Marek Malinowski</p><p class="schedule__what">„Zmiana 2.0 – Rapid Change Management z pomocą AI”</p></li><li class="schedule__session"><p class="schedule__who">Aleksandra Penza</p><p class="schedule__what">„Kapitał psychologiczny: ukryty zasób Project Managera”</p></li></ul></li>
-          <li class="schedule__row"><p class="schedule__time">16:00</p><p class="schedule__item">Andrzej Klose <span class="muted">„Kim jestem tak naprawdę, czyli dlaczego to zmiana mnie przeraża?”</span></p></li>
-          <li class="schedule__row"><p class="schedule__time">17:00</p><p class="schedule__item">Oficjalne zakończenie konferencji</p></li>
-        </ol>
+        <dialog class="pod-modal theme-dark" aria-labelledby="speaker-modal-title" data-speaker-modal>
+          <div class="pod-modal__panel">
+            <button class="pod-modal__close" type="button" data-dialog-close aria-label="Zamknij okno prelegenta"><span aria-hidden="true">✕</span></button>
+            <div class="pod-modal__body" data-speaker-modal-content></div>
+          </div>
+        </dialog>
+
+        <template id="spk-1">
+          <h2 class="pod-modal__title" id="speaker-modal-title">Paweł Sawicki</h2>
+          <p class="pod-modal__num">Prelekcja: „Project Manager – influencer zmiany”</p>
+          <p class="pod-modal__desc">Lider transformacji technologicznej i operacyjnej, na co dzień związany z globalną firmą konsultingową BPX S.A. Realizował strategiczne projekty m.in. dla BMW, Scanii, agencji bezpieczeństwa UE oraz w sektorach bankowym i FMCG. Wykładowca, mentor i ekspert NCBR.</p>
+          <p class="pod-modal__links"><a class="chip-link" href="https://www.linkedin.com/in/pawel-sawicki-6169116a/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Paweł Sawicki (otwiera się w nowej karcie)</span></a></p>
+        </template>
+        <template id="spk-2">
+          <h2 class="pod-modal__title" id="speaker-modal-title">Marcin Orocz</h2>
+          <p class="pod-modal__num">Warsztat: „Zapomnij o wszystkim, czego się nauczyłeś na studiach. Oduczanie jako Twoja supermoc w zarządzaniu projektami”</p>
+          <p class="pod-modal__desc">Doradca biznesowy z 15-letnim stażem w globalnym biznesie (IT, Sales, Omnichannel). W zarządzaniu zmianą stawia na praktykę.</p>
+          <p class="pod-modal__links"><a class="chip-link" href="https://www.linkedin.com/in/marcinorocz/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Marcin Orocz (otwiera się w nowej karcie)</span></a></p>
+        </template>
+        <template id="spk-3">
+          <h2 class="pod-modal__title" id="speaker-modal-title">Bartosz Misiurek</h2>
+          <p class="speaker__note">Wspólny warsztat z Wiktorem Wołoszczukiem</p>
+          <p class="pod-modal__num">Warsztat: „Od strategii do codziennych działań: czego podejście Toyoty uczy o zarządzaniu zmianą”</p>
+          <p class="pod-modal__desc">dr inż., adiunkt na PWr i globalny ekspert TWI/Lean. Szkolił kadrę w ponad 60 zakładach na 4 kontynentach (m.in. Volvo, IKEA, Philips). Łączy Lean z AI i technologią blockchain.</p>
+          <p class="pod-modal__links"><a class="chip-link" href="https://www.linkedin.com/in/bartosz-misiurek/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Bartosz Misiurek (otwiera się w nowej karcie)</span></a></p>
+        </template>
+        <template id="spk-4">
+          <h2 class="pod-modal__title" id="speaker-modal-title">Wiktor Wołoszczuk</h2>
+          <p class="speaker__note">Wspólny warsztat z Bartoszem Misiurkiem</p>
+          <p class="pod-modal__num">Warsztat: „Od strategii do codziennych działań: czego podejście Toyoty uczy o zarządzaniu zmianą”</p>
+          <p class="pod-modal__desc">Psycholog biznesu i współzałożyciel Kata School Poland. Ponad 20 lat doświadczenia menedżerskiego. Ekspert od budowania zaangażowania i przywództwa w zmiennym środowisku VUCA.</p>
+          <p class="pod-modal__links"><a class="chip-link" href="https://www.linkedin.com/in/wiktorwoloszczuk/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Wiktor Wołoszczuk (otwiera się w nowej karcie)</span></a></p>
+        </template>
+        <template id="spk-5">
+          <h2 class="pod-modal__title" id="speaker-modal-title">Paweł Sukiennik</h2>
+          <p class="pod-modal__num">Warsztat: „Dyrektywa NIS2 jako projekt zmiany w czasie transformacji energetycznej”</p>
+          <p class="pod-modal__desc">Dyrektor ds. Cyberbezpieczeństwa OT w Transition Technologies-Control Solutions. Absolwent Politechniki Wrocławskiej, certyfikowany specjalista normy ISA/IEC 62443. Praktyk z 10-letnim stażem w integracji systemów automatyki i cyberbezpieczeństwa.</p>
+          <p class="pod-modal__links"><a class="chip-link" href="https://www.linkedin.com/in/pawe%C5%82-sukiennik-242386199/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Paweł Sukiennik (otwiera się w nowej karcie)</span></a></p>
+        </template>
+        <template id="spk-6">
+          <h2 class="pod-modal__title" id="speaker-modal-title">Wojciech Buła</h2>
+          <p class="pod-modal__num">Prelekcja: „21,5 miliona złotych i zero przychodów – jak zarządzać zmianą, kiedy kończy się paliwo”</p>
+          <p class="pod-modal__desc">Absolwent PWr, doktor nanotechnologii z 20-letnim globalnym doświadczeniem (m.in. współpraca ze SpaceX i ASIC). Seryjny startupowiec deep-tech, laureat Edison Award i CES Innovation. Obecnie CTO Orthoget S.A. oraz wykładowca SGH.</p>
+          <p class="pod-modal__links"><a class="chip-link" href="https://www.linkedin.com/in/wpbula/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Wojciech Buła (otwiera się w nowej karcie)</span></a></p>
+        </template>
+        <template id="spk-7">
+          <h2 class="pod-modal__title" id="speaker-modal-title">Yevhen Khimichuk</h2>
+          <p class="pod-modal__num">Warsztat: „Zarządzanie zmianą w formie projektu: wyznaczenie i sterowanie zakresem zmiany”</p>
+          <p class="pod-modal__desc">Kierownik finansów i Przewodniczący Komisji Rewizyjnej w IPMA Young Crew. Wieloletni analityk ds. bezpieczeństwa i obronności w Klubie Jagiellońskim. Praktyk z korporacyjnym doświadczeniem.</p>
+          <p class="pod-modal__links"><a class="chip-link" href="https://www.linkedin.com/in/yevhen-khimichuk-272198b2/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Yevhen Khimichuk (otwiera się w nowej karcie)</span></a></p>
+        </template>
+        <template id="spk-8">
+          <h2 class="pod-modal__title" id="speaker-modal-title">Marek Malinowski</h2>
+          <p class="pod-modal__num">Warsztat: „Zmiana 2.0 – Rapid Change Management z pomocą AI”</p>
+          <p class="pod-modal__desc">Ekspert IT Operations &amp; Support, łączący świat biznesu i innowacji. Prowadzi szkolenia z AI i Design Thinking. Specjalista od automatyzacji i „ogarniania chaosu”, z 20-letnim doświadczeniem.</p>
+          <p class="pod-modal__links"><a class="chip-link" href="https://www.linkedin.com/in/malinowski-marek/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Marek Malinowski (otwiera się w nowej karcie)</span></a></p>
+        </template>
+        <template id="spk-9">
+          <h2 class="pod-modal__title" id="speaker-modal-title">Aleksandra Penza</h2>
+          <p class="pod-modal__num">Warsztat: „Kapitał psychologiczny: ukryty zasób Project Managera”</p>
+          <p class="pod-modal__desc">Ekspertka od „ludzkiej strony projektu” — opowiada o kapitale psychologicznym, budowaniu odporności zespołu na zmianę i metodach z psychologii biznesu stosowanych w zarządzaniu projektami.</p>
+          <p class="pod-modal__links"><a class="chip-link" href="https://www.linkedin.com/in/aleksandrapenza/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Aleksandra Penza (otwiera się w nowej karcie)</span></a></p>
+        </template>
+        <template id="spk-10">
+          <h2 class="pod-modal__title" id="speaker-modal-title">Andrzej Klose</h2>
+          <p class="pod-modal__num">Prelekcja: „Kim jestem tak naprawdę, czyli dlaczego to zmiana mnie przeraża?”</p>
+          <p class="pod-modal__desc">Przedsiębiorca, trener i coach biznesu, speaker. Dyrektor zarządzający w Klose Brothers Polska oraz wykładowca PASB. Ponad 25-letnie doświadczenie w tradycyjnych i nowoczesnych przedsiębiorstwach. Twórca programu „Wewnętrzna Siła”.</p>
+          <p class="pod-modal__links"><a class="chip-link" href="https://www.linkedin.com/in/andrzej-klose/" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — Andrzej Klose (otwiera się w nowej karcie)</span></a></p>
+        </template>
       </section>
 
       <section id="galeria" class="pms-block container" aria-labelledby="h-gallery">
-        <h2 id="h-gallery" class="pms-h2" data-reveal>Galeria PM Session XIV</h2>
+        <h2 id="h-gallery" class="pms-h2" data-reveal>Galeria</h2>
         <div class="gallery">
           <figure class="gallery__item" data-reveal>
             <button class="gallery__button" type="button" data-lightbox-trigger data-full="img/pms-xiv-galeria-1-1200.webp" data-caption="Warsztat podczas PM Session XIV" aria-label="Powiększ zdjęcie: Warsztat podczas PM Session XIV">
@@ -237,31 +266,7 @@
         </div>
       </section>
 
-      <div class="pms-block pms-block--tight container">
-        <div class="pms-social" data-reveal>
-          <p class="pms-social__title">Śledź PMS w social mediach</p>
-          <ul class="contact__social">
-            <li><a data-set="instagram" class="contact__social-link" href="https://www.instagram.com/pmgroup_pwr/" rel="noopener" target="_blank" aria-label="Instagram @pmgroup_pwr (otwiera się w nowej karcie)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1.1.4 2.2.1 1.3.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1.1.4-2.2.4-1.3.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1.1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.8c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1.1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 2.2c-3.1 0-3.5 0-4.7.1-1 0-1.6.2-1.9.3-.5.2-.8.4-1.2.8-.4.4-.6.7-.8 1.2-.1.4-.3.9-.3 1.9-.1 1.2-.1 1.6-.1 4.7s0 3.5.1 4.7c0 1 .2 1.6.3 1.9.2.5.4.8.8 1.2.4.4.7.6 1.2.8.4.1.9.3 1.9.3 1.2.1 1.6.1 4.7.1s3.5 0 4.7-.1c1 0 1.6-.2 1.9-.3.5-.2.8-.4 1.2-.8.4-.4.6-.7.8-1.2.1-.4.3-.9.3-1.9.1-1.2.1-1.6.1-4.7s0-3.5-.1-4.7c0-1-.2-1.6-.3-1.9-.2-.5-.4-.8-.8-1.2-.4-.4-.7-.6-1.2-.8-.4-.1-.9-.3-1.9-.3-1.2-.1-1.6-.1-4.7-.1zm0 3.4a4.2 4.2 0 1 1 0 8.4 4.2 4.2 0 0 1 0-8.4zm0 6.9a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4zm5.4-7.1a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg></a></li>
-            <li><a data-set="facebook" class="contact__social-link" href="https://www.facebook.com/PMGroupPWr" rel="noopener" target="_blank" aria-label="Facebook PMG (otwiera się w nowej karcie)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></svg></a></li>
-            <li><a data-set="linkedin" class="contact__social-link" href="https://www.linkedin.com/company/project-management-group-pmg/" rel="noopener" target="_blank" aria-label="LinkedIn PMG (otwiera się w nowej karcie)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.064 2.064 0 1 1 0-4.128 2.064 2.064 0 0 1 0 4.128zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a></li>
-            <li><a data-set="tiktok" class="contact__social-link" href="https://www.tiktok.com/@pmgroup_" rel="noopener" target="_blank" aria-label="TikTok @pmgroup_ (otwiera się w nowej karcie)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg></a></li>
-          </ul>
-        </div>
-        <div class="pms-cta" data-reveal>
-          <a class="btn btn--gradient btn--xl" href="kontakt.html">Bądź na bieżąco <span aria-hidden="true">→</span></a>
-        </div>
-      </div>
     </div>
-
-    <section class="pms-next" aria-labelledby="h-next">
-      <div class="container" data-reveal>
-        <h2 id="h-next" class="home-h2">Kolejna edycja</h2>
-        <div class="pms-next__box">
-          <div class="pms-next__icon" aria-hidden="true"></div>
-          <p class="pms-next__text">Szczegóły kolejnej edycji PM Session wkrótce</p>
-        </div>
-      </div>
-    </section>
   </main>
 
   <footer class="site-footer">
