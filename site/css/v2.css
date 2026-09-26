@@ -21,7 +21,7 @@ html.lenis, html.lenis body { height: auto; }
 
 /* ---------- Nawigacja → pływająca pigułka po przewinięciu (desktop) ---------- */
 @media (min-width: 961px) {
-  .v2 .site-nav.is-scrolled { background-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom-color: transparent !important; border-image: none !important; }
+  .v2 .site-nav.is-scrolled { background-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
   .v2 .site-nav .site-nav__inner { transition: padding var(--ease), max-width .45s ease, margin .45s ease, border-radius .45s ease, background-color var(--ease), box-shadow var(--ease); max-width: 100%; margin: 0 auto; }
   .v2 .site-nav.is-scrolled .site-nav__inner {
     max-width: 1120px; margin: 10px auto 0; padding: 6px 10px 6px 18px; border-radius: var(--radius-pill);
@@ -64,22 +64,6 @@ html.lenis, html.lenis body { height: auto; }
 .pms-intro__line { display: inline-block; white-space: nowrap; will-change: transform; }
 .pms-intro__word { display: inline-block; }
 .pms-intro__bg { transform-origin: 50% 50%; }
-
-/* ---------- Podcast: pionowa fala na całą wysokość strony przy prawej krawędzi (v2.js initPodcastWave) ----------
-   .v2-wave to dziecko main (main = position:relative tylko na tej stronie), rozciągnięte na całą jego
-   wysokość — czyli dokładnie od dołu headera do góry stopki, bez zachodzenia na nie. Wstawiony w DOM
-   przed sekcjami treści, więc przy z-index:auto maluje się pod nimi (patrz komentarz w v2.js) — treść
-   (karty odcinków, tło sekcji „Edycja 1”) go zasłania, tam gdzie na niego nachodzi. Canvas w środku jest
-   sticky i ma wysokość min(viewport, main) — v2.js liczy tę wysokość i ustawia ją inline (nie samym
-   100vh w CSS), żeby canvas nigdy nie był wyższy niż sam pasek, więc nie mógł wystawać pod stopkę
-   nawet gdyby main był krótszy niż jeden ekran. Bez overflow:hidden na .v2-wave — psuje sticky. */
-.pod-hero .container { position: relative; z-index: 1; }
-[data-page="podcast"] main { position: relative; }
-.v2-wave {
-  position: absolute; top: 0; right: 0; bottom: 0; width: clamp(90px, 9vw, 160px);
-  z-index: 0; opacity: .5; pointer-events: none;
-}
-.v2-wave canvas { position: sticky; top: 0; width: 100%; display: block; }
 
 /* ---------- Dołącz: pozioma ścieżka procesu rekrutacji (initJoinPath w v2.js) ----------
    Tylko ≥ 961 px i bez reduced-motion (v2-enhanced): 4 kroki w jednym rzędzie, linia grubsza niż

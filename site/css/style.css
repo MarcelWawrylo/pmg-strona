@@ -1119,7 +1119,6 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
   color: var(--pod-text);
 }
 .theme-dark h1, .theme-dark h2, .theme-dark h3 { color: var(--pod-text); }
-.theme-dark .site-nav { border-bottom: 1px solid transparent; border-image: var(--gradient-brand) 1; }
 
 /* Tło: szum, plamy, logo — dekoracyjne, poza przepływem */
 .pod-bg {
