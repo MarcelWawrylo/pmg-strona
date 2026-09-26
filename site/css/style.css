@@ -238,6 +238,40 @@ button { font: inherit; }
 .site-nav--dark .site-nav__toggle { color: #fff; }
 .site-nav--dark :focus-visible { outline-color: #fff; }
 
+/* Listy rozwijane (PM Session, Case Koła): link + osobny przycisk ze strzałką; stan .is-open ustawia main.js */
+.site-nav__item { position: relative; display: flex; align-items: center; gap: 2px; }
+.site-nav__item:has(.site-nav__sublink[aria-current="page"]) > .site-nav__link { font-weight: 700; color: var(--color-ink); border-bottom-color: var(--nav-accent); }
+.site-nav__subtoggle {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: rgba(20,20,20,.7); cursor: pointer; transition: color var(--ease), background var(--ease);
+}
+.site-nav__subtoggle:hover { color: var(--color-ink); background: rgba(20,20,20,.06); }
+.site-nav__subtoggle svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform var(--ease); }
+.site-nav__subtoggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.site-nav__sub {
+  list-style: none; margin: 0; padding: 8px; position: absolute; top: calc(100% + 10px); left: -14px; z-index: 60;
+  min-width: 230px; background: #fff; border-radius: 14px;
+  box-shadow: 0 18px 40px -16px rgba(20,20,40,.35), 0 0 0 1px rgba(20,20,20,.06);
+}
+.site-nav__sub::before { content: ""; position: absolute; left: 0; right: 0; top: -12px; height: 12px; } /* mostek dla myszy */
+.js .site-nav__item:not(.is-open) > .site-nav__sub,
+html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { display: none; }
+.site-nav__sublink {
+  display: block; padding: 10px 12px; border-radius: 8px; white-space: nowrap;
+  font: 500 14.5px/1.3 var(--font-body); color: rgba(20,20,20,.78); text-decoration: none;
+  transition: background var(--ease), color var(--ease);
+}
+.site-nav__sublink:hover { background: rgba(20,20,20,.05); color: var(--color-ink); }
+.site-nav__sublink[aria-current="page"] { font-weight: 700; color: var(--color-ink); box-shadow: inset 3px 0 0 var(--nav-accent); }
+.site-nav--dark .site-nav__item:has(.site-nav__sublink[aria-current="page"]) > .site-nav__link { color: #fff; }
+.site-nav--dark .site-nav__subtoggle { color: rgba(245,245,245,.72); }
+.site-nav--dark .site-nav__subtoggle:hover { color: #fff; background: rgba(255,255,255,.1); }
+.site-nav--dark .site-nav__sub { background: #1b1b20; box-shadow: 0 18px 40px -16px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.1); }
+.site-nav--dark .site-nav__sublink { color: rgba(245,245,245,.8); }
+.site-nav--dark .site-nav__sublink:hover { background: rgba(255,255,255,.08); color: #fff; }
+.site-nav--dark .site-nav__sublink[aria-current="page"] { color: #fff; }
+
 @media (max-width: 960px) {
   .site-nav__inner { flex-wrap: wrap; gap: 12px; }
   .site-nav__logo img { height: 56px; width: 56px; }
@@ -255,6 +289,18 @@ button { font: inherit; }
   .site-nav__link:hover { border-bottom-color: var(--color-border); }
   .site-nav__link[aria-current="page"] { border-bottom: 1px solid var(--color-border); box-shadow: inset 4px 0 0 var(--nav-accent); padding-left: 14px; }
   .site-nav__cta { align-self: flex-start; margin-top: 16px; font-size: 15px; padding: 11px 24px; }
+  /* listy rozwijane jako akordeon w menu mobilnym */
+  .site-nav__item { flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--color-border); }
+  .site-nav--dark .site-nav__item { border-bottom-color: rgba(255,255,255,.1); }
+  .site-nav__item > .site-nav__link { flex: 1; border-bottom: 0; }
+  .site-nav__item > .site-nav__link[aria-current="page"] { border-bottom: 0; }
+  .site-nav__item:has(.site-nav__sublink[aria-current="page"]) > .site-nav__link { box-shadow: inset 4px 0 0 var(--nav-accent); padding-left: 14px; }
+  .site-nav__subtoggle { width: 44px; height: 44px; }
+  .site-nav__subtoggle svg { width: 14px; height: 14px; }
+  .site-nav__sub { position: static; flex-basis: 100%; min-width: 0; padding: 0 0 10px 14px; background: transparent; border-radius: 0; box-shadow: none; }
+  .site-nav--dark .site-nav__sub { background: transparent; box-shadow: none; }
+  .site-nav__sub::before { display: none; }
+  .site-nav__sublink { font-size: 16px; padding: 11px 12px; white-space: normal; }
 }
 
 /* ---------- 7. Stopka ---------- */
@@ -286,10 +332,12 @@ button { font: inherit; }
 .site-footer__uni { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px; margin-top: 28px; }
 .site-footer__uni-link { display: inline-flex; }
 .site-footer__uni img { height: 56px; width: auto; }
+.site-footer__uni-link--pwr img { height: 100px; } /* oficjalna biała wersja pionowa na ciemne tło */
 @media (max-width: 640px) {
   .site-footer__brand { flex-direction: column; align-items: flex-start; }
   .site-footer__brand img { height: 70px; width: 70px; }
   .site-footer__uni img { height: 48px; }
+  .site-footer__uni-link--pwr img { height: 84px; }
   .site-footer__bottom { flex-direction: column; }
   .site-footer__credits { text-align: left; }
 }
@@ -531,6 +579,8 @@ button { font: inherit; }
 .project-card__more--pink { color: var(--color-pink-text); }
 .project-card__more--blue { color: var(--color-blue); }
 .project-card__more--purple { color: var(--color-purple); }
+.project-card__logo { display: flex; align-items: center; height: 56px; margin-bottom: 16px; }
+.project-card__logo img { height: 100%; width: auto; max-width: 100%; object-fit: contain; }
 
 .home-join { padding: 66px 0; }
 .home-join__grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: stretch; }
@@ -658,6 +708,25 @@ button { font: inherit; }
 }
 .pms-next__icon { width: 74px; height: 74px; border-radius: 20px; background: repeating-linear-gradient(45deg, rgba(20,20,20,.07) 0 10px, transparent 10px 20px), #efeee9; border: 1px solid rgba(0,0,0,.07); }
 .pms-next__text { font: 600 24px/1.3 var(--font-head); color: var(--color-ink); letter-spacing: -.02em; }
+/* PM Session „Czym jest PM Session?”: zdanie na pierwszym ekranie (statycznie; przewijanie poziome w v2.css + v2.js) */
+.pms-intro { position: relative; }
+.pms-intro__pin { position: relative; display: flex; align-items: center; min-height: calc(100vh - 90px); min-height: calc(100svh - 90px); padding: 56px 0; overflow: hidden; }
+.pms-intro__bg {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(50% 55% at 20% 38%, rgba(229,24,94,.09), transparent 70%), radial-gradient(50% 60% at 82% 64%, rgba(29,70,224,.09), transparent 70%);
+}
+.pms-intro__inner { position: relative; width: 100%; }
+.pms-intro__title { font: 600 clamp(40px, 7vw, 96px)/1 var(--font-head); letter-spacing: -.04em; color: var(--color-ink); text-wrap: balance; }
+.pms-intro__accent { color: var(--color-purple); }
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .pms-intro__accent { background: linear-gradient(110deg, #c8124f, #8b2c9c 55%, #1d46e0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+}
+.pms-intro + .pms-about { padding-top: 64px; }
+.pms-editions { padding: 20px 0 80px; }
+.pms-editions__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+.pms-editions .project-card { padding: 28px; }
+.pms-editions .project-card__title { margin-top: 12px; font-size: 22px; }
+@media (max-width: 640px) { .pms-editions__grid { grid-template-columns: minmax(0, 1fr); } .pms-intro__pin { padding: 40px 0; } }
 
 /* ---------- 10. Dołącz ---------- */
 /* ---------- Dołącz (tymczasowy plik — do scalenia ze style.css) ---------- */
@@ -716,12 +785,18 @@ button { font: inherit; }
 }
 .join-page-unit:focus-visible .join-page-unit__arrow { color: var(--color-pink-text); }
 
-/* Oś procesu: pionowa na każdej szerokości — prosta linia przechodzi przez kroki 1 → 2 → 3 → 4 bez JS
-   (v2 z GSAP przywraca siatkę 2×2 i rysuje ścieżkę w v2.js) */
+/* Oś procesu: pionowa ze strzałką w dół, narysowana w całości bez JS/z reduced-motion — prosta linia
+   przechodzi przez kroki 1 → 2 → 3 → 4 (na ≥ 961 px z JS v2.js zamienia ją na poziomą, rysowaną
+   scrollem — patrz v2.css i initJoinPath) */
 .join-page-steps { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
 .join-page-steps::before {
-  content: ""; position: absolute; left: 9px; top: 10px; bottom: 10px; width: 2px;
+  content: ""; position: absolute; left: 9px; top: 10px; bottom: 16px; width: 3px;
   background: linear-gradient(180deg, #e5185e, #8b2c9c 50%, #1d46e0);
+}
+.join-page-steps::after {
+  content: ""; position: absolute; left: 10.5px; bottom: 6px; width: 0; height: 0;
+  border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 8px solid #1d46e0;
+  transform: translateX(-50%);
 }
 .join-page-steps__item { position: relative; padding-left: 36px; }
 .join-page-steps__dot { display: block; position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; background: #e5185e; border: 3px solid var(--color-bg); }
@@ -782,6 +857,7 @@ button { font: inherit; }
 .about-board__name { display: block; font: 600 19px var(--font-head); color: #fff; margin-top: 2px; }
 .about-board__line { width: 2px; height: 26px; background: rgba(20, 20, 20, .15); }
 
+/* globalny html { scroll-padding-top: 96px } już liczy odstęp na przyklejony header */
 .about-units { padding: 8px 0 72px; }
 .about-units .about-h2 { margin-bottom: 30px; }
 .about-units__list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
@@ -1016,7 +1092,7 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 .pod-bg__blob--purple { background: var(--color-purple); top: 38%; left: 46%; transform: translate(120px, 120px); }
 .pod-bg__logo {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: min(120vw, 1400px); aspect-ratio: 1 / 1;
+  width: min(140vw, 1700px); aspect-ratio: 1600 / 1439;
   -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 68%); mask-image: radial-gradient(circle, #000 30%, transparent 68%);
 }
 .pod-bg__logo picture, .pod-bg__logo img { width: 100%; height: 100%; }

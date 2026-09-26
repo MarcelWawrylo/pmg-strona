@@ -64,6 +64,59 @@
     if (mq.addEventListener) mq.addEventListener('change', onMq); else mq.addListener(onMq);
   }
 
+  /* ---------- Listy rozwijane w menu (PM Session, Case Koła) ---------- */
+  /* Desktop: otwiera najechanie, fokus i klik w strzałkę; Esc zamyka i wraca fokusem do strzałki.
+     Mobile (< 961 px): akordeon, tylko klik w strzałkę. */
+  function initSubnav() {
+    var items = $$('[data-subnav]');
+    if (!items.length) return;
+    var desktop = window.matchMedia('(min-width: 961px)');
+    var refocusing = false;
+
+    items.forEach(function (item) {
+      var btn = $('.site-nav__subtoggle', item);
+      if (!btn) return;
+      var closeTimer = null;
+      var openedAt = 0;
+      var setOpen = function (open) {
+        clearTimeout(closeTimer);
+        if (open && !item.classList.contains('is-open')) openedAt = Date.now();
+        item.classList.toggle('is-open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) items.forEach(function (other) { if (other !== item) other.__subnavClose(); });
+      };
+      item.__subnavClose = function () { setOpen(false); };
+
+      item.addEventListener('mouseenter', function () { if (desktop.matches) setOpen(true); });
+      item.addEventListener('mouseleave', function () {
+        if (!desktop.matches || item.contains(document.activeElement)) return;
+        closeTimer = setTimeout(function () { setOpen(false); }, 180);
+      });
+      item.addEventListener('focusin', function () { if (desktop.matches && !refocusing) setOpen(true); });
+      item.addEventListener('focusout', function (e) {
+        if (desktop.matches && !item.contains(e.relatedTarget)) setOpen(false);
+      });
+      btn.addEventListener('click', function () {
+        var open = item.classList.contains('is-open');
+        // klik tuż po otwarciu najechaniem/fokusem nie zamyka listy od razu
+        if (open && desktop.matches && Date.now() - openedAt < 400) return;
+        setOpen(!open);
+      });
+      item.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' || !item.classList.contains('is-open')) return;
+        e.stopPropagation(); // nie zamykaj przy okazji całego menu mobilnego
+        setOpen(false);
+        refocusing = true; btn.focus(); refocusing = false;
+      });
+    });
+
+    document.addEventListener('click', function (e) {
+      items.forEach(function (item) { if (!item.contains(e.target)) item.__subnavClose(); });
+    });
+    var onMq = function () { items.forEach(function (item) { item.__subnavClose(); }); };
+    if (desktop.addEventListener) desktop.addEventListener('change', onMq); else desktop.addListener(onMq);
+  }
+
   /* ---------- Ustawienia strony z panelu: linki społecznościowe, e-mail, rekrutacja ---------- */
   /* Fallback: brak backendu / brak danych / pusta wartość klucza = element zostaje bez zmian (statyczny HTML). */
   function initSettings() {
@@ -370,6 +423,7 @@
     initTeam();
     initPmSession();
     initNav();
+    initSubnav();
     initToTop();
     initReveal();
     initLightbox();
