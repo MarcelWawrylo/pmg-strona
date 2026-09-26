@@ -17,11 +17,10 @@ html.lenis, html.lenis body { height: auto; }
 .v2 .hub-banner__title { font-size: clamp(36px, 6vw, 72px); line-height: .98; letter-spacing: -.035em; }
 .v2 .contact-hero__title { line-height: .92; letter-spacing: -.04em; }
 .v2 .home-h2, .v2 .pms-h2 { letter-spacing: -.03em; }
-.v2 .home-hero__text { max-width: 800px; flex-basis: 560px; }
 
 /* ---------- Nawigacja → pływająca pigułka po przewinięciu (desktop) ---------- */
 @media (min-width: 961px) {
-  .v2 .site-nav.is-scrolled { background-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom-color: transparent !important; border-image: none !important; }
+  .v2 .site-nav.is-scrolled { background-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
   .v2 .site-nav .site-nav__inner { transition: padding var(--ease), max-width .45s ease, margin .45s ease, border-radius .45s ease, background-color var(--ease), box-shadow var(--ease); max-width: 100%; margin: 0 auto; }
   .v2 .site-nav.is-scrolled .site-nav__inner {
     max-width: 1120px; margin: 10px auto 0; padding: 6px 10px 6px 18px; border-radius: var(--radius-pill);
@@ -61,25 +60,11 @@ html.lenis, html.lenis body { height: auto; }
 .v2-enhanced .pms-intro.is-scrub .pms-intro__pin { position: sticky; top: 0; height: 100vh; min-height: 0; padding: 0; }
 .v2-enhanced .pms-intro.is-scrub .pms-intro__inner { max-width: none; padding: 0; }
 .v2-enhanced .pms-intro.is-scrub .pms-intro__title { font-size: clamp(60px, 7vw, 124px); white-space: nowrap; text-wrap: nowrap; }
+.v2-enhanced .pms-intro:not(.is-scrub) .pms-intro__outline { visibility: hidden; }
+.v2-enhanced .pms-intro.is-scrub .pms-intro__outline { padding-left: 100px; font-size: clamp(40px, 4.4vw, 64px); white-space: nowrap; }
 .pms-intro__line { display: inline-block; white-space: nowrap; will-change: transform; }
 .pms-intro__word { display: inline-block; }
 .pms-intro__bg { transform-origin: 50% 50%; }
-
-/* ---------- Podcast: pionowa fala na całą wysokość strony przy prawej krawędzi (v2.js initPodcastWave) ----------
-   .v2-wave to dziecko main (main = position:relative tylko na tej stronie), rozciągnięte na całą jego
-   wysokość — czyli dokładnie od dołu headera do góry stopki, bez zachodzenia na nie. Wstawiony w DOM
-   przed sekcjami treści, więc przy z-index:auto maluje się pod nimi (patrz komentarz w v2.js) — treść
-   (karty odcinków, tło sekcji „Edycja 1”) go zasłania, tam gdzie na niego nachodzi. Canvas w środku jest
-   sticky i ma wysokość min(viewport, main) — v2.js liczy tę wysokość i ustawia ją inline (nie samym
-   100vh w CSS), żeby canvas nigdy nie był wyższy niż sam pasek, więc nie mógł wystawać pod stopkę
-   nawet gdyby main był krótszy niż jeden ekran. Bez overflow:hidden na .v2-wave — psuje sticky. */
-.pod-hero .container { position: relative; z-index: 1; }
-[data-page="podcast"] main { position: relative; }
-.v2-wave {
-  position: absolute; top: 0; right: 0; bottom: 0; width: clamp(90px, 9vw, 160px);
-  z-index: 0; opacity: .5; pointer-events: none;
-}
-.v2-wave canvas { position: sticky; top: 0; width: 100%; display: block; }
 
 /* ---------- Dołącz: pozioma ścieżka procesu rekrutacji (initJoinPath w v2.js) ----------
    Tylko ≥ 961 px i bez reduced-motion (v2-enhanced): 4 kroki w jednym rzędzie, linia grubsza niż
@@ -97,7 +82,11 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* ---------- Case Koła: sekcje ujawniane po kolei (initCaseReveal w v2.js) ----------
-   W trybie pełnym animację robi GSAP, więc [data-reveal] z main.js w tych sekcjach jest wyłączony
-   (bez podwójnego wjazdu i bez przejścia CSS walczącego z GSAP). Gdy biblioteki się nie wczytają,
-   v2.js zdejmuje .v2-enhanced i wraca zwykły [data-reveal]. */
-.v2-enhanced main[data-case-reveal] > .case-section [data-reveal] { opacity: 1; transform: none; transition: none; }
+   Jedyny mechanizm odsłaniania tych sekcji to GSAP (≥ 961 px, bez reduced-motion), więc [data-reveal]
+   z main.js jest tu wyłączony zawsze: bez podwójnego wjazdu, a < 961 px, przy reduced-motion i gdy CDN się
+   nie wczyta (v2.js zdejmuje wtedy .v2-enhanced) treść jest widoczna od razu. W trybie pełnym sekcja czeka
+   ukryta (bez zmiany układu), aż v2.js ją wpuści i oznaczy .is-case-in. */
+main[data-case-reveal] > .case-section [data-reveal] { opacity: 1; transform: none; transition: none; }
+@media (min-width: 961px) and (prefers-reduced-motion: no-preference) {
+  .v2-enhanced main[data-case-reveal] > .case-section:not(.is-case-in) { visibility: hidden; }
+}

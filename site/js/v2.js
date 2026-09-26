@@ -136,119 +136,6 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { window.ScrollTrigger.refresh(); });
   }
 
-  /* ---------- Podcast: pionowa fala na całą wysokość strony przy prawej krawędzi ----------
-     Pasek (.v2-wave) to dziecko <main> na pełną wysokość main (od dołu headera do góry stopki —
-     main leży dokładnie między nimi w .page), position:absolute; main dostaje position:relative
-     tylko na tej stronie. Pasek jest wstawiony w DOM PRZED sekcjami treści (hero, edycja), więc
-     przy z-index:auto maluje się pod nimi — tam, gdzie sekcja ma własne (nawet półprzezroczyste)
-     tło albo karty odcinków, fala chowa się pod treścią i jej nie zasłania; w pustym miejscu hero
-     zostaje widoczna jako dekoracja.
-     Canvas w środku jest position:sticky o wysokości viewportu (nie całej strony) i rysuje tylko
-     bieżący, widoczny fragment — nigdy bitmapy na wysokość całej strony. IntersectionObserver na
-     pasku wstrzymuje rysowanie, gdy pasek jest poza ekranem; poza tym rAF startuje na ruchu myszy
-     lub scrollu i gaśnie po ok. 2 s bezruchu. Na dotyku (hover:none/pointer:coarse) zostaje jedna
-     nieruchoma klatka, bez nasłuchu scrolla/myszy. */
-  function initPodcastWave() {
-    var hero = document.querySelector('.pod-hero');
-    var main = hero && hero.closest('main');
-    if (!hero || !main) return;
-    var coarse = window.matchMedia('(hover: none), (pointer: coarse)').matches;
-
-    var wave = document.createElement('div');
-    wave.className = 'v2-wave';
-    wave.setAttribute('aria-hidden', 'true');
-    wave.innerHTML = '<canvas></canvas>';
-    main.insertBefore(wave, hero);
-
-    var canvas = wave.querySelector('canvas');
-    var ctx = canvas.getContext('2d');
-    var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    var W = 0, H = 0, raf = 0;
-    var resize = function () {
-      // wysokość canvasu = min(viewport, main) — nigdy cała strona i nigdy więcej niż sam pasek main,
-      // więc sticky canvas nie może wystawać pod stopkę, nawet gdyby main był krótszy niż ekran
-      W = wave.clientWidth;
-      H = Math.round(Math.min(window.innerHeight, main.getBoundingClientRect().height));
-      if (!W || !H) return;
-      canvas.style.height = H + 'px';
-      canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (!raf) draw(0);
-    };
-
-    var N = 56; // liczba „słupków” mieszczących się w jednym ekranie wysokości — dalsze fragmenty wzoru dochodzą przesunięciem fazy o scrollY, nie powiększeniem canvasu
-    var grad = function () {
-      var g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, '#e5185e'); g.addColorStop(0.5, '#8b2c9c'); g.addColorStop(1, '#1d46e0');
-      return g;
-    };
-    var pointerY = null, lensY = 0.5, lensAmt = 0;
-    function draw(t) {
-      if (!W || !H) return;
-      var target = pointerY;
-      if (target !== null) lensY += (target - lensY) * 0.12;
-      lensAmt += ((target !== null ? 1 : 0) - lensAmt) * 0.08;
-      ctx.clearRect(0, 0, W, H);
-      var fill = grad();
-      var gap = H / N, bw = Math.max(2, gap * 0.55), mid = W * 0.5;
-      var scrollUnits = window.scrollY / gap; // fragment wzoru odpowiadający bieżącemu przewinięciu
-      for (var i = 0; i < N; i++) {
-        var y = i / (N - 1);
-        var si = i + scrollUnits;
-        var amp = 0.35 + 0.3 * Math.sin(si * 0.37 + t * 1.3) * Math.sin(si * 0.11 - t * 0.6) + 0.25 * Math.sin(si * 0.05 + t * 0.4);
-        amp = Math.abs(amp);
-        var d = (y - lensY) * H;
-        var lens = 1 + 1.35 * lensAmt * Math.exp(-(d * d) / (2 * 70 * 70));
-        var w = Math.max(4, amp * W * 0.62 * lens);
-        ctx.fillStyle = fill;
-        ctx.fillRect(mid - w / 2, i * gap + (gap - bw) / 2, w, bw);
-      }
-    }
-
-    resize();
-    window.addEventListener('resize', resize);
-    draw(0); // klatka spoczynkowa — bez pętli rAF, dopóki nic się nie zmienia
-
-    if (coarse) return; // ekran dotykowy: fala zostaje nieruchoma, bez nasłuchu scrolla/myszy
-
-    var visible = false, startT = null, lastT = 0, idleTimer = null;
-    var now2 = function () { return (window.performance && performance.now) ? performance.now() : Date.now(); };
-    var loop = function (now) {
-      if (startT === null) startT = now;
-      lastT = (now - startT) / 1000;
-      draw(lastT);
-      raf = requestAnimationFrame(loop);
-    };
-    var stop = function () { if (raf) { cancelAnimationFrame(raf); raf = 0; } };
-    var startLoop = function () { if (!raf && visible) { startT = now2() - lastT * 1000; raf = requestAnimationFrame(loop); } };
-    var scheduleStop = function () {
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(stop, 2000);
-    };
-
-    var io = new IntersectionObserver(function (entries) {
-      visible = entries[entries.length - 1].isIntersecting;
-      if (!visible) stop(); else draw(lastT); // wróciła w kadr: dorysuj bieżącą klatkę bez uruchamiania pętli
-    });
-    io.observe(wave);
-    hero.addEventListener('mousemove', function (e) {
-      var r = wave.getBoundingClientRect();
-      if (!r.height) return;
-      pointerY = (e.clientY - r.top) / r.height;
-      startLoop();
-      scheduleStop();
-    });
-    hero.addEventListener('mouseleave', function () {
-      pointerY = null;
-      scheduleStop();
-    });
-    window.addEventListener('scroll', function () {
-      startLoop();
-      scheduleStop();
-    }, { passive: true });
-    document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); });
-  }
-
   /* ---------- Dołącz: pozioma ścieżka procesu rysowana przy przewijaniu, z grotem strzałki ----------
      Kroki są ułożone w jednym poziomym rzędzie (v2.css, ≥ 961 px), więc kropki leżą w jednej linii —
      ścieżka to proste odcinki kropka → kropka w kolejności z DOM. Grot to osobny trójkąt SVG,
@@ -338,32 +225,100 @@
     });
   }
 
-  /* ---------- Case Koła: sekcje (O partnerze → … → Galeria) wjeżdżają po kolei przy przewijaniu ----------
-     <main data-case-reveal> na 4 podstronach case. Każda .case-section ma własny ScrollTrigger (raz, bez
-     scrub i pin), dzieci jej kontenera wchodzą z dołu z przesunięciem w czasie. Stan ukryty ustawia tylko
-     gsap.from w matchMedia — bez JS, < 961 px i przy reduced-motion treść jest widoczna od razu, a po
-     zejściu poniżej 961 px matchMedia cofa style. [data-reveal] z main.js w tych sekcjach jest wyłączony
-     w v2.css (.v2-enhanced), żeby ten sam element nie animował się dwa razy. */
+  /* ---------- Case Koła: sekcje (O partnerze → Wyzwanie → Co zrobiliśmy → Rezultat → Galeria) po kolei ----------
+     <main data-case-reveal> na 4 podstronach case. Każda .case-section „przylatuje” z dołu (y: 72 → 0) i dokleja się
+     pod poprzednią. Do tego czasu jest ukryta przez v2.css (visibility: hidden, tylko z .v2-enhanced ≥ 961 px bez
+     reduced-motion), więc bez JS, bez CDN, < 961 px i przy reduced-motion wszystko jest widoczne od razu.
+     - Kolejka: sekcje startują w kolejności DOM co GAP s, nawet gdy kilka wejdzie w widok naraz (szybki scroll).
+     - Bez nakładania: w trakcie ruchu dół sekcji jest przycięty (clip-path) o tyle, o ile jest przesunięta, więc
+       widoczna część nie wychodzi poza jej miejsce w układzie; układ (także galerii) się nie zmienia.
+     - Raz pokazana zostaje (.is-case-in), bez chowania przy przewijaniu w górę.
+     - Sekcje, które są już nad oknem (hash, odświeżenie w połowie strony, skok na dół), pokazują się od razu.
+     [data-reveal] z main.js w tych sekcjach jest wyłączony w v2.css, żeby nic nie animowało się dwa razy. */
   function initCaseReveal() {
-    var sections = document.querySelectorAll('main[data-case-reveal] > .case-section');
+    var sections = Array.prototype.slice.call(document.querySelectorAll('main[data-case-reveal] > .case-section'));
     if (!sections.length) return;
     var gsap = window.gsap;
+    var Y = 72, DURATION = 1, GAP = 0.22, START = 0.85; // START: górna krawędź sekcji na 85% wysokości okna
+
+    // elementy do lekkiego przesunięcia w czasie wewnątrz sekcji (nagłówek → treść; w galerii każde zdjęcie osobno)
+    var itemsOf = function (section) {
+      var box = section.firstElementChild;
+      if (!box) return [];
+      // .measure > .result > h2, p… — schodź przez pojedyncze opakowania, ale nie do liścia (Solvro: .measure > p)
+      while (box.children.length === 1 && box.firstElementChild.children.length) box = box.firstElementChild;
+      return Array.prototype.slice.call(box.children).reduce(function (acc, el) {
+        return acc.concat(el.classList.contains('gallery') ? Array.prototype.slice.call(el.children) : [el]);
+      }, []);
+    };
+
     gsap.matchMedia().add('(min-width: 961px) and (prefers-reduced-motion: no-preference)', function () {
-      Array.prototype.forEach.call(sections, function (section) {
-        var box = section.firstElementChild;
-        if (!box) return;
-        // .measure > .result > h2, p… — schodź przez pojedyncze opakowania, ale nie do liścia (Solvro: .measure > p)
-        while (box.children.length === 1 && box.firstElementChild.children.length) box = box.firstElementChild;
-        var items = Array.prototype.slice.call(box.children);
-        // galeria: nagłówek i każde zdjęcie osobno, nie cała siatka naraz
-        items = items.reduce(function (acc, el) {
-          return acc.concat(el.classList.contains('gallery') ? Array.prototype.slice.call(el.children) : [el]);
-        }, []);
-        gsap.from(items, {
-          y: 40, autoAlpha: 0, duration: 0.9, stagger: 0.1, ease: 'expo.out',
-          scrollTrigger: { trigger: section, start: 'top 85%', once: true }
+      // 0 czeka, 1 w kolejce, 2 w ruchu, 3 pokazana
+      var state = sections.map(function (s) { return s.classList.contains('is-case-in') ? 3 : 0; });
+      var items = sections.map(itemsOf);
+      var pending = [], timelines = [], nextStart = 0, watcher;
+
+      var finish = function (i) {
+        if (state[i] === 3) return;
+        state[i] = 3;
+        sections[i].classList.add('is-case-in');
+        gsap.set(sections[i], { clearProps: 'transform,opacity,visibility,clipPath' });
+        gsap.set(items[i], { clearProps: 'transform,opacity,visibility' });
+        if (state.every(function (s) { return s === 3; }) && watcher) { watcher.kill(); watcher = null; }
+      };
+      var play = function (i) {
+        pending[i] = null;
+        state[i] = 2;
+        var clip = { b: Y };
+        var tl = timelines[i] = gsap.timeline({ onComplete: function () { timelines[i] = null; finish(i); } });
+        tl.fromTo(sections[i], { y: Y }, { y: 0, duration: DURATION, ease: 'expo.out' }, 0)
+          .fromTo(clip, { b: Y }, {
+            b: 0, duration: DURATION, ease: 'expo.out',
+            onUpdate: function () { sections[i].style.clipPath = 'inset(0px 0px ' + clip.b.toFixed(2) + 'px 0px)'; }
+          }, 0)
+          .fromTo(sections[i], { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.5, ease: 'power2.out' }, 0)
+          .from(items[i], { y: 24, autoAlpha: 0, duration: 0.8, stagger: 0.08, ease: 'power3.out' }, 0.1);
+      };
+      var enqueue = function (i) {
+        state[i] = 1;
+        var now = gsap.ticker.time;
+        var at = Math.max(now, nextStart);
+        nextStart = at + GAP;
+        pending[i] = gsap.delayedCall(at - now, play, [i]);
+      };
+      // sekcja i jest już nad oknem → ona i wszystkie przed nią od razu w pełni widoczne
+      var showNow = function (i) {
+        for (var j = 0; j <= i; j++) {
+          if (state[j] === 3) continue;
+          if (pending[j]) { pending[j].kill(); pending[j] = null; }
+          if (timelines[j]) timelines[j].progress(1); else finish(j);
+        }
+      };
+      var sweep = function () {
+        var vh = window.innerHeight, last = -1, above = -1;
+        sections.forEach(function (s, i) {
+          if (state[i] === 3) return;
+          var r = s.getBoundingClientRect();
+          var shift = Number(gsap.getProperty(s, 'y')) || 0; // miejsce w układzie, bez przesunięcia animacji
+          if (r.top - shift < vh * START) last = i;
+          if (r.bottom - shift <= 0) above = i;
         });
-      });
+        if (above >= 0) showNow(above);
+        for (var i = 0; i <= last; i++) if (state[i] === 0) enqueue(i);
+      };
+
+      watcher = window.ScrollTrigger.create({ start: 0, end: 'max', onUpdate: sweep, onRefresh: sweep });
+      sweep();
+
+      return function () {
+        if (watcher) watcher.kill();
+        pending.forEach(function (d) { if (d) d.kill(); });
+        timelines.forEach(function (t) { if (t) t.kill(); });
+        sections.forEach(function (s, i) {
+          gsap.set(s, { clearProps: 'transform,opacity,visibility,clipPath' });
+          gsap.set(items[i], { clearProps: 'transform,opacity,visibility' });
+        });
+      };
     });
   }
 
@@ -402,7 +357,6 @@
       var lenis = initScroll();
       initPmsIntro();
       initPmsWords();
-      initPodcastWave();
       initJoinPath();
       initCaseReveal();
       window.ScrollTrigger.refresh();
@@ -425,6 +379,20 @@
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(function () { window.ScrollTrigger.refresh(); }, 200);
       });
+
+      // Wysokość strony zmienia się też bez zmiany okna: nav po przewinięciu kurczy się do pigułki
+      // (strona jest wtedy niższa o ok. 40 px). Bez przeliczenia koniec scrubu może wypaść za dołem
+      // strony (np. Dołącz: linia procesu nie dochodzi do końca). Przeliczamy, gdy zmieni się wysokość body.
+      if ('ResizeObserver' in window) {
+        var bodyH = document.body.offsetHeight, heightTimer = null;
+        new ResizeObserver(function () {
+          var h = document.body.offsetHeight;
+          if (Math.abs(h - bodyH) < 2) return;
+          bodyH = h;
+          clearTimeout(heightTimer);
+          heightTimer = setTimeout(function () { window.ScrollTrigger.refresh(); }, 150);
+        }).observe(document.body);
+      }
     });
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
