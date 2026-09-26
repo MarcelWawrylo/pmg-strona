@@ -480,13 +480,13 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .btn--lg { font-size: 15px; padding: 15px 30px; }
 .home-hero { padding: 78px 0 70px; position: relative; overflow: hidden; }
 .home-hero__inner { display: flex; align-items: center; justify-content: space-between; gap: 48px; flex-wrap: wrap; }
-.home-hero__text { flex: 1 1 420px; max-width: 660px; }
+.home-hero__text { flex: 0 1 auto; width: fit-content; max-width: 100%; }
 .home-hero__accent {
   font-style: italic; background: var(--gradient-brand); background-size: 200% auto;
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
   animation: pmgpan 5s linear infinite alternate;
 }
-.home-hero__lead { font: 400 19px/1.6 var(--font-body); color: var(--color-text-muted); max-width: 520px; margin-top: 28px; }
+.home-hero__lead { font: 400 19px/1.6 var(--font-body); color: var(--color-text-muted); max-width: 100%; contain: inline-size; margin-top: 28px; }
 .home-hero__actions { display: flex; gap: 26px; align-items: center; margin-top: 34px; flex-wrap: wrap; }
 
 @keyframes pmgwave { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
