@@ -3,6 +3,10 @@
 !/site/
 !/.gitignore
 !/README.md
+# Wiedza o projekcie dla Claude Code (reszta .claude/ zostaje lokalnie)
+!/.claude/
+/.claude/*
+!/.claude/CLAUDE.md
 
 # Pliki techniczne w site/
 /site/.gitkeep
