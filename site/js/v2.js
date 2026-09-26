@@ -338,6 +338,35 @@
     });
   }
 
+  /* ---------- Case Koła: sekcje (O partnerze → … → Galeria) wjeżdżają po kolei przy przewijaniu ----------
+     <main data-case-reveal> na 4 podstronach case. Każda .case-section ma własny ScrollTrigger (raz, bez
+     scrub i pin), dzieci jej kontenera wchodzą z dołu z przesunięciem w czasie. Stan ukryty ustawia tylko
+     gsap.from w matchMedia — bez JS, < 961 px i przy reduced-motion treść jest widoczna od razu, a po
+     zejściu poniżej 961 px matchMedia cofa style. [data-reveal] z main.js w tych sekcjach jest wyłączony
+     w v2.css (.v2-enhanced), żeby ten sam element nie animował się dwa razy. */
+  function initCaseReveal() {
+    var sections = document.querySelectorAll('main[data-case-reveal] > .case-section');
+    if (!sections.length) return;
+    var gsap = window.gsap;
+    gsap.matchMedia().add('(min-width: 961px) and (prefers-reduced-motion: no-preference)', function () {
+      Array.prototype.forEach.call(sections, function (section) {
+        var box = section.firstElementChild;
+        if (!box) return;
+        // .measure > .result > h2, p… — schodź przez pojedyncze opakowania, ale nie do liścia (Solvro: .measure > p)
+        while (box.children.length === 1 && box.firstElementChild.children.length) box = box.firstElementChild;
+        var items = Array.prototype.slice.call(box.children);
+        // galeria: nagłówek i każde zdjęcie osobno, nie cała siatka naraz
+        items = items.reduce(function (acc, el) {
+          return acc.concat(el.classList.contains('gallery') ? Array.prototype.slice.call(el.children) : [el]);
+        }, []);
+        gsap.from(items, {
+          y: 40, autoAlpha: 0, duration: 0.9, stagger: 0.1, ease: 'expo.out',
+          scrollTrigger: { trigger: section, start: 'top 85%', once: true }
+        });
+      });
+    });
+  }
+
   /* ---------- Kotwice pod przyklejonym headerem (np. o-nas.html#sekcje z kafla na Dołącz) ----------
      Lenis podmienia natywny scroll, więc samo html{scroll-padding-top} z CSS (używane bez JS) tu nie
      wystarczy: po starcie Lenis, gdy adres ma hash, dosuwamy do celu z offsetem o wysokość headera.
@@ -375,6 +404,7 @@
       initPmsWords();
       initPodcastWave();
       initJoinPath();
+      initCaseReveal();
       window.ScrollTrigger.refresh();
       scrollToHashWhenReady(lenis);
 

@@ -47,6 +47,7 @@ html.lenis, html.lenis body { height: auto; }
 .v2 a[href="case-kola-debatelab.html"] .case-card__media, .v2 [data-page="case-kola-debatelab"] .case-hero .media { view-transition-name: case-dl; }
 .v2 a[href="case-kola-qubit.html"] .case-card__media, .v2 [data-page="case-kola-qubit"] .case-hero .media { view-transition-name: case-q; }
 .v2 a[href="case-kola-solvro.html"] .case-card__media, .v2 [data-page="case-kola-solvro"] .case-hero .media { view-transition-name: case-s; }
+.v2 a[href="case-kola-pwr-racing-team.html"] .case-card__media, .v2 a[href="case-kola-debatelab.html"] .case-card__media, .v2 a[href="case-kola-qubit.html"] .case-card__media { view-transition-name: none; }
 
 /* ---------- PM Session: zdanie kolorowane słowo po słowie ---------- */
 .v2-enhanced .pms-about { padding-top: 40px; }
@@ -94,3 +95,9 @@ html.lenis, html.lenis body { height: auto; }
   .v2-enhanced .join-page-steps__item { padding: 50px 14px 0 0; }
   .v2-enhanced .join-page-steps__title { margin-top: 14px; }
 }
+
+/* ---------- Case Koła: sekcje ujawniane po kolei (initCaseReveal w v2.js) ----------
+   W trybie pełnym animację robi GSAP, więc [data-reveal] z main.js w tych sekcjach jest wyłączony
+   (bez podwójnego wjazdu i bez przejścia CSS walczącego z GSAP). Gdy biblioteki się nie wczytają,
+   v2.js zdejmuje .v2-enhanced i wraca zwykły [data-reveal]. */
+.v2-enhanced main[data-case-reveal] > .case-section [data-reveal] { opacity: 1; transform: none; transition: none; }
