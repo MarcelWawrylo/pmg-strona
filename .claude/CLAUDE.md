@@ -7,7 +7,7 @@ Ten plik czyta automatycznie każdy Claude Code otwarty w tym repozytorium. Jest
 - Strona koła naukowego **Project Management Group (PMG)**, Wydział Zarządzania Politechniki Wrocławskiej.
 - Strona ma pokazywać, czym jest koło, przyciągać nowych członków (rekrutacja), promować PM Session (nasza konferencja), podcast i „Case Koła” (studia przypadków innych kół PWr) oraz publikować Aktualności.
 - Treści dostarczają sekcje koła (np. Marketing, HR). Stronę opracowują **Agnieszka Jachimiak i Marcel Wawryło** (tak jest też w stopce).
-- **Marcel** zatwierdza i scala zmiany do `main` oraz publikuje stronę. Nikt inny nie publikuje.
+- **Marcel i Agnieszka** mają równe prawa: każde z nich może scalać zmiany do `main` i publikować stronę. Kolejne osoby tylko otwierają Pull Request, a scala i publikuje Marcel lub Agnieszka.
 
 ## Gdzie działa strona
 
@@ -16,7 +16,7 @@ Ten plik czyta automatycznie każdy Claude Code otwarty w tym repozytorium. Jest
 | Robocze (GitHub Pages) | https://marcelwawrylo.github.io/pmg-strona/ (v1), `/v2/` (v2) | Nie jest produkcją. PHP tu nie działa. |
 | Produkcja (docelowo) | serwer PWr / WCSS, Apache 2.4 + PHP + MariaDB | Formularz kontaktowy i panel Aktualności działają tylko tu. |
 
-GitHub Pages publikuje się z gałęzi `gh-pages` poleceniem `git subtree push --prefix site origin gh-pages`. **To polecenie wolno uruchomić tylko Marcelowi.**
+GitHub Pages publikuje się z gałęzi `gh-pages` poleceniem `git subtree push --prefix site origin gh-pages`, uruchamianym **na aktualnym `main`** (`git checkout main && git pull origin main`). Publikacja wysyła na stronę **wszystko**, co jest w `main`, a nie tylko twoją zmianę: przed nią sprawdź `git log --oneline origin/gh-pages -1` i `git log --oneline main`, żeby wiedzieć, co pójdzie na stronę. Jeśli push do `gh-pages` zostanie odrzucony, nie wymuszaj go (`--force`), tylko zapytaj Marcela. Po publikacji odczekaj 1–2 minuty i sprawdź stronę pod adresem roboczym.
 
 ## Jak to jest zbudowane
 
@@ -50,10 +50,12 @@ GitHub Pages publikuje się z gałęzi `gh-pages` poleceniem `git subtree push -
 ## Git: jak pracować, żeby nic nie zepsuć
 
 - Pracuj na **własnej gałęzi** (np. `agnieszka/logo-uczelni`), nigdy bezpośrednio na `main`, `gh-pages`, `noc-ui` ani `cms-panel`.
-- Nigdy: `git push --force`, `git reset --hard` na cudzej gałęzi, `git rebase` gałęzi wspólnej, `git subtree push`, usuwanie gałęzi, edycja plików przez stronę github.com.
+- Nigdy: `git push --force`, `git reset --hard` na cudzej gałęzi, `git rebase` gałęzi wspólnej, usuwanie cudzych gałęzi, edycja plików przez stronę github.com. `git subtree push` tylko według zasad publikacji powyżej.
 - Nie ruszaj bez wyraźnej prośby: `site/api/`, `site/panel/`, `site/uploads/`, żadnego `.htaccess`, `robots.txt`, `.gitignore`.
 - Małe commity z opisem po polsku, co i dlaczego (styl historii: „Stopka: logo PWr i Wydziału Zarządzania”).
-- Koniec pracy = push własnej gałęzi + Pull Request do gałęzi bazowej z opisem i zrzutami ekranu. Scalanie robi Marcel.
+- Każda zmiana idzie przez Pull Request do `main` z opisem po polsku (co, dlaczego, jak sprawdzić), nawet jeśli scalasz ją sam(a). PR to ślad, który druga osoba może później przejrzeć.
+- Scalaj dopiero wtedy, gdy PR nie ma konfliktów, a strona była sprawdzona lokalnie (v1 i v2, 375 px i 1440 px). Scalaj przez „Merge” na GitHubie (zwykły merge commit), bez squash i bez rebase.
+- Jeśli coś po publikacji jest zepsute: `git revert -m 1 <commit scalenia>` na nowej gałęzi od `main`, PR z revertem, ponowna publikacja. Nigdy nie cofaj historii przez reset ani force push.
 
 ## Co już zostało zrobione (stan: 26.09.2026)
 
