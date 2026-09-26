@@ -182,7 +182,10 @@
     };
     var sectionCard = function (s) {
       var n = s.koordynatorzy.length + s.czlonkowie.length;
-      var members = s.czlonkowie.length ? '<ul class="about-sec__members" aria-label="Członkowie sekcji ' + esc(s.nazwa) + '">' + s.czlonkowie.map(memberItem).join('') + '</ul>' : '';
+      var czlonkowie = s.czlonkowie.slice().sort(function (a, b) {
+        return a.nazwisko.localeCompare(b.nazwisko, 'pl') || a.imie.localeCompare(b.imie, 'pl');
+      });
+      var members = czlonkowie.length ? '<ul class="about-sec__members" aria-label="Członkowie sekcji ' + esc(s.nazwa) + '">' + czlonkowie.map(memberItem).join('') + '</ul>' : '';
       return '<li class="about-sec about-sec--' + esc(s.kolor) + '"><div class="about-sec__head"><h3 class="about-sec__name">' + esc(s.nazwa) + '</h3>' +
         '<p class="about-sec__count">' + n + ' ' + plural(n, 'osoba', 'osoby', 'osób') + '</p></div>' +
         '<div class="about-sec__body">' + s.koordynatorzy.map(coordBlock).join('') + members + '</div></li>';
@@ -384,6 +387,26 @@
     });
   }
 
+  /* ---------- „Zgłoś błąd” w stopce → formularz kontaktowy z tematem i adresem strony ---------- */
+  /* Link dostaje &strona=<ścieżka bieżącej strony> (sama ścieżka, bez parametrów i danych osobowych).
+     Na kontakt.html?temat=blad pusty temat i wiadomość są wstępnie wypełniane. */
+  function initReportBug() {
+    $$('a[data-report-bug]').forEach(function (a) {
+      var url = new URL(a.getAttribute('href'), location.href);
+      url.searchParams.set('strona', location.pathname);
+      a.href = url.href;
+    });
+    var form = $('[data-contact-form]');
+    if (!form) return;
+    var params = new URLSearchParams(location.search);
+    if (params.get('temat') !== 'blad') return;
+    var subject = $('[name="subject"]', form);
+    var message = $('[name="message"]', form);
+    if (subject && !subject.value) subject.value = 'Zgłoszenie błędu na stronie';
+    var strona = params.get('strona') || '';
+    if (message && !message.value && /^\/[\w\/.-]*$/.test(strona)) message.value = 'Strona: ' + strona + '\n\n';
+  }
+
   /* ---------- Rozwijane karty: kafelki aktualności, prelegenci PMS (hover rozwija, klik/dotyk przypina) ---------- */
   function initNewsTiles(scope) {
     $$('[data-news], [data-expand]', scope).forEach(function (tile) {
@@ -415,6 +438,148 @@
     });
   }
 
+  /* ---------- Aktualności: pas trawy z polną myszą przed stopką (dekoracja, aria-hidden) ----------
+     Bez JS pas pokazuje statyczną trawę z tła CSS. Tu budujemy SVG na szerokość pasa: tylna warstwa
+     źdźbeł, mysz, przednia warstwa (mysz wychodzi Z trawy). Źdźbła falują animacją CSS (.is-live
+     włącza animation-play-state: running); mysz animuje Web Animations API (tylko transform).
+     IntersectionObserver: poza ekranem brak .is-live, timer wyczyszczony, animacje myszy anulowane.
+     prefers-reduced-motion: trawa nieruchoma, mysz stale wygląda z trawy, zero timerów. */
+  function initGrass() {
+    var strip = $('[data-grass]');
+    if (!strip || !window.SVGElement) return;
+    var NS = 'http://www.w3.org/2000/svg';
+    var still = reduceMotion.matches;
+    var svg, mouse, body, ear, eye, whisk, W = 0, H = 0;
+    var timer = 0, anims = [], live = false, spots = [];
+
+    // stały „losowy” układ źdźbeł (ten sam przy każdym wejściu)
+    var rng = function (seed) { return function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; };
+    var blade = function (x, h, w, lean) {
+      var b = H + 2, t = b - h;
+      return 'M' + (x - w / 2).toFixed(1) + ' ' + b +
+        'Q' + (x - w * 0.3 + lean * 0.35).toFixed(1) + ' ' + (b - h * 0.55).toFixed(1) + ' ' + (x + lean).toFixed(1) + ' ' + t.toFixed(1) +
+        'Q' + (x + w * 0.3 + lean * 0.5).toFixed(1) + ' ' + (b - h * 0.5).toFixed(1) + ' ' + (x + w / 2).toFixed(1) + ' ' + b + 'Z';
+    };
+    var layer = function (cls, seed, step, hMin, hMax, fills) {
+      var r = rng(seed), out = '', i = 0, k = H / 110;
+      for (var x = -6; x < W + 12; x += step * (0.7 + r() * 0.6), i++) {
+        var h = (hMin + r() * (hMax - hMin)) * k;
+        out += '<path class="grass-strip__blade" style="animation-delay:' + (-(i * 0.15) % 3.6).toFixed(2) + 's" fill="url(#' + fills[Math.floor(r() * fills.length)] + ')" d="' +
+          blade(x, h, 7 + r() * 7, (r() - 0.5) * h * 0.45) + '"/>';
+      }
+      return '<g class="' + cls + '">' + out + '</g>';
+    };
+    var grad = function (id, bottom, top) {
+      return '<linearGradient id="' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="' + bottom + '"/><stop offset="1" stop-color="' + top + '"/></linearGradient>';
+    };
+    // polna mysz patrząca w prawo; (0,0) = środek podstawy tułowia
+    var MOUSE =
+      '<g class="grass-strip__mouse-in">' +
+        '<path d="M-17 40V-12C-17 -26 -8 -32 1 -32C10 -32 17 -25 17 -12V40Z" fill="#8a7560"/>' +
+        '<ellipse cx="7" cy="-11" rx="8" ry="12" fill="#c9b8a3"/>' +
+        '<g class="grass-strip__ear-back"><ellipse cx="-2" cy="-45" rx="8" ry="8.5" fill="#7a6552"/><ellipse cx="-1.5" cy="-45" rx="4.8" ry="5.3" fill="#e8a5a5"/></g>' +
+        '<path d="M-5 -33C-5 -42 3 -47 11 -45C17 -43.5 22 -38 28 -33.5C23 -29 17 -26.5 10 -26C2 -25.5 -5 -27.5 -5 -33Z" fill="#8a7560"/>' +
+        '<g class="grass-strip__ear"><ellipse cx="9" cy="-49" rx="8.5" ry="9" fill="#8a7560"/><ellipse cx="9.5" cy="-48.5" rx="5.2" ry="5.8" fill="#e8a5a5"/></g>' +
+        '<ellipse cx="11" cy="-29" rx="3.5" ry="2.2" fill="#e8a5a5" opacity=".55"/>' +
+        '<g class="grass-strip__eye"><circle cx="15.5" cy="-36" r="2.5" fill="#141414"/><circle cx="16.4" cy="-37" r=".85" fill="#fff"/></g>' +
+        '<circle cx="28" cy="-33.5" r="2.2" fill="#e27d8e"/>' +
+        '<g class="grass-strip__whiskers" stroke="#3b3027" stroke-width=".8" stroke-linecap="round" fill="none"><path d="M25 -32L37 -35.5M25 -31.5L37.5 -31M24.5 -31L36 -27"/></g>' +
+        '<ellipse cx="9" cy="-19" rx="3.2" ry="2.4" fill="#d9c4b0"/><ellipse cx="16" cy="-19.5" rx="3.2" ry="2.4" fill="#d9c4b0"/>' +
+      '</g>';
+
+    var build = function () {
+      var w = strip.clientWidth, h = strip.clientHeight;
+      if (!w || !h || (w === W && h === H && svg)) return;
+      stop();
+      W = w; H = h;
+      var small = W < 641;
+      var s = small ? 0.86 : 1.05;
+      // miejsca, w których mysz może wyskoczyć (co ok. 180–260 px, z dala od krawędzi)
+      spots = [];
+      for (var x = 80; x < W - 80; x += small ? 110 : 230) spots.push(Math.round(x + (spots.length % 2 ? 25 : -15)));
+      if (!spots.length) spots.push(Math.round(W / 2));
+      strip.innerHTML = '<svg class="grass-strip__svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" focusable="false" aria-hidden="true" xmlns="' + NS + '">' +
+        '<defs>' + grad('gs-back', '#4f8a00', '#76b000') + grad('gs-back2', '#5a9400', '#80b800') +
+          grad('gs-front', '#62a000', '#8cc400') + grad('gs-front2', '#6eac00', '#a0d000') + '</defs>' +
+        layer('grass-strip__back', 7, small ? 12 : 16, 60, 92, ['gs-back', 'gs-back2']) +
+        '<g class="grass-strip__mouse" transform="translate(' + spots[Math.floor(spots.length / 3)] + ' ' + H + ') scale(' + s + ')">' + MOUSE + '</g>' +
+        layer('grass-strip__front', 13, small ? 11 : 14, 26, 50, ['gs-front', 'gs-front2', 'gs-front']) +
+        '<rect x="0" y="' + (H - 6) + '" width="' + W + '" height="6" fill="#4f8a00"/>' +
+      '</svg>';
+      svg = strip.firstChild;
+      mouse = $('.grass-strip__mouse', svg);
+      body = $('.grass-strip__mouse-in', svg);
+      ear = $('.grass-strip__ear', svg);
+      eye = $('.grass-strip__eye', svg);
+      whisk = $('.grass-strip__whiskers', svg);
+      strip.classList.add('is-ready');
+      if (still) body.style.transform = 'translateY(-10px)';
+      else if (live) schedule(1200);
+    };
+
+    var place = function () {
+      var x = spots[Math.floor(Math.random() * spots.length)];
+      var flip = Math.random() < 0.5 ? -1 : 1;
+      var s = W < 641 ? 0.86 : 1.05;
+      mouse.setAttribute('transform', 'translate(' + x + ' ' + H + ') scale(' + (s * flip) + ' ' + s + ')');
+    };
+    // ukryta → wyskok 400 ms (ease-out z overshootem) → pauza 1200 ms (ucho, wąsy, mrugnięcie) → schowanie 350 ms (ease-in)
+    var popUp = function () {
+      timer = 0;
+      if (!live) return;
+      place();
+      var T = 1950;
+      anims = [
+        body.animate([
+          { transform: 'translateY(64px)', offset: 0, easing: 'cubic-bezier(.34,1.56,.64,1)' },
+          { transform: 'translateY(-16px)', offset: 400 / T },
+          { transform: 'translateY(-16px)', offset: 1600 / T, easing: 'cubic-bezier(.55,0,1,.45)' },
+          { transform: 'translateY(64px)', offset: 1 }
+        ], { duration: T }),
+        ear.animate([
+          { transform: 'rotate(0deg)', offset: 0 }, { transform: 'rotate(0deg)', offset: 0.36 },
+          { transform: 'rotate(-14deg)', offset: 0.40 }, { transform: 'rotate(4deg)', offset: 0.44 },
+          { transform: 'rotate(0deg)', offset: 0.48 }, { transform: 'rotate(0deg)', offset: 1 }
+        ], { duration: T }),
+        eye.animate([
+          { transform: 'scaleY(1)', offset: 0 }, { transform: 'scaleY(1)', offset: 0.55 },
+          { transform: 'scaleY(.1)', offset: 0.58 }, { transform: 'scaleY(1)', offset: 0.61 }, { transform: 'scaleY(1)', offset: 1 }
+        ], { duration: T }),
+        whisk.animate([
+          { transform: 'rotate(0deg)' }, { transform: 'rotate(-6deg)' }, { transform: 'rotate(4deg)' },
+          { transform: 'rotate(-5deg)' }, { transform: 'rotate(0deg)' }
+        ], { duration: 600, delay: 900 })
+      ];
+      anims[0].onfinish = function () { anims = []; schedule(3500 + Math.random() * 2000); };
+    };
+    var schedule = function (ms) { clearTimeout(timer); timer = setTimeout(popUp, ms); };
+    var stop = function () {
+      clearTimeout(timer); timer = 0;
+      anims.forEach(function (a) { a.onfinish = null; a.cancel(); });
+      anims = [];
+    };
+    var setLive = function (on) {
+      on = on && !still && !document.hidden;
+      if (on === live) return;
+      live = on;
+      strip.classList.toggle('is-live', on);
+      if (on) schedule(1200); else stop();
+    };
+
+    var visible = false;
+    build();
+    if (still) return;
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        visible = entries[entries.length - 1].isIntersecting;
+        setLive(visible);
+      }).observe(strip);
+    }
+    document.addEventListener('visibilitychange', function () { setLive(visible); });
+    var rt = 0;
+    window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(build, 200); });
+  }
+
   document.documentElement.classList.add('js');
   var init = function () {
     initNewsTiles();
@@ -428,6 +593,8 @@
     initReveal();
     initLightbox();
     initContactForm();
+    initReportBug();
+    initGrass();
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
