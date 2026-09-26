@@ -131,8 +131,7 @@
       var n = s.koordynatorzy.length + s.czlonkowie.length;
       var members = s.czlonkowie.length ? '<ul class="about-sec__members" aria-label="Członkowie sekcji ' + esc(s.nazwa) + '">' + s.czlonkowie.map(memberItem).join('') + '</ul>' : '';
       return '<li class="about-sec about-sec--' + esc(s.kolor) + '"><div class="about-sec__head"><h3 class="about-sec__name">' + esc(s.nazwa) + '</h3>' +
-        '<p class="about-sec__count">' + n + ' ' + plural(n, 'osoba', 'osoby', 'osób') + '</p>' +
-        (s.opis ? '<p class="about-sec__desc">' + esc(s.opis) + '</p>' : '') + '</div>' +
+        '<p class="about-sec__count">' + n + ' ' + plural(n, 'osoba', 'osoby', 'osób') + '</p></div>' +
         '<div class="about-sec__body">' + s.koordynatorzy.map(coordBlock).join('') + members + '</div></li>';
     };
 
