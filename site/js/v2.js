@@ -378,6 +378,16 @@
       window.ScrollTrigger.refresh();
       scrollToHashWhenReady(lenis);
 
+      // Wysokości sekcji zależą od zawinięcia tekstu czcionkami (Space Grotesk/Manrope) i obrazów —
+      // po ich wczytaniu układ może się jeszcze przesunąć (np. Dołącz: „Proces rekrutacyjny” jest
+      // teraz niżej, pod „Poznaj nasze sekcje”), więc przeliczamy ScrollTrigger jeszcze raz, gdy oba
+      // są gotowe.
+      var fontsReady2 = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+      var pageLoaded = new Promise(function (resolve) {
+        if (document.readyState === 'complete') resolve(); else window.addEventListener('load', resolve, { once: true });
+      });
+      Promise.all([fontsReady2, pageLoaded]).then(function () { window.ScrollTrigger.refresh(); });
+
       // Przelicz pinning/scrub po zmianie rozmiaru okna (np. obrót tabletu, zmiana szerokości
       // przeglądarki) — bez tego przypięte sekcje (PMS, Dołącz) mogą się rozjechać.
       var resizeTimer = null;
