@@ -56,7 +56,7 @@
           if (biezacyProg === 100) {
             zywy.textContent = 'Osiągnięto limit ' + max + ' znaków.';
           } else {
-            zywy.textContent = 'Zostało ' + (max - dlugosc) + ' znaków.';
+            zywy.textContent = pozostalo(max - dlugosc);
           }
         }
         ostatniProg = biezacyProg;
@@ -117,6 +117,14 @@
     });
   }
 
+  // „Został 1 znak.” / „Zostały 22 znaki.” / „Zostało 25 znaków.”
+  function pozostalo(n) {
+    var r10 = n % 10, r100 = n % 100;
+    if (n === 1) return 'Został 1 znak.';
+    if (r10 >= 2 && r10 <= 4 && (r100 < 12 || r100 > 14)) return 'Zostały ' + n + ' znaki.';
+    return 'Zostało ' + n + ' znaków.';
+  }
+
   // Ostrzeżenie przed zamknięciem karty przy niezapisanych zmianach w formularzach edycji.
   function niezapisaneZmiany() {
     var formularze = document.querySelectorAll('form[data-pmg-niezapisane]');
@@ -127,8 +135,9 @@
     formularze.forEach(function (f) {
       f.addEventListener('input', function () { zmieniony = true; });
       f.addEventListener('change', function () { zmieniony = true; });
+      // Tylko zapis edytowanego formularza wyłącza ostrzeżenie (np. „Wyloguj” w trakcie edycji — pyta).
+      f.addEventListener('submit', function () { wysylany = true; });
     });
-    document.addEventListener('submit', function () { wysylany = true; });
     window.addEventListener('beforeunload', function (e) {
       if (zmieniony && !wysylany) {
         e.preventDefault();

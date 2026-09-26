@@ -93,7 +93,7 @@ function pmg_nawigacja($m, $etykiety)
         echo '<p class="pmg-nav__group">' . h($nazwa) . '</p><ul class="pmg-nav__list">';
         foreach ($widoczne as $mk) {
             if ($mk === 'kopia') {
-                echo '<li><a class="pmg-nav__item pmg-nav__item--download" href="?m=kopia" download>' . pmg_ikona('kopia') . '<span>Kopia bazy danych<span class="pmg-nav__sub"><span class="pmg-vh"> — </span>pobiera plik .sql</span></span></a></li>';
+                echo '<li><a class="pmg-nav__item pmg-nav__item--download" href="?m=kopia">' . pmg_ikona('kopia') . '<span>Kopia bazy danych<span class="pmg-nav__sub"><span class="pmg-vh"> — </span>pobiera plik .sql</span></span></a></li>';
             } else {
                 echo '<li><a class="pmg-nav__item" href="?m=' . $mk . '"' . ($mk === $m ? ' aria-current="page"' : '') . '>' . pmg_ikona($mk) . '<span>' . h($etykiety[$mk]) . '</span></a></li>';
             }
@@ -455,7 +455,7 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
       <ul class="pmg-tiles">
         <?php foreach ($etykietyModulow as $mk => $ml): if (!wolno(MODULY[$mk])) continue; ?>
           <?php if ($mk === 'kopia'): ?>
-            <li><a class="pmg-tile pmg-tile--download" href="?m=kopia" download>
+            <li><a class="pmg-tile pmg-tile--download" href="?m=kopia">
               <span class="pmg-tile__icon"><?= pmg_ikona('kopia') ?></span>
               <span class="pmg-tile__body">
                 <span class="pmg-tile__title"><?= h($ml) ?></span>
@@ -493,6 +493,7 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
     <div class="pmg-card pmg-card--auth">
       <h1 class="pmg-h1"><?= h($ng['tytul']) ?></h1>
       <?php if (!pierwsze_ok($cfg)): ?>
+        <?= $pmgAlerty ?>
         <p>Aby założyć pierwsze konto, wpisz w <code>api/config.php</code> hasło instalacyjne <code>'setup_haslo'</code> (min. 12 znaków) — patrz README.</p>
       <?php else: ?>
         <p>Tabela kont jest pusta — to jednorazowy ekran. Załóż konto administratora, żeby dalej zarządzać panelem.</p>

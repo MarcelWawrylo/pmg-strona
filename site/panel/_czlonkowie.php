@@ -308,7 +308,7 @@ if ($editOsoba !== null) {
               <td data-label="Funkcja"><?= h($o['funkcja']) ?></td>
               <td data-label="E-mail"><?= h($o['email']) ?></td>
               <td class="pmg-num" data-label="Kolejność"><?= (int) $o['kolejnosc'] ?></td>
-              <td data-label="Status"><?php if (!$o['aktywna']): ?><span class="pmg-chip pmg-chip--outline">Ukryta</span><?php elseif ($o['koordynator']): ?><span class="pmg-chip pmg-chip--purple">Koordynator/-ka</span><?php else: ?><span class="pmg-muted">Widoczna</span><?php endif; ?></td>
+              <td data-label="Status"><?php if ($o['koordynator']): ?><span class="pmg-chip pmg-chip--purple">Koordynator/-ka</span> <?php endif; ?><?php if (!$o['aktywna']): ?><span class="pmg-chip pmg-chip--outline">Ukryta</span><?php elseif (!$o['koordynator']): ?><span class="pmg-muted">Widoczna</span><?php endif; ?></td>
             </tr>
           <?php endforeach; ?>
           <?php if (!$osoby): ?>
