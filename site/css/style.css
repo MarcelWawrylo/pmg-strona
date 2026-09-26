@@ -332,10 +332,12 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .site-footer__uni { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px; margin-top: 28px; }
 .site-footer__uni-link { display: inline-flex; }
 .site-footer__uni img { height: 56px; width: auto; }
+.site-footer__uni-link--pwr img { height: 100px; } /* oficjalna biała wersja pionowa na ciemne tło */
 @media (max-width: 640px) {
   .site-footer__brand { flex-direction: column; align-items: flex-start; }
   .site-footer__brand img { height: 70px; width: 70px; }
   .site-footer__uni img { height: 48px; }
+  .site-footer__uni-link--pwr img { height: 84px; }
   .site-footer__bottom { flex-direction: column; }
   .site-footer__credits { text-align: left; }
 }
