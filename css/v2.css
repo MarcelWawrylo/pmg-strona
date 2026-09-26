@@ -17,7 +17,6 @@ html.lenis, html.lenis body { height: auto; }
 .v2 .hub-banner__title { font-size: clamp(36px, 6vw, 72px); line-height: .98; letter-spacing: -.035em; }
 .v2 .contact-hero__title { line-height: .92; letter-spacing: -.04em; }
 .v2 .home-h2, .v2 .pms-h2 { letter-spacing: -.03em; }
-.v2 .home-hero__text { max-width: 800px; flex-basis: 560px; }
 
 /* ---------- Nawigacja → pływająca pigułka po przewinięciu (desktop) ---------- */
 @media (min-width: 961px) {
