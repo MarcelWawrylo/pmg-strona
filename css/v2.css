@@ -64,13 +64,21 @@ html.lenis, html.lenis body { height: auto; }
 .pms-intro__word { display: inline-block; }
 .pms-intro__bg { transform-origin: 50% 50%; }
 
-/* ---------- Podcast: pionowa fala, czysta dekoracja przy prawej krawędzi hero (v2.js initPodcastWave) ---------- */
+/* ---------- Podcast: pionowa fala na całą wysokość strony przy prawej krawędzi (v2.js initPodcastWave) ----------
+   .v2-wave to dziecko main (main = position:relative tylko na tej stronie), rozciągnięte na całą jego
+   wysokość — czyli dokładnie od dołu headera do góry stopki, bez zachodzenia na nie. Wstawiony w DOM
+   przed sekcjami treści, więc przy z-index:auto maluje się pod nimi (patrz komentarz w v2.js) — treść
+   (karty odcinków, tło sekcji „Edycja 1”) go zasłania, tam gdzie na niego nachodzi. Canvas w środku jest
+   sticky i ma wysokość min(viewport, main) — v2.js liczy tę wysokość i ustawia ją inline (nie samym
+   100vh w CSS), żeby canvas nigdy nie był wyższy niż sam pasek, więc nie mógł wystawać pod stopkę
+   nawet gdyby main był krótszy niż jeden ekran. Bez overflow:hidden na .v2-wave — psuje sticky. */
 .pod-hero .container { position: relative; z-index: 1; }
+[data-page="podcast"] main { position: relative; }
 .v2-wave {
   position: absolute; top: 0; right: 0; bottom: 0; width: clamp(90px, 9vw, 160px);
   z-index: 0; opacity: .5; pointer-events: none;
 }
-.v2-wave canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.v2-wave canvas { position: sticky; top: 0; width: 100%; display: block; }
 
 /* ---------- Dołącz: pozioma ścieżka procesu rekrutacji (initJoinPath w v2.js) ----------
    Tylko ≥ 961 px i bez reduced-motion (v2-enhanced): 4 kroki w jednym rzędzie, linia grubsza niż
