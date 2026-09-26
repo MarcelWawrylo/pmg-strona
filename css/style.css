@@ -1080,6 +1080,28 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
   .js .blog-view, .js .blog-article { animation: none; }
 }
 
+/* Pas trawy z polną myszą przed stopką (dekoracja; SVG buduje main.js → initGrass).
+   Stała wysokość, mysz i źdźbła animowane tylko transformem — pas nie przesuwa treści.
+   Bez JS: statyczna trawa z tła poniżej. */
+.grass-strip {
+  position: relative; flex: 0 0 auto; height: 110px; margin-bottom: -1px; overflow: hidden; pointer-events: none;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 100'><path fill='%235f9800' d='M-1 102Q4 72 13 47Q13 75 11 102ZM17 102Q23 69 34 43Q31 72 28 102ZM30 102Q29 68 25 41Q34 71 42 102ZM50 102Q49 66 46 36Q54 69 62 102ZM64 102Q62 71 58 45Q66 74 72 102ZM78 102Q79 61 79 28Q84 65 88 102ZM96 102Q102 61 112 28Q108 65 103 102ZM112 102Q110 62 107 29Q116 65 124 102ZM122 102Q125 65 128 34Q133 68 136 102ZM142 102Q148 68 157 40Q157 71 156 102ZM161 102Q160 69 159 43Q166 72 172 102ZM180 102Q180 62 179 30Q185 66 191 102ZM198 102Q196 62 191 29Q199 65 206 102ZM208 102Q211 58 215 22Q218 62 220 102ZM223 102Q223 69 220 42Q229 72 236 102Z'/><path fill='%237cb800' d='M-1 102Q4 73 12 49Q12 76 11 102ZM16 102Q18 77 22 56Q24 79 25 102ZM33 102Q35 74 38 52Q41 77 44 102ZM44 102Q43 76 41 54Q47 78 53 102ZM61 102Q66 76 74 55Q71 79 68 102ZM70 102Q72 82 73 65Q78 83 82 102ZM85 102Q87 84 89 69Q92 85 94 102ZM95 102Q101 73 110 50Q109 76 107 102ZM108 102Q110 82 113 65Q118 84 121 102ZM125 102Q128 78 134 58Q136 80 137 102ZM140 102Q141 83 140 68Q147 85 153 102ZM159 102Q162 84 167 69Q167 85 166 102ZM173 102Q173 84 173 69Q179 86 184 102ZM188 102Q188 78 188 58Q195 80 200 102ZM205 102Q204 82 203 66Q209 84 215 102ZM220 102Q219 74 217 52Q225 77 232 102Z'/><rect y='94' width='240' height='6' fill='%234f8a00'/></svg>") repeat-x left bottom / auto 100%;
+}
+.grass-strip.is-ready { background: none; }
+.grass-strip__svg { display: block; position: absolute; left: 0; bottom: 0; }
+.grass-strip__blade {
+  transform-box: fill-box; transform-origin: 50% 100%;
+  animation: grass-sway 3.6s ease-in-out infinite alternate; animation-play-state: paused;
+}
+.grass-strip.is-live .grass-strip__blade { animation-play-state: running; }
+@keyframes grass-sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+.grass-strip__mouse-in { transform: translateY(64px); }
+.grass-strip__ear, .grass-strip__eye { transform-box: fill-box; transform-origin: 50% 90%; }
+.grass-strip__eye { transform-origin: 50% 50%; }
+.grass-strip__whiskers { transform-box: fill-box; transform-origin: 0 50%; }
+@media (max-width: 640px) { .grass-strip { height: 92px; } }
+@media (prefers-reduced-motion: reduce) { .grass-strip__blade { animation: none; } }
+
 /* ---------- 10. Podcast ---------- */
 /* ---------- Podcast (ciemny motyw) — plik tymczasowy do scalenia ze style.css ---------- */
 .theme-dark {
