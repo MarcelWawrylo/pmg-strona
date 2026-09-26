@@ -628,6 +628,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .pms-block--tight { padding-top: 48px; }
 .pms-about--pms-gap { padding-bottom: 29px; }
 .pms-block--pms-gap { padding-top: 26px; }
+/* ostatnia sekcja przed stopką: dolny odstęp jak między sekcjami (29 + 26 px + margines <dl> 1em = 72 px przy 1440, 71 px przy 375) */
+.pms-block--pms-gap:last-child { padding-bottom: calc(55px + 1em); }
 .speakers { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; align-items: start; margin-top: 22px; }
 .pms-block .gallery { margin-top: 22px; }
 @media (max-width: 640px) { .speakers { grid-template-columns: minmax(0, 1fr); } }
