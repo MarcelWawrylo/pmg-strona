@@ -1,4 +1,4 @@
-/* PMG — wspólne zachowania strony (v1). Vanilla JS, bez zależności.
+/* PMG — wspólne zachowania strony (wszystkie podstrony). Vanilla JS, bez zależności.
    Każdy moduł uruchamia się tylko, gdy na stronie jest jego element. */
 (function () {
   'use strict';
@@ -6,7 +6,7 @@
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
-  // katalog strony (site/) liczony od tego skryptu — tak samo dla v1 i v2/
+  // katalog strony (site/) liczony od tego skryptu — dla wszystkich podstron
   var siteRoot = new URL('../', document.currentScript.src).href;
 
   // Odpowiedź backendu PHP (serwer PWr) albo null, gdy go nie ma (GitHub Pages zwraca plik .php jako tekst)

@@ -13,8 +13,9 @@ Strona to zwykłe pliki HTML, CSS i JavaScript. Nie trzeba niczego instalować a
 | `case-kola-pwr-racing-team.html`, `case-kola-debatelab.html`, `case-kola-qubit.html`, `case-kola-solvro.html` | Podstrony case'ów |
 | `css/style.css` | Wygląd wszystkich podstron (kolory, fonty, układ) |
 | `js/main.js` | Zachowania: menu, przewijanie, galerie, okna, formularz |
+| `css/v2.css`, `js/v2.js` | „Płynne” animacje (Lenis + GSAP), tylko na szerokich ekranach i bez „ogranicz animacje”; opis: `KONCEPCJA-v2.md` |
 | `img/` | Zdjęcia i logotypy (WebP + JPG/PNG w dwóch rozmiarach) |
-| `v2/` | Wersja 2 strony („płynna”) |
+| `v3/` | Robocza wersja zakładki PM Session (niepodlinkowana) |
 | `.nojekyll` | Plik techniczny dla GitHub Pages — nie usuwać |
 
 ## Jak podejrzeć stronę na komputerze
@@ -50,7 +51,7 @@ Zmiany zapisane w panelu widać na stronie w ciągu 5 minut (pamięć podręczna
 
 ### Co wgrać na dev.pmgroup.pwr.edu.pl
 
-Cała zawartość `site/` **oprócz**: `graphify-out/` (narzędzie lokalne), `README.md` (opcjonalnie). Na serwerze **nie nadpisuj ani nie usuwaj**: `api/config.php`, `uploads/` (zdjęcia z panelu). `v2/` i `v3/` są opcjonalne (wersje robocze).
+Cała zawartość `site/` **oprócz**: `graphify-out/` (narzędzie lokalne), `README.md` (opcjonalnie). Na serwerze **nie nadpisuj ani nie usuwaj**: `api/config.php`, `uploads/` (zdjęcia z panelu). `v3/` jest opcjonalne (wersja robocza).
 
 Po wgraniu sprawdź ręcznie (lokalny serwer PHP ignoruje `.htaccess`, więc tego nie dało się przetestować): `…/api/lib.php` i `…/uploads/aktualnosci/x.php` → błąd 403; nieistniejący adres → strona 404 w stylu strony; nagłówek `X-Robots-Tag: noindex` na `dev.`.
 
@@ -59,7 +60,7 @@ Po wgraniu sprawdź ręcznie (lokalny serwer PHP ignoruje `.htaccess`, więc teg
 - Linki między podstronami są względne (np. `href="kontakt.html"`) — nie dopisuj adresu domeny.
 - Nazwy plików tylko małymi literami, bez polskich znaków i spacji.
 - Nowe zdjęcie: dodaj wersję `.webp` i `.jpg` w dwóch szerokościach i wpisz w HTML `width` i `height` oraz opis w `alt`.
-- Menu i stopka są powtórzone w każdym pliku HTML — przy zmianie popraw je we wszystkich plikach v1 (15, razem z `polityka-prywatnosci.html`, `deklaracja-dostepnosci.html`, `404.html`) i v2 (12).
+- Menu i stopka są powtórzone w każdym pliku HTML — przy zmianie popraw je we wszystkich plikach HTML (15, razem z `polityka-prywatnosci.html`, `deklaracja-dostepnosci.html`, `404.html`) i w `v3/pm-session.html`.
 - Elementy z atrybutem `data-set` (linki społecznościowe, e-mail, rekrutacja, liczby PMS) są podmieniane wartościami z panelu — przy kopiowaniu stopki zachowaj te atrybuty.
 - Dostępność: każdy obraz ma `alt`, przyciski to `<button>`, linki to `<a>`.
 
