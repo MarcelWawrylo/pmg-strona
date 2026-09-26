@@ -72,18 +72,16 @@ html.lenis, html.lenis body { height: auto; }
 }
 .v2-wave canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
-/* ---------- Dołącz: ścieżka procesu ---------- */
+/* ---------- Dołącz: pozioma ścieżka procesu rekrutacji (initJoinPath w v2.js) ----------
+   Tylko ≥ 961 px i bez reduced-motion (v2-enhanced): 4 kroki w jednym rzędzie, linia grubsza niż
+   statyczna wersja bez JS, rysowana scrollem (scrub) wraz z grotem strzałki na jej końcu. */
 .v2-enhanced .join-page-steps { position: relative; }
 .v2-path { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 0; }
-.v2-enhanced .join-page-steps.v2-path-ready::before { opacity: 0; }
+.v2-enhanced .join-page-steps.v2-path-ready::before,
+.v2-enhanced .join-page-steps.v2-path-ready::after { opacity: 0; }
 .v2-enhanced .join-page-steps > li { position: relative; z-index: 1; }
-@media (min-width: 641px) {
-  .v2-enhanced .join-page-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-  .v2-enhanced .join-page-steps__item { padding: 0 8px 0 0; }
-  .v2-enhanced .join-page-steps__dot { position: relative; }
-  .v2-enhanced .join-page-steps__title { margin-top: 16px; }
-  /* skośny łącznik 2 → 3 biegnie za tekstem: obwódka w kolorze tła przerywa linię tylko przy literach */
-  .v2-enhanced .join-page-steps__title, .v2-enhanced .join-page-steps__text {
-    text-shadow: 0 0 2px var(--color-bg), 0 0 3px var(--color-bg), 0 0 5px var(--color-bg), 0 0 7px var(--color-bg);
-  }
+@media (min-width: 961px) {
+  .v2-enhanced .join-page-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 26px; }
+  .v2-enhanced .join-page-steps__item { padding: 38px 14px 0 0; }
+  .v2-enhanced .join-page-steps__title { margin-top: 14px; }
 }

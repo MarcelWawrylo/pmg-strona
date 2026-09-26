@@ -783,12 +783,18 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 }
 .join-page-unit:focus-visible .join-page-unit__arrow { color: var(--color-pink-text); }
 
-/* Oś procesu: pionowa na każdej szerokości — prosta linia przechodzi przez kroki 1 → 2 → 3 → 4 bez JS
-   (v2 z GSAP przywraca siatkę 2×2 i rysuje ścieżkę w v2.js) */
+/* Oś procesu: pionowa ze strzałką w dół, narysowana w całości bez JS/z reduced-motion — prosta linia
+   przechodzi przez kroki 1 → 2 → 3 → 4 (na ≥ 961 px z JS v2.js zamienia ją na poziomą, rysowaną
+   scrollem — patrz v2.css i initJoinPath) */
 .join-page-steps { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
 .join-page-steps::before {
-  content: ""; position: absolute; left: 9px; top: 10px; bottom: 10px; width: 2px;
+  content: ""; position: absolute; left: 9px; top: 10px; bottom: 16px; width: 3px;
   background: linear-gradient(180deg, #e5185e, #8b2c9c 50%, #1d46e0);
+}
+.join-page-steps::after {
+  content: ""; position: absolute; left: 10.5px; bottom: 6px; width: 0; height: 0;
+  border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 8px solid #1d46e0;
+  transform: translateX(-50%);
 }
 .join-page-steps__item { position: relative; padding-left: 36px; }
 .join-page-steps__dot { display: block; position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; background: #e5185e; border: 3px solid var(--color-bg); }
