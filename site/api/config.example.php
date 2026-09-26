@@ -8,8 +8,8 @@ return [
     'db_user' => 'do_ustalenia',
     'db_pass' => 'do_ustalenia',
 
-    // Panel aktualności: hash hasła z panel/ustaw-haslo.php (samo hasło nigdzie nie jest zapisywane)
-    'panel_hash' => '',
+    // Jednorazowe hasło do założenia pierwszego konta admina (min. 12 znaków, losowe) — po założeniu konta usuń.
+    'setup_haslo' => '',
 
     // Formularz kontaktowy
     'mail_to'   => 'pmgroup.kontakt@gmail.com',

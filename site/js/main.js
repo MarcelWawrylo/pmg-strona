@@ -22,6 +22,12 @@
   };
   var esc = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML.replace(/"/g, '&quot;'); };
   var fmtDate = function (iso) { var p = String(iso).split('-'); return p[2] + '.' + p[1] + '.' + p[0]; };
+  // Polska odmiana liczebników: 1 -> one, 2-4 (poza 12-14) -> few, reszta -> many.
+  var plural = function (n, one, few, many) {
+    if (n === 1) return one;
+    var r10 = n % 10, r100 = n % 100;
+    return (r10 >= 2 && r10 <= 4 && (r100 < 10 || r100 >= 20)) ? few : many;
+  };
 
   /* ---------- Nawigacja: kurczenie przy scrollu + menu mobilne ---------- */
   function initNav() {
@@ -56,6 +62,154 @@
     var mq = window.matchMedia('(min-width: 961px)');
     var onMq = function () { if (mq.matches) setOpen(false); };
     if (mq.addEventListener) mq.addEventListener('change', onMq); else mq.addListener(onMq);
+  }
+
+  /* ---------- Ustawienia strony z panelu: linki społecznościowe, e-mail, rekrutacja ---------- */
+  /* Fallback: brak backendu / brak danych / pusta wartość klucza = element zostaje bez zmian (statyczny HTML). */
+  function initSettings() {
+    var els = $$('[data-set]');
+    if (!els.length) return;
+    api('ustawienia.php').then(function (data) {
+      if (!data) return;
+      els.forEach(function (el) {
+        var v = data[el.getAttribute('data-set')];
+        if (!v) return;
+        if (el.tagName === 'A') {
+          if (el.getAttribute('data-set') === 'email') {
+            el.href = 'mailto:' + v;
+            if (el.childElementCount === 0) el.textContent = v;
+          } else if (v.indexOf('https://') === 0) {
+            el.href = v; // obrona w głębi — url_ok() w panelu już to wymusza
+          }
+        } else {
+          el.textContent = v;
+        }
+      });
+      if (data.email) {
+        $$('[data-contact-form]').forEach(function (f) { f.setAttribute('data-mailto', data.email); });
+      }
+      if (data.rekrutacja_otwarta === '0') {
+        $$('[data-set="rekrutacja_link"], .join-page-form__help').forEach(function (el) { el.hidden = true; });
+      }
+    });
+  }
+
+  /* ---------- Struktura koła (O nas): zarząd + sekcje z panelu ---------- */
+  /* Fallback: brak backendu / błąd / pusta lista sekcji i pusty zarząd = strona zostaje statyczna.
+     Zarząd i sekcje aktualizowane niezależnie — jeśli jedna z list jest pusta, ten fragment zostaje bez zmian.
+     .about-sub (liczba osób) NIE jest tu dotykane — zostaje tekstem statycznym. */
+  function initTeam() {
+    var boardList = $('.about-board__list');
+    var sectionsList = $('.about-sections');
+    if (!boardList && !sectionsList) return;
+
+    var MAIL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.5 7 8.5 6.5L20.5 7"/></svg>';
+    var LI_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="fill:currentColor;stroke:none"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.064 2.064 0 1 1 0-4.128 2.064 2.064 0 0 1 0 4.128zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>';
+
+    var icons = function (o, klasa) {
+      var name = esc(o.imie + ' ' + o.nazwisko);
+      var html = '<a class="about-ico' + klasa + '" href="mailto:' + esc(o.email) + '" title="' + esc(o.email) + '" aria-label="Napisz e-mail do: ' + name + '">' + MAIL_SVG + '</a>';
+      if (o.linkedin && o.linkedin.indexOf('https://') === 0) {
+        html += '<a class="about-ico' + klasa + '" href="' + esc(o.linkedin) + '" target="_blank" rel="noopener" aria-label="Profil LinkedIn: ' + name + '">' + LI_SVG + '</a>';
+      }
+      return html;
+    };
+    var fullName = function (o) { return esc(o.imie + ' ' + o.nazwisko); };
+
+    var boardCard = function (o) {
+      return '<li class="about-board__card about-person"><p class="about-board__who"><span class="about-board__role">' + esc(o.funkcja) + '</span> <span class="about-board__name">' + fullName(o) + '</span></p>' +
+        '<div class="about-act">' + icons(o, ' about-ico--light') + '</div></li>';
+    };
+    var coordBlock = function (o) {
+      return '<div class="about-coord about-person"><p class="about-coord__label">' + esc(o.funkcja) + '</p>' +
+        '<div class="about-coord__row"><p class="about-coord__name">' + fullName(o) + '</p><span class="about-act">' + icons(o, '') + '</span></div></div>';
+    };
+    var memberItem = function (o) {
+      return '<li class="about-member about-person"><span class="about-member__name">' + fullName(o) + '</span><span class="about-act">' + icons(o, '') + '</span></li>';
+    };
+    var sectionCard = function (s) {
+      var n = s.koordynatorzy.length + s.czlonkowie.length;
+      var members = s.czlonkowie.length ? '<ul class="about-sec__members" aria-label="Członkowie sekcji ' + esc(s.nazwa) + '">' + s.czlonkowie.map(memberItem).join('') + '</ul>' : '';
+      return '<li class="about-sec about-sec--' + esc(s.kolor) + '"><div class="about-sec__head"><h3 class="about-sec__name">' + esc(s.nazwa) + '</h3>' +
+        '<p class="about-sec__count">' + n + ' ' + plural(n, 'osoba', 'osoby', 'osób') + '</p>' +
+        (s.opis ? '<p class="about-sec__desc">' + esc(s.opis) + '</p>' : '') + '</div>' +
+        '<div class="about-sec__body">' + s.koordynatorzy.map(coordBlock).join('') + members + '</div></li>';
+    };
+
+    api('czlonkowie.php').then(function (data) {
+      if (!data) return;
+      if (boardList && data.zarzad && data.zarzad.length) boardList.innerHTML = data.zarzad.map(boardCard).join('');
+      if (sectionsList && data.sekcje && data.sekcje.length) sectionsList.innerHTML = data.sekcje.map(sectionCard).join('');
+    });
+  }
+
+  /* ---------- PM Session: bieżąca edycja z panelu (baner, prelegenci, harmonogram, liczby przez data-set) ---------- */
+  /* Fallback: brak backendu / błąd / edycja: null = strona zostaje statyczna. Prelegenci i harmonogram
+     aktualizowane niezależnie od banera — pusta lista jednego z nich zostawia odpowiedni fragment statyczny. */
+  function initPmSession() {
+    var speakersList = $('.speakers');
+    var scheduleList = $('.schedule');
+    if (!speakersList && !scheduleList) return;
+
+    var speakerCard = function (p, i) {
+      var name = esc(p.imie_nazwisko);
+      var id = 'spk-' + (i + 1);
+      var img = p.zdjecie
+        ? '<img class="speaker__img" src="' + esc(siteRoot + p.zdjecie) + '" width="560" height="560" alt="' + esc(p.zdjecie_alt) + '" loading="lazy" decoding="async">'
+        : '<div class="speaker__img" aria-hidden="true"></div>';
+      var note = p.notatka ? '<p class="speaker__note">' + esc(p.notatka) + '</p>' : '';
+      var links = (p.linkedin && p.linkedin.indexOf('https://') === 0)
+        ? '<p class="speaker__links"><a class="chip-link" href="' + esc(p.linkedin) + '" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — ' + name + ' (otwiera się w nowej karcie)</span></a></p>'
+        : '';
+      return '<li class="speaker" data-expand>' + img +
+        '<h3 class="speaker__name"><button class="expand-toggle" type="button" aria-expanded="false" aria-controls="' + id + '">' + name + '<span class="visually-hidden"> — pokaż biogram</span></button></h3>' +
+        note + '<p class="speaker__topic">' + esc(p.temat) + '</p>' +
+        '<div class="speaker__more" id="' + id + '"><div class="speaker__more-inner"><p class="speaker__bio">' + esc(p.bio) + '</p>' + links + '</div></div></li>';
+    };
+
+    var scheduleRow = function (items) {
+      var time = items[0].godzina;
+      if (items.length === 1) {
+        var it = items[0];
+        var body = it.prelegent ? esc(it.prelegent) + ' <span class="muted">' + esc(it.tytul) + '</span>' : esc(it.tytul);
+        return '<li class="schedule__row"><p class="schedule__time">' + esc(time) + '</p><p class="schedule__item">' + body + '</p></li>';
+      }
+      var tag = items.length + ' ' + plural(items.length, 'sesja', 'sesje', 'sesji') + '<br> równoległe';
+      var sessions = items.map(function (it) {
+        return '<li class="schedule__session"><p class="schedule__who">' + esc(it.prelegent) + '</p><p class="schedule__what">' + esc(it.tytul) + '</p></li>';
+      }).join('');
+      return '<li class="schedule__row schedule__row--parallel"><p class="schedule__time">' + esc(time) + '<span class="schedule__tag">' + tag + '</span></p><ul class="schedule__sessions">' + sessions + '</ul></li>';
+    };
+
+    api('pmsession.php').then(function (data) {
+      if (!data || !data.edycja) return;
+      var ed = data.edycja;
+
+      var titleEl = $('.pms-banner__title');
+      if (titleEl) titleEl.textContent = 'PM Session ' + ed.numer;
+      var pillEl = $('.date-pill');
+      if (pillEl) {
+        var p = String(ed.data).split('-');
+        var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        pillEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + ed.miejsce;
+      }
+      var themeEl = $('.pms-banner__theme');
+      if (themeEl) themeEl.textContent = ed.temat;
+      document.title = document.title.replace(/PM Session \S+/, 'PM Session ' + ed.numer);
+
+      if (speakersList && data.prelegenci && data.prelegenci.length) {
+        speakersList.innerHTML = data.prelegenci.map(speakerCard).join('');
+        initNewsTiles(speakersList);
+      }
+      if (scheduleList && data.harmonogram && data.harmonogram.length) {
+        var groups = [];
+        data.harmonogram.forEach(function (h) {
+          var last = groups[groups.length - 1];
+          if (last && last[0].godzina === h.godzina) last.push(h); else groups.push([h]);
+        });
+        scheduleList.innerHTML = groups.map(scheduleRow).join('');
+      }
+    });
   }
 
   /* ---------- Przycisk „Wróć na górę” ---------- */
@@ -197,14 +351,15 @@
     if (!grid) return;
     loadNews().then(function (posts) {
       if (!posts) return;
-      grid.innerHTML = posts.slice(0, 3).map(function (p, i) {
+      grid.innerHTML = posts.slice(0, 3).map(function (p) {
         var img = p.zdjecie ? '<img src="' + esc(siteRoot + p.zdjecie) + '" alt="" loading="lazy">' : '<span>[ zdjęcie 16:9 ]</span>';
-        return '<li class="news-tile" data-news><div class="news-tile__img news-tile__img--' + esc(p.kolor) + '" aria-hidden="true">' + img + '</div>' +
-          '<div class="news-tile__body"><p class="news-tile__date">' + fmtDate(p.data) + '</p>' +
-          '<h3 class="news-tile__title"><button class="news-tile__toggle" type="button" aria-expanded="false" aria-controls="news-more-' + (i + 1) + '">' + esc(p.tytul) + '</button></h3>' +
-          '<p class="news-tile__more" id="news-more-' + (i + 1) + '">' + esc(p.zajawka) + ' <a href="aktualnosci.html#wpis-' + esc(p.slug) + '">Czytaj</a></p></div></li>';
+        var href = 'aktualnosci.html#wpis-' + esc(p.slug);
+        return '<li class="news-tile"><div class="news-tile__img news-tile__img--' + esc(p.kolor) + '" aria-hidden="true">' + img + '</div>' +
+          '<div class="news-tile__body"><p class="news-tile__date"><time datetime="' + esc(p.data) + '">' + esc(fmtDate(p.data)) + '</time></p>' +
+          '<h3 class="news-tile__title"><a class="news-tile__link" href="' + href + '">' + esc(p.tytul) + '</a></h3>' +
+          '<p class="news-tile__more">' + esc(p.zajawka) + '</p>' +
+          '<span class="news-tile__cta" aria-hidden="true">Czytaj więcej →</span></div></li>';
       }).join('');
-      initNewsTiles(grid);
     });
   }
 
@@ -212,6 +367,9 @@
   var init = function () {
     initNewsTiles();
     initHomeNews();
+    initSettings();
+    initTeam();
+    initPmSession();
     initNav();
     initToTop();
     initReveal();
@@ -247,7 +405,7 @@
       };
       var meta = function (p, cls) {
         return '<div class="blog-meta' + (cls || '') + '"><span class="blog-cat blog-cat--' + esc(p.kolor) + '">' + esc(p.kategoria) + '</span>' +
-          '<span class="blog-date"><time datetime="' + esc(p.data) + '">' + fmt(p.data) + '</time></span></div>';
+          '<span class="blog-date"><time datetime="' + esc(p.data) + '">' + esc(fmt(p.data)) + '</time></span></div>';
       };
       var body = function (t) {
         return String(t).split(/\n\s*\n/).map(function (b) {
@@ -260,10 +418,10 @@
       };
       var f = posts[0];
       $('.blog-featured', list).innerHTML = img(f, 'blog-featured__img') + '<div class="blog-featured__body">' + meta(f) + link(f, 'h2', 'blog-featured__title') +
-        '<p class="blog-featured__excerpt">' + esc(f.zajawka) + '</p><p class="blog-more blog-more--' + esc(f.kolor) + '" aria-hidden="true">Czytaj artykuł →</p></div>';
+        '<p class="blog-featured__excerpt">' + esc(f.zajawka) + '</p><p class="blog-more blog-more--' + esc(f.kolor) + '" aria-hidden="true">Czytaj więcej →</p></div>';
       $('.blog-grid', list).innerHTML = posts.slice(1).map(function (p) {
         return '<li class="blog-card" data-blog-card>' + img(p, 'blog-card__img') + '<div class="blog-card__body">' + meta(p) + link(p, 'h3', 'blog-card__title') +
-          '<p class="blog-card__excerpt">' + esc(p.zajawka) + '</p><p class="blog-more blog-more--' + esc(p.kolor) + '" aria-hidden="true">Czytaj więcej ↘</p></div></li>';
+          '<p class="blog-card__excerpt">' + esc(p.zajawka) + '</p><p class="blog-more blog-more--' + esc(p.kolor) + '" aria-hidden="true">Czytaj więcej →</p></div></li>';
       }).join('');
       $('.blog-posts', list).hidden = posts.length < 2;
       wrap.innerHTML = posts.map(function (p) {
@@ -274,7 +432,7 @@
           '<p class="blog-article__lead">' + esc(p.zajawka) + '</p>' + img(p, 'blog-article__img', true) +
           '<div class="blog-article__body">' + body(p.tresc) + '</div><div class="blog-article__foot">' +
           (p.autor ? '<p class="blog-article__author">Autor: <b>' + esc(p.autor) + '</b></p>' : '<span></span>') +
-          '<a class="btn btn--dark blog-article__back" href="#aktualnosci" data-blog-back>Wróć do listy <span aria-hidden="true">→</span></a></div></article>';
+          '<a class="btn btn--dark blog-article__back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wróć do listy</a></div></article>';
       }).join('');
     }
 

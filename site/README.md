@@ -8,6 +8,7 @@ Strona to zwykłe pliki HTML, CSS i JavaScript. Nie trzeba niczego instalować a
 |---|---|
 | `index.html` | Strona główna |
 | `o-nas.html`, `aktualnosci.html`, `pm-session.html`, `podcast.html`, `dolacz.html`, `kontakt.html` | Podstrony z menu i Aktualności |
+| `polityka-prywatnosci.html`, `deklaracja-dostepnosci.html` | Strony prawne (link w stopce) |
 | `case-kola.html` | Lista case'ów (hub) |
 | `case-kola-pwr-racing-team.html`, `case-kola-debatelab.html`, `case-kola-qubit.html`, `case-kola-solvro.html` | Podstrony case'ów |
 | `css/style.css` | Wygląd wszystkich podstron (kolory, fonty, układ) |
@@ -22,25 +23,44 @@ Strona to zwykłe pliki HTML, CSS i JavaScript. Nie trzeba niczego instalować a
 2. Wpisz: `python -m http.server 8000`
 3. W przeglądarce wejdź na: http://localhost:8000
 
-## Formularz kontaktowy i panel Aktualności (PHP — tylko na serwerze PWr)
+## Backend PHP: formularz kontaktowy i panel (tylko na serwerze PWr)
 
-- `api/kontakt.php` wysyła wiadomość z formularza na `pmgroup.kontakt@gmail.com`. Na GitHub Pages PHP nie działa, więc przycisk „Wyślij” otwiera wtedy program pocztowy (jak dotąd).
-- `panel/` to panel do dodawania wpisów w Aktualnościach (tytuł, data, kategoria, treść, zdjęcie 16:9). Wpisy trafiają do bazy MariaDB i pojawiają się na `aktualnosci.html` oraz jako 3 kafelki na stronie głównej. Bez działającego panelu widać wpisy wpisane na sztywno w HTML.
+Na GitHub Pages PHP nie działa — strona pokazuje wtedy treść wpisaną na sztywno w HTML, a formularz kontaktowy otwiera program pocztowy. Na serwerze z PHP 7.4 i MariaDB `js/main.js` pobiera dane z `api/*.php` i podmienia nimi treść (Aktualności, O nas, PM Session, linki w stopce, rekrutacja na Dołącz). Jeśli API nie odpowie, zostaje treść z HTML.
 
-Uruchomienie na serwerze (jednorazowo):
+| Plik / katalog | Co to jest |
+|---|---|
+| `api/lib.php` | Wspólne funkcje: połączenie z bazą, tworzenie tabel (`pmg_migrate()`), limit prób |
+| `api/aktualnosci.php`, `api/czlonkowie.php`, `api/pmsession.php`, `api/ustawienia.php` | Publiczne dane dla strony (JSON, tylko opublikowane / aktywne / bieżąca edycja PMS) |
+| `api/kontakt.php` | Wysyłka wiadomości z formularza kontaktowego |
+| `api/config.example.php` | Wzór konfiguracji — na serwerze kopia jako `api/config.php` |
+| `panel/index.php` | Panel (logowanie, konta, router modułów); `panel/_*.php` to moduły — nie otwiera się ich bezpośrednio |
+| `uploads/` | Zdjęcia wgrane z panelu (`aktualnosci/`, `czlonkowie/`, `pmsession/`) — tylko na serwerze |
+| `.htaccess`, `404.html`, `robots.txt` | Konfiguracja Apache, strona błędu, blokada `/panel/` i `/api/` dla wyszukiwarek |
+
+### Uruchomienie na serwerze (jednorazowo)
+
 1. Skopiuj `api/config.example.php` jako `api/config.php` i wpisz dane bazy oraz adres nadawcy w domenie serwera. `config.php` nie trafia do repozytorium.
-2. Otwórz `…/panel/ustaw-haslo.php`, wpisz hasło (min. 12 znaków) i wklej pokazany hash do `config.php` jako `panel_hash`.
-3. Wejdź na `…/panel/`, zaloguj się i dodaj wpis. Tabela w bazie tworzy się sama.
-4. Wpis bez zaznaczonego „Opublikuj” jest szkicem i nie pokazuje się na stronie.
+2. Jeśli na serwerze działał już stary panel z jednym hasłem (`panel_hash` w `config.php`) — zostaw tę linię do czasu kroku 4. W przeciwnym razie wpisz w `config.php` losowe hasło instalacyjne `setup_haslo` (min. 12 znaków) — bez niego ekran pierwszego konta nie przyjmie zgłoszenia.
+3. Od razu po wgraniu wejdź na `…/panel/`. Przy pustej bazie kont panel pokaże **„Pierwsze konto administratora”**: imię i nazwisko, e-mail (login), hasło (min. 12 znaków). Przy starym `panel_hash` trzeba też podać dotychczasowe hasło panelu; bez niego trzeba podać hasło instalacyjne z `setup_haslo`. Tabele w bazie tworzą się same przy wejściu do panelu (istniejące wpisy Aktualności zostają).
+4. Po założeniu konta usuń linie `panel_hash` i `setup_haslo` z `config.php` (nie są już używane).
+5. Kolejne osoby: **Konta → + Nowe konto** (rola: administrator albo redaktor z wybranymi modułami). Panel pokaże link ważny 72 h — skopiuj go i przekaż tej osobie (np. na Messengerze). Zapomniane hasło = **Resetuj hasło** i nowy link. Kont się nie usuwa, tylko blokuje.
+6. Kopia bazy: **Kopia bazy danych** w menu panelu pobiera plik `.sql` (zawiera e-maile i skróty haseł — przechowuj bezpiecznie; nie zawiera zdjęć z `uploads/`). Pełna kopia kończy się linią `-- KONIEC KOPII` — jeśli jej nie ma, pobieranie zostało przerwane. Przywracanie: import w phpMyAdmin.
 
-Uwaga przy wgrywaniu nowej wersji strony: nie nadpisuj ani nie usuwaj na serwerze `api/config.php` i `uploads/aktualnosci/` (zdjęcia z panelu).
+Zmiany zapisane w panelu widać na stronie w ciągu 5 minut (pamięć podręczna przeglądarki).
+
+### Co wgrać na dev.pmgroup.pwr.edu.pl
+
+Cała zawartość `site/` **oprócz**: `graphify-out/` (narzędzie lokalne), `README.md` (opcjonalnie). Na serwerze **nie nadpisuj ani nie usuwaj**: `api/config.php`, `uploads/` (zdjęcia z panelu). `v2/` i `v3/` są opcjonalne (wersje robocze).
+
+Po wgraniu sprawdź ręcznie (lokalny serwer PHP ignoruje `.htaccess`, więc tego nie dało się przetestować): `…/api/lib.php` i `…/uploads/aktualnosci/x.php` → błąd 403; nieistniejący adres → strona 404 w stylu strony; nagłówek `X-Robots-Tag: noindex` na `dev.`.
 
 ## Zasady przy zmianach
 
 - Linki między podstronami są względne (np. `href="kontakt.html"`) — nie dopisuj adresu domeny.
 - Nazwy plików tylko małymi literami, bez polskich znaków i spacji.
 - Nowe zdjęcie: dodaj wersję `.webp` i `.jpg` w dwóch szerokościach i wpisz w HTML `width` i `height` oraz opis w `alt`.
-- Menu i stopka są powtórzone w każdym pliku HTML — przy zmianie popraw je we wszystkich 12 plikach.
+- Menu i stopka są powtórzone w każdym pliku HTML — przy zmianie popraw je we wszystkich plikach v1 (15, razem z `polityka-prywatnosci.html`, `deklaracja-dostepnosci.html`, `404.html`) i v2 (12).
+- Elementy z atrybutem `data-set` (linki społecznościowe, e-mail, rekrutacja, liczby PMS) są podmieniane wartościami z panelu — przy kopiowaniu stopki zachowaj te atrybuty.
 - Dostępność: każdy obraz ma `alt`, przyciski to `<button>`, linki to `<a>`.
 
 ## Publikacja na GitHub Pages
