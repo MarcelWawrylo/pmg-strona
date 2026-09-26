@@ -433,6 +433,9 @@ form.pmg-card { display: block; }
 .pmg-swatch--purple { background: #8b2c9c; }
 .pmg-swatch--blue { background: #1d46e0; }
 .pmg-swatch--violet { background: #6a2fb8; }
+.pmg-section-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pmg-section-color { display: inline-flex; align-items: center; gap: 6px; font: 400 13px/1.4 var(--pmg-font-body); color: var(--pmg-text-2); }
+.pmg-muted { color: var(--pmg-text-2); }
 
 /* ===================== 16. Komunikaty ===================== */
 .pmg-alert {
