@@ -155,9 +155,10 @@ button { font: inherit; }
 .pill-list { display: flex; flex-wrap: wrap; gap: 10px; }
 .status {
   display: inline-block; font: 700 11px var(--font-body); letter-spacing: .06em; text-transform: uppercase;
-  padding: 5px 13px; border-radius: var(--radius-pill);
+  padding: 5px 13px; border-radius: var(--radius-pill); white-space: nowrap;
   color: rgba(20,20,20,.7); background: rgba(20,20,20,.06); border: 1px solid rgba(20,20,20,.15);
 }
+@media (max-width: 375px) { .status { white-space: normal; } }
 .status--active { color: #0f6b3a; background: rgba(22,163,74,.1); border-color: rgba(22,163,74,.3); }
 .warn-pill {
   display: inline-block; font: 700 11px var(--font-body); letter-spacing: .04em; text-transform: uppercase;
@@ -318,7 +319,6 @@ button { font: inherit; }
   width: 74px; height: 74px; border-radius: 50%; background: var(--gradient-mono); flex: none;
   display: flex; align-items: center; justify-content: center; font: 700 20px var(--font-head); color: #fff;
 }
-.case-banner__dates { font: 600 13px var(--font-body); color: var(--color-text-muted); margin-top: 12px; }
 .case-banner__logo { width: 76px; height: 76px; object-fit: contain; margin-top: 22px; }
 .case-hero { padding-bottom: 60px; }
 .case-section h2 { font: 600 26px var(--font-head); letter-spacing: -.01em; margin: 0 0 16px; }
@@ -386,7 +386,6 @@ button { font: inherit; }
 }
 .case-card__body { padding: 24px; }
 .case-card__meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.case-card__dates { font: 600 12px var(--font-body); color: var(--color-text-muted); }
 .case-card__title { font: 600 26px var(--font-head); letter-spacing: -.01em; margin-top: 12px; }
 .case-card__summary { font: 400 14.5px/1.6 var(--font-body); color: var(--color-text-muted); margin-top: 8px; }
 .case-card__more { display: inline-block; font: 600 12px var(--font-body); color: var(--color-blue); margin-top: 16px; }
