@@ -253,12 +253,19 @@
     list.classList.add('v2-path-ready');
 
     var len = 0;
+    // linia jedzie o tyle dalej za ostatnią kropkę, żeby grot nie chował się pod nią, tylko był
+    // wyraźnie widoczny za końcem ścieżki (w tym samym kierunku co ostatni odcinek)
+    var ARROW_EXTEND = 28;
     var draw = function () {
       var lr = list.getBoundingClientRect();
       var pts = Array.prototype.map.call(dots, function (dot) {
         var r = dot.getBoundingClientRect();
         return { x: r.left - lr.left + r.width / 2, y: r.top - lr.top + r.height / 2 };
       });
+      var last = pts[pts.length - 1], prev = pts[pts.length - 2];
+      var dx = last.x - prev.x, dy = last.y - prev.y;
+      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      pts.push({ x: last.x + (dx / dist) * ARROW_EXTEND, y: last.y + (dy / dist) * ARROW_EXTEND });
       // odcinki kropka → kropka, w kolejności z DOM (przy poziomym rzędzie wychodzi prosta linia)
       var d = 'M' + pts[0].x + ' ' + pts[0].y;
       for (var i = 1; i < pts.length; i++) d += ' L' + pts[i].x + ' ' + pts[i].y;
