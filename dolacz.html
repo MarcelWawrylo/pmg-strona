@@ -26,8 +26,26 @@
       <div class="site-nav__menu" id="nav-menu">
         <a class="site-nav__link" href="index.html">Strona główna</a>
         <a class="site-nav__link" href="o-nas.html">O nas</a>
-        <a class="site-nav__link" href="pm-session.html">PM Session</a>
-        <a class="site-nav__link" href="case-kola.html">Case Koła</a>
+        <div class="site-nav__item" data-subnav>
+          <a class="site-nav__link" href="pm-session.html">PM Session</a>
+          <button class="site-nav__subtoggle" type="button" aria-expanded="false" aria-controls="subnav-pms"><span class="visually-hidden">PM Session: podstrony</span><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button>
+          <ul class="site-nav__sub" id="subnav-pms">
+            <li><a class="site-nav__sublink" href="pm-session.html">Czym jest PM Session?</a></li>
+            <li><a class="site-nav__sublink" href="pm-session-xv.html">Aktualna edycja</a></li>
+            <li><a class="site-nav__sublink" href="pm-session-xiv.html">PM Session XIV</a></li>
+          </ul>
+        </div>
+        <div class="site-nav__item" data-subnav>
+          <a class="site-nav__link" href="case-kola.html">Case Koła</a>
+          <button class="site-nav__subtoggle" type="button" aria-expanded="false" aria-controls="subnav-case"><span class="visually-hidden">Case Koła: podstrony</span><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button>
+          <ul class="site-nav__sub" id="subnav-case">
+            <li><a class="site-nav__sublink" href="case-kola.html">Case Koła</a></li>
+            <li><a class="site-nav__sublink" href="case-kola-solvro.html">Solvro</a></li>
+            <li><a class="site-nav__sublink" href="case-kola-qubit.html">Qubit</a></li>
+            <li><a class="site-nav__sublink" href="case-kola-debatelab.html">Debate Lab</a></li>
+            <li><a class="site-nav__sublink" href="case-kola-pwr-racing-team.html">PWr Racing Team</a></li>
+          </ul>
+        </div>
         <a class="site-nav__link" href="podcast.html">Podcast</a>
         <a class="site-nav__link" href="kontakt.html">Kontakt</a>
         <a class="site-nav__cta" href="dolacz.html" aria-current="page">Dołącz</a>
