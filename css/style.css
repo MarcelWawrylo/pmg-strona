@@ -842,11 +842,6 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-hero { padding: 66px 0 58px; background: var(--color-bg); }
 .about-hero__eyebrow { letter-spacing: .2em; margin: 0; }
 .about-hero__title { font: 600 clamp(34px, 5.4vw, 52px)/1.05 var(--font-head); letter-spacing: -.02em; margin-top: 12px; max-width: 1180px; text-wrap: pretty; }
-.about-hero__accent {
-  font-style: italic; background: var(--gradient-brand); background-size: 200% auto;
-  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
-  animation: pmgpan 5s linear infinite alternate;
-}
 .about-hero__lead { max-width: 1040px; margin-top: 22px; text-wrap: pretty; }
 
 /* Nagłówki sekcji */
@@ -939,10 +934,6 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   .about-sections, .about-units__list { grid-template-columns: minmax(0, 1fr); }
   .about-units { padding-bottom: 48px; }
   .about-board__list { width: 100%; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .about-hero__accent { animation: none; }
 }
 
 /* ---------- 10. Aktualności ---------- */
