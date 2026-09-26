@@ -238,6 +238,40 @@ button { font: inherit; }
 .site-nav--dark .site-nav__toggle { color: #fff; }
 .site-nav--dark :focus-visible { outline-color: #fff; }
 
+/* Listy rozwijane (PM Session, Case Koła): link + osobny przycisk ze strzałką; stan .is-open ustawia main.js */
+.site-nav__item { position: relative; display: flex; align-items: center; gap: 2px; }
+.site-nav__item:has(.site-nav__sublink[aria-current="page"]) > .site-nav__link { font-weight: 700; color: var(--color-ink); border-bottom-color: var(--nav-accent); }
+.site-nav__subtoggle {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: rgba(20,20,20,.7); cursor: pointer; transition: color var(--ease), background var(--ease);
+}
+.site-nav__subtoggle:hover { color: var(--color-ink); background: rgba(20,20,20,.06); }
+.site-nav__subtoggle svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform var(--ease); }
+.site-nav__subtoggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.site-nav__sub {
+  list-style: none; margin: 0; padding: 8px; position: absolute; top: calc(100% + 10px); left: -14px; z-index: 60;
+  min-width: 230px; background: #fff; border-radius: 14px;
+  box-shadow: 0 18px 40px -16px rgba(20,20,40,.35), 0 0 0 1px rgba(20,20,20,.06);
+}
+.site-nav__sub::before { content: ""; position: absolute; left: 0; right: 0; top: -12px; height: 12px; } /* mostek dla myszy */
+.js .site-nav__item:not(.is-open) > .site-nav__sub,
+html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { display: none; }
+.site-nav__sublink {
+  display: block; padding: 10px 12px; border-radius: 8px; white-space: nowrap;
+  font: 500 14.5px/1.3 var(--font-body); color: rgba(20,20,20,.78); text-decoration: none;
+  transition: background var(--ease), color var(--ease);
+}
+.site-nav__sublink:hover { background: rgba(20,20,20,.05); color: var(--color-ink); }
+.site-nav__sublink[aria-current="page"] { font-weight: 700; color: var(--color-ink); box-shadow: inset 3px 0 0 var(--nav-accent); }
+.site-nav--dark .site-nav__item:has(.site-nav__sublink[aria-current="page"]) > .site-nav__link { color: #fff; }
+.site-nav--dark .site-nav__subtoggle { color: rgba(245,245,245,.72); }
+.site-nav--dark .site-nav__subtoggle:hover { color: #fff; background: rgba(255,255,255,.1); }
+.site-nav--dark .site-nav__sub { background: #1b1b20; box-shadow: 0 18px 40px -16px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.1); }
+.site-nav--dark .site-nav__sublink { color: rgba(245,245,245,.8); }
+.site-nav--dark .site-nav__sublink:hover { background: rgba(255,255,255,.08); color: #fff; }
+.site-nav--dark .site-nav__sublink[aria-current="page"] { color: #fff; }
+
 @media (max-width: 960px) {
   .site-nav__inner { flex-wrap: wrap; gap: 12px; }
   .site-nav__logo img { height: 56px; width: 56px; }
@@ -255,6 +289,18 @@ button { font: inherit; }
   .site-nav__link:hover { border-bottom-color: var(--color-border); }
   .site-nav__link[aria-current="page"] { border-bottom: 1px solid var(--color-border); box-shadow: inset 4px 0 0 var(--nav-accent); padding-left: 14px; }
   .site-nav__cta { align-self: flex-start; margin-top: 16px; font-size: 15px; padding: 11px 24px; }
+  /* listy rozwijane jako akordeon w menu mobilnym */
+  .site-nav__item { flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--color-border); }
+  .site-nav--dark .site-nav__item { border-bottom-color: rgba(255,255,255,.1); }
+  .site-nav__item > .site-nav__link { flex: 1; border-bottom: 0; }
+  .site-nav__item > .site-nav__link[aria-current="page"] { border-bottom: 0; }
+  .site-nav__item:has(.site-nav__sublink[aria-current="page"]) > .site-nav__link { box-shadow: inset 4px 0 0 var(--nav-accent); padding-left: 14px; }
+  .site-nav__subtoggle { width: 44px; height: 44px; }
+  .site-nav__subtoggle svg { width: 14px; height: 14px; }
+  .site-nav__sub { position: static; flex-basis: 100%; min-width: 0; padding: 0 0 10px 14px; background: transparent; border-radius: 0; box-shadow: none; }
+  .site-nav--dark .site-nav__sub { background: transparent; box-shadow: none; }
+  .site-nav__sub::before { display: none; }
+  .site-nav__sublink { font-size: 16px; padding: 11px 12px; white-space: normal; }
 }
 
 /* ---------- 7. Stopka ---------- */
