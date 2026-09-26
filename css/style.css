@@ -134,7 +134,11 @@ button { font: inherit; }
   padding: 13px 26px; border-radius: var(--radius-pill); border: 1.5px solid transparent;
   transition: transform var(--ease), background var(--ease), color var(--ease), box-shadow var(--ease);
 }
-.btn:hover, .btn:focus-visible { transform: translateY(-3px); }
+@media (hover: hover) {
+  .btn:hover { transform: translateY(-3px); }
+}
+.btn:focus-visible { transform: translateY(-3px); }
+.btn:active { transform: translateY(0) scale(.98); }
 .btn--dark { background: var(--color-ink); color: #fff; }
 .btn--dark:hover { color: #fff; }
 .btn--outline { border-color: var(--color-ink); color: var(--color-ink); background: transparent; }

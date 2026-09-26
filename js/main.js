@@ -431,7 +431,7 @@
           '<p class="blog-article__lead">' + esc(p.zajawka) + '</p>' + img(p, 'blog-article__img', true) +
           '<div class="blog-article__body">' + body(p.tresc) + '</div><div class="blog-article__foot">' +
           (p.autor ? '<p class="blog-article__author">Autor: <b>' + esc(p.autor) + '</b></p>' : '<span></span>') +
-          '<a class="btn btn--dark blog-article__back" href="#aktualnosci" data-blog-back>Wróć do listy <span aria-hidden="true">→</span></a></div></article>';
+          '<a class="btn btn--dark blog-article__back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wróć do listy</a></div></article>';
       }).join('');
     }
 
