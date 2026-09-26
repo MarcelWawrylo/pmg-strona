@@ -21,7 +21,6 @@
   --color-spotify: #1db954;
 
   --gradient-brand: linear-gradient(110deg, #e5185e, #8b2c9c 45%, #1d46e0);
-  --gradient-mono: linear-gradient(135deg, #e5185e, #8b2c9c 55%, #1d46e0);
   --gradient-vertical: linear-gradient(180deg, #e5185e, #8b2c9c, #1d46e0);
 
   --font-head: 'Space Grotesk', system-ui, sans-serif;
@@ -386,10 +385,6 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .case-page { --nav-accent: var(--color-blue); }
 .case-banner { padding: 26px 0 40px; }
 .case-banner__head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-.monogram {
-  width: 74px; height: 74px; border-radius: 50%; background: var(--gradient-mono); flex: none;
-  display: flex; align-items: center; justify-content: center; font: 700 20px var(--font-head); color: #fff;
-}
 .case-banner__logo { width: 76px; height: 76px; object-fit: contain; margin-top: 22px; }
 .case-hero { padding-bottom: 60px; }
 .case-section h2 { font: 600 26px var(--font-head); letter-spacing: -.01em; margin: 0 0 16px; }
@@ -450,10 +445,6 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .case-card:hover { color: inherit; }
 .case-card__media { position: relative; aspect-ratio: 16 / 9; overflow: hidden; }
 .case-card__media img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform var(--card-t); }
-.case-card__mono {
-  position: absolute; left: 14px; top: 14px; width: 38px; height: 38px; border-radius: 50%; background: var(--gradient-mono);
-  display: flex; align-items: center; justify-content: center; font: 700 12px var(--font-head); color: #fff; box-shadow: 0 6px 16px rgba(0,0,0,.25);
-}
 .case-card__body { padding: 24px; }
 .case-card__meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .case-card__title { font: 600 26px var(--font-head); letter-spacing: -.01em; margin-top: 12px; }
