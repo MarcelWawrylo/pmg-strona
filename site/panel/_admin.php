@@ -172,7 +172,7 @@ if ($sub === 'dziennik') {
 }
 
 // ---------- Konta ----------
-if ($sub !== 'konta') { echo '<p class="msg msg--err" role="alert">Nieznany widok.</p>'; return; }
+if ($sub !== 'konta') { echo '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nieznany widok.</p></div>'; return; }
 
 $error = '';
 const MODULY_REDAKTORA = ['aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session'];
