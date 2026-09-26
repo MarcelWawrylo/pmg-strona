@@ -833,6 +833,20 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .join-page-form__btn { font-size: 15px; padding: 14px 30px; white-space: nowrap; }
 .join-page-form__btn:hover, .join-page-form__btn:focus-visible { background: var(--color-pink-text); color: #fff; }
 
+/* Siatka 1.05fr/.95fr (wyżej) zakłada, że kolumnę 1 (szerszą) zajmuje „Proces rekrutacyjny” (4 kroki
+   w rzędzie potrzebują więcej miejsca), a kolumnę 2 (węższą) — karta formularza. Po zamianie kolejności
+   bloków w HTML (sekcje przed procesem, formularz zostaje między nimi) naturalny auto-flow siatki
+   wstawiłby w wierszu 2 najpierw formularz (kolumna 1), potem proces (kolumna 2) — węższa kolumna
+   ściska 4 kroki i zawija tekst. Utrzymujemy oryginalny układ kolumn jawnym przypisaniem. */
+@media (min-width: 961px) {
+  /* dense: bez tego auto-placement, po umieszczeniu formularza w kolumnie 2 wiersza 2, przesuwa
+     kursor poza wiersz 2 i wrzuca „Proces rekrutacyjny” (kolumna 1) dopiero do wiersza 3, zamiast
+     cofnąć się po wolną kolumnę 1 tego samego wiersza */
+  .join-page-grid { grid-auto-flow: dense; }
+  .join-page-col:not(.join-page-col--units) { grid-column: 1; }
+  .join-page-form { grid-column: 2; }
+}
+
 @media (max-width: 960px) {
   .join-page-grid { grid-template-columns: minmax(0, 1fr); gap: 48px; }
   .join-page-hero { padding: 56px 0 52px; }
