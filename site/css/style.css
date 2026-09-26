@@ -849,6 +849,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-board__name { display: block; font: 600 19px var(--font-head); color: #fff; margin-top: 2px; }
 .about-board__line { width: 2px; height: 26px; background: rgba(20, 20, 20, .15); }
 
+/* globalny html { scroll-padding-top: 96px } już liczy odstęp na przyklejony header */
 .about-units { padding: 8px 0 72px; }
 .about-units .about-h2 { margin-bottom: 30px; }
 .about-units__list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }

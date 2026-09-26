@@ -290,6 +290,31 @@
     });
   }
 
+  /* ---------- Kotwice pod przyklejonym headerem (np. o-nas.html#sekcje z kafla na Dołącz) ----------
+     Lenis podmienia natywny scroll, więc samo html{scroll-padding-top} z CSS (używane bez JS) tu nie
+     wystarczy: po starcie Lenis, gdy adres ma hash, dosuwamy do celu z offsetem o wysokość headera.
+     Czekamy na wczytanie fontów i obrazów — inaczej wysokości elementów (a więc i pozycja celu) jeszcze
+     „skaczą”. */
+  function scrollToHash(lenis) {
+    if (!location.hash) return;
+    var el;
+    try { el = document.querySelector(location.hash); } catch (e) { return; }
+    if (!el) return;
+    var nav = document.querySelector('.site-nav');
+    var headerHeight = nav ? nav.getBoundingClientRect().height : 96;
+    window.ScrollTrigger.refresh();
+    lenis.scrollTo(el, { offset: -(headerHeight + 16), immediate: true });
+    window.ScrollTrigger.refresh();
+  }
+  function scrollToHashWhenReady(lenis) {
+    if (!location.hash) return;
+    var imagesReady = new Promise(function (resolve) {
+      if (document.readyState === 'complete') resolve(); else window.addEventListener('load', resolve, { once: true });
+    });
+    var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    Promise.all([imagesReady, fontsReady]).then(function () { scrollToHash(lenis); });
+  }
+
   var start = function () {
     loadLibs(0, function (failed) {
       if (failed || !window.gsap || !window.ScrollTrigger || !window.Lenis) {
@@ -297,12 +322,13 @@
         return;
       }
       window.gsap.registerPlugin(window.ScrollTrigger);
-      initScroll();
+      var lenis = initScroll();
       initPmsIntro();
       initPmsWords();
       initPodcastWave();
       initJoinPath();
       window.ScrollTrigger.refresh();
+      scrollToHashWhenReady(lenis);
 
       // Przelicz pinning/scrub po zmianie rozmiaru okna (np. obrót tabletu, zmiana szerokości
       // przeglądarki) — bez tego przypięte sekcje (PMS, Dołącz) mogą się rozjechać.
