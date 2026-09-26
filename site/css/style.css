@@ -744,6 +744,12 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 }
 .pms-intro + .pms-about { padding-top: 64px; }
 @media (max-width: 640px) { .pms-intro__pin { padding: 40px 0; } }
+/* napis „PROJECT MANAGEMENT SESSION” nad zdaniem: sam obrys liter, dekoracja (aria-hidden); bez wsparcia text-stroke — blade wypełnienie */
+.pms-intro__outline { font: 600 clamp(22px, 4.4vw, 56px)/1.1 var(--font-head); letter-spacing: .02em; color: rgba(20, 20, 20, .35); opacity: .3; margin-bottom: clamp(24px, 3vw, 36px); user-select: none; pointer-events: none; }
+@supports (-webkit-text-stroke: 1px black) {
+  .pms-intro__outline { color: transparent; -webkit-text-stroke: 1.5px var(--color-ink); }
+  @media (max-width: 640px) { .pms-intro__outline { -webkit-text-stroke-width: 1px; } }
+}
 
 /* ---------- 10. Dołącz ---------- */
 /* ---------- Dołącz (tymczasowy plik — do scalenia ze style.css) ---------- */
