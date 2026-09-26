@@ -341,6 +341,17 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   .site-footer__bottom { flex-direction: column; }
   .site-footer__credits { text-align: left; }
 }
+/* ≥ 961 px: logo PMG z adresem, sociale i logotypy uczelni w jednym rzędzie, na wysokości logo PMG */
+@media (min-width: 961px) {
+  .site-footer > .container { display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 32px; }
+  .site-footer__top { display: contents; }
+  .site-footer .social { justify-self: center; align-items: center; }
+  .site-footer__uni { margin-top: 0; flex-wrap: nowrap; gap: 24px; }
+  .site-footer__uni-link { flex: none; }
+  .site-footer__uni img { max-width: none; }
+  .site-footer__uni-link--pwr img { height: 90px; }
+  .site-footer__bottom, .site-footer__totop { grid-column: 1 / -1; }
+}
 .theme-dark .site-footer { background: #0a0a0c; }
 
 /* ---------- 8. Animacje ---------- */
