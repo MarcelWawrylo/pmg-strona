@@ -777,9 +777,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 
 /* Treść: sekcje + proces + karta formularza */
 .join-page-main { padding: 60px 0 90px; }
-.join-page-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: start; }
+.join-page-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: stretch; }
 .join-page-col { min-width: 0; }
-.join-page-col--units { grid-column: 1 / -1; }
 .join-page-h2 { font: 600 clamp(26px, 3.2vw, 32px)/1.15 var(--font-head); letter-spacing: -.02em; margin: 0 0 22px; }
 .join-page-col--units .join-page-h2 { margin-bottom: 10px; }
 .join-page-units-intro { font: 400 15px/1.5 var(--font-body); color: var(--color-text-muted); margin: 0 0 22px; }
@@ -833,26 +832,16 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 /* Karta formularza */
 .join-page-form {
   background: var(--color-surface); border: 1px solid rgba(20,20,20,.1); border-radius: 22px; padding: 34px;
-  box-shadow: var(--shadow-feature); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 18px;
+  box-shadow: var(--shadow-feature); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px;
 }
 .join-page-form__title { font: 600 24px/1.2 var(--font-head); letter-spacing: 0; }
 .join-page-form__text { font: 400 14.5px/1.6 var(--font-body); color: var(--color-text-muted); max-width: 320px; }
 .join-page-form__btn { font-size: 15px; padding: 14px 30px; white-space: nowrap; }
 .join-page-form__btn:hover, .join-page-form__btn:focus-visible { background: var(--color-pink-text); color: #fff; }
 
-/* Siatka 1.05fr/.95fr (wyżej) zakłada, że kolumnę 1 (szerszą) zajmuje „Proces rekrutacyjny” (4 kroki
-   w rzędzie potrzebują więcej miejsca), a kolumnę 2 (węższą) — karta formularza. Po zamianie kolejności
-   bloków w HTML (sekcje przed procesem, formularz zostaje między nimi) naturalny auto-flow siatki
-   wstawiłby w wierszu 2 najpierw formularz (kolumna 1), potem proces (kolumna 2) — węższa kolumna
-   ściska 4 kroki i zawija tekst. Utrzymujemy oryginalny układ kolumn jawnym przypisaniem. */
-@media (min-width: 961px) {
-  /* dense: bez tego auto-placement, po umieszczeniu formularza w kolumnie 2 wiersza 2, przesuwa
-     kursor poza wiersz 2 i wrzuca „Proces rekrutacyjny” (kolumna 1) dopiero do wiersza 3, zamiast
-     cofnąć się po wolną kolumnę 1 tego samego wiersza */
-  .join-page-grid { grid-auto-flow: dense; }
-  .join-page-col:not(.join-page-col--units) { grid-column: 1; }
-  .join-page-form { grid-column: 2; }
-}
+/* Wiersz 1: „Poznaj nasze sekcje” i karta formularza obok siebie (po połowie szerokości, z grid-template-columns
+   wyżej). Wiersz 2: „Proces rekrutacyjny” na całą szerokość kontenera — rozpięty na obie kolumny. */
+.join-page-col:not(.join-page-col--units) { grid-column: 1 / -1; }
 
 @media (max-width: 960px) {
   .join-page-grid { grid-template-columns: minmax(0, 1fr); gap: 48px; }
