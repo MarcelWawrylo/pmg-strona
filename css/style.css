@@ -579,6 +579,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .project-card__more--pink { color: var(--color-pink-text); }
 .project-card__more--blue { color: var(--color-blue); }
 .project-card__more--purple { color: var(--color-purple); }
+.project-card__logo { display: flex; align-items: center; height: 56px; margin-bottom: 16px; }
+.project-card__logo img { height: 100%; width: auto; max-width: 100%; object-fit: contain; }
 
 .home-join { padding: 66px 0; }
 .home-join__grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: stretch; }
