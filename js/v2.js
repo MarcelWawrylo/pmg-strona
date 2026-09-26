@@ -26,19 +26,6 @@
     document.head.appendChild(s);
   }
 
-  // wspólne: pauza pętli animacji, gdy element poza ekranem lub karta ukryta
-  function visibilityLoop(el, frame) {
-    var onScreen = false, raf = 0;
-    var tick = function (t) { frame(t); raf = requestAnimationFrame(tick); };
-    var update = function () {
-      var run = onScreen && !document.hidden;
-      if (run && !raf) raf = requestAnimationFrame(tick);
-      if (!run && raf) { cancelAnimationFrame(raf); raf = 0; }
-    };
-    new IntersectionObserver(function (e) { onScreen = e[0].isIntersecting; update(); }).observe(el);
-    document.addEventListener('visibilitychange', update);
-  }
-
   /* ---------- Płynny scroll ---------- */
   function initScroll() {
     var lenis = new window.Lenis({ lerp: 0.11, smoothWheel: true });
@@ -149,82 +136,90 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { window.ScrollTrigger.refresh(); });
   }
 
-  /* ---------- Podcast: fala odcinków z „lupą” ---------- */
+  /* ---------- Podcast: pionowa fala przy prawej krawędzi hero (czysta dekoracja) ----------
+     Bez wyboru odcinka — wybór odcinków dzieje się przez karty (main.js). Fala tylko reaguje
+     na ruch myszy nad hero; w spoczynku nie rysuje (rAF startuje na mousemove i gaśnie po
+     ok. 2 s bezruchu). Na dotyku (hover:none/pointer:coarse) zostaje jedna nieruchoma klatka. */
   function initPodcastWave() {
     var hero = document.querySelector('.pod-hero');
-    var eps = Array.prototype.slice.call(document.querySelectorAll('.pod-ep'));
-    if (!hero || !eps.length) return;
-    var section = document.createElement('section');
-    section.className = 'v2-wave';
-    section.setAttribute('aria-labelledby', 'v2-wave-h');
-    var container = document.createElement('div');
-    container.className = 'container';
-    container.innerHTML = '<h2 id="v2-wave-h" class="visually-hidden">Fala odcinków</h2>' +
-      '<div class="v2-wave__stage"><canvas aria-hidden="true"></canvas><div class="v2-wave__hits"></div></div>' +
-      '<p class="v2-wave__hint">Najedź na falę albo przejdź do niej klawiszem Tab — każdy fragment to jeden odcinek.</p>';
-    section.appendChild(container);
-    hero.parentNode.insertBefore(section, hero.nextSibling);
+    if (!hero) return;
+    var coarse = window.matchMedia('(hover: none), (pointer: coarse)').matches;
 
-    var hits = container.querySelector('.v2-wave__hits');
-    eps.forEach(function (ep, i) {
-      var title = (ep.querySelector('.pod-ep__title') || ep).textContent.trim();
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'v2-wave__hit';
-      var label = document.createElement('span');
-      label.textContent = '#' + (i + 1) + ' ' + title.split(':')[0];
-      btn.appendChild(label);
-      btn.setAttribute('aria-label', 'Otwórz odcinek #' + (i + 1) + ': ' + title);
-      btn.addEventListener('click', function () { var b = ep.querySelector('.pod-ep__btn'); if (b) b.click(); });
-      btn.addEventListener('focus', function () { focusX = (i + 0.5) / eps.length; });
-      btn.addEventListener('blur', function () { focusX = null; });
-      hits.appendChild(btn);
-    });
+    var wave = document.createElement('div');
+    wave.className = 'v2-wave';
+    wave.setAttribute('aria-hidden', 'true');
+    wave.innerHTML = '<canvas></canvas>';
+    hero.appendChild(wave);
 
-    var stage = container.querySelector('.v2-wave__stage');
-    var canvas = stage.querySelector('canvas');
+    var canvas = wave.querySelector('canvas');
     var ctx = canvas.getContext('2d');
     var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    var W = 0, H = 0, pointerX = null, focusX = null, lensX = 0.5, lensAmt = 0;
+    var W = 0, H = 0, raf = 0;
     var resize = function () {
-      W = stage.clientWidth; H = stage.clientHeight;
+      W = wave.clientWidth; H = wave.clientHeight;
+      if (!W || !H) return;
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (!raf) draw(0);
     };
-    resize();
-    window.addEventListener('resize', resize);
-    stage.addEventListener('pointermove', function (e) { pointerX = (e.clientX - stage.getBoundingClientRect().left) / W; });
-    stage.addEventListener('pointerleave', function () { pointerX = null; });
 
-    var N = 140;
+    var N = 56;
     var grad = function () {
-      var g = ctx.createLinearGradient(0, 0, W, 0);
-      g.addColorStop(0, '#e5185e'); g.addColorStop(0.45, '#8b2c9c'); g.addColorStop(1, '#1d46e0');
+      var g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#e5185e'); g.addColorStop(0.5, '#8b2c9c'); g.addColorStop(1, '#1d46e0');
       return g;
     };
-    visibilityLoop(stage, function (now) {
-      var t = now / 1000;
-      var target = pointerX !== null ? pointerX : focusX;
-      if (target !== null) lensX += (target - lensX) * 0.12;
+    var pointerY = null, lensY = 0.5, lensAmt = 0;
+    function draw(t) {
+      if (!W || !H) return;
+      var target = pointerY;
+      if (target !== null) lensY += (target - lensY) * 0.12;
       lensAmt += ((target !== null ? 1 : 0) - lensAmt) * 0.08;
       ctx.clearRect(0, 0, W, H);
       var fill = grad();
-      var gap = W / N, bw = Math.max(2, gap * 0.55), mid = H * 0.46;
-      var active = Math.floor(lensX * eps.length);
+      var gap = H / N, bw = Math.max(2, gap * 0.55), mid = W * 0.5;
       for (var i = 0; i < N; i++) {
-        var x = i / (N - 1);
+        var y = i / (N - 1);
         var amp = 0.35 + 0.3 * Math.sin(i * 0.37 + t * 1.3) * Math.sin(i * 0.11 - t * 0.6) + 0.25 * Math.sin(i * 0.05 + t * 0.4);
         amp = Math.abs(amp);
-        var d = (x - lensX) * W;
+        var d = (y - lensY) * H;
         var lens = 1 + 1.35 * lensAmt * Math.exp(-(d * d) / (2 * 70 * 70));
-        var h = Math.max(4, amp * H * 0.36 * lens);
-        var seg = Math.min(eps.length - 1, Math.floor(x * eps.length));
-        ctx.globalAlpha = lensAmt > 0.05 && seg !== active ? 0.45 : 1;
+        var w = Math.max(4, amp * W * 0.62 * lens);
         ctx.fillStyle = fill;
-        ctx.fillRect(i * gap + (gap - bw) / 2, mid - h / 2, bw, h);
+        ctx.fillRect(mid - w / 2, i * gap + (gap - bw) / 2, w, bw);
       }
-      ctx.globalAlpha = 1;
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+    draw(0); // klatka spoczynkowa — bez pętli rAF, dopóki nic się nie zmienia
+
+    if (coarse) return; // ekran dotykowy: fala zostaje nieruchoma
+
+    var startT = null, idleTimer = null;
+    var loop = function (now) {
+      if (startT === null) startT = now;
+      draw((now - startT) / 1000);
+      raf = requestAnimationFrame(loop);
+    };
+    var stop = function () { if (raf) { cancelAnimationFrame(raf); raf = 0; } };
+    var startLoop = function () { if (!raf) { startT = null; raf = requestAnimationFrame(loop); } };
+    var scheduleStop = function () {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(stop, 2000);
+    };
+    hero.addEventListener('mousemove', function (e) {
+      var r = wave.getBoundingClientRect();
+      if (!r.height) return;
+      pointerY = (e.clientY - r.top) / r.height;
+      startLoop();
+      scheduleStop();
     });
+    hero.addEventListener('mouseleave', function () {
+      pointerY = null;
+      scheduleStop();
+    });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); });
   }
 
   /* ---------- Dołącz: ścieżka procesu rysowana przy przewijaniu ---------- */
