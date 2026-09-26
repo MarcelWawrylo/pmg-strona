@@ -136,34 +136,47 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { window.ScrollTrigger.refresh(); });
   }
 
-  /* ---------- Podcast: pionowa fala przy prawej krawędzi hero (czysta dekoracja) ----------
-     Bez wyboru odcinka — wybór odcinków dzieje się przez karty (main.js). Fala tylko reaguje
-     na ruch myszy nad hero; w spoczynku nie rysuje (rAF startuje na mousemove i gaśnie po
-     ok. 2 s bezruchu). Na dotyku (hover:none/pointer:coarse) zostaje jedna nieruchoma klatka. */
+  /* ---------- Podcast: pionowa fala na całą wysokość strony przy prawej krawędzi ----------
+     Pasek (.v2-wave) to dziecko <main> na pełną wysokość main (od dołu headera do góry stopki —
+     main leży dokładnie między nimi w .page), position:absolute; main dostaje position:relative
+     tylko na tej stronie. Pasek jest wstawiony w DOM PRZED sekcjami treści (hero, edycja), więc
+     przy z-index:auto maluje się pod nimi — tam, gdzie sekcja ma własne (nawet półprzezroczyste)
+     tło albo karty odcinków, fala chowa się pod treścią i jej nie zasłania; w pustym miejscu hero
+     zostaje widoczna jako dekoracja.
+     Canvas w środku jest position:sticky o wysokości viewportu (nie całej strony) i rysuje tylko
+     bieżący, widoczny fragment — nigdy bitmapy na wysokość całej strony. IntersectionObserver na
+     pasku wstrzymuje rysowanie, gdy pasek jest poza ekranem; poza tym rAF startuje na ruchu myszy
+     lub scrollu i gaśnie po ok. 2 s bezruchu. Na dotyku (hover:none/pointer:coarse) zostaje jedna
+     nieruchoma klatka, bez nasłuchu scrolla/myszy. */
   function initPodcastWave() {
     var hero = document.querySelector('.pod-hero');
-    if (!hero) return;
+    var main = hero && hero.closest('main');
+    if (!hero || !main) return;
     var coarse = window.matchMedia('(hover: none), (pointer: coarse)').matches;
 
     var wave = document.createElement('div');
     wave.className = 'v2-wave';
     wave.setAttribute('aria-hidden', 'true');
     wave.innerHTML = '<canvas></canvas>';
-    hero.appendChild(wave);
+    main.insertBefore(wave, hero);
 
     var canvas = wave.querySelector('canvas');
     var ctx = canvas.getContext('2d');
     var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     var W = 0, H = 0, raf = 0;
     var resize = function () {
-      W = wave.clientWidth; H = wave.clientHeight;
+      // wysokość canvasu = min(viewport, main) — nigdy cała strona i nigdy więcej niż sam pasek main,
+      // więc sticky canvas nie może wystawać pod stopkę, nawet gdyby main był krótszy niż ekran
+      W = wave.clientWidth;
+      H = Math.round(Math.min(window.innerHeight, main.getBoundingClientRect().height));
       if (!W || !H) return;
+      canvas.style.height = H + 'px';
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (!raf) draw(0);
     };
 
-    var N = 56;
+    var N = 56; // liczba „słupków” mieszczących się w jednym ekranie wysokości — dalsze fragmenty wzoru dochodzą przesunięciem fazy o scrollY, nie powiększeniem canvasu
     var grad = function () {
       var g = ctx.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, '#e5185e'); g.addColorStop(0.5, '#8b2c9c'); g.addColorStop(1, '#1d46e0');
@@ -178,9 +191,11 @@
       ctx.clearRect(0, 0, W, H);
       var fill = grad();
       var gap = H / N, bw = Math.max(2, gap * 0.55), mid = W * 0.5;
+      var scrollUnits = window.scrollY / gap; // fragment wzoru odpowiadający bieżącemu przewinięciu
       for (var i = 0; i < N; i++) {
         var y = i / (N - 1);
-        var amp = 0.35 + 0.3 * Math.sin(i * 0.37 + t * 1.3) * Math.sin(i * 0.11 - t * 0.6) + 0.25 * Math.sin(i * 0.05 + t * 0.4);
+        var si = i + scrollUnits;
+        var amp = 0.35 + 0.3 * Math.sin(si * 0.37 + t * 1.3) * Math.sin(si * 0.11 - t * 0.6) + 0.25 * Math.sin(si * 0.05 + t * 0.4);
         amp = Math.abs(amp);
         var d = (y - lensY) * H;
         var lens = 1 + 1.35 * lensAmt * Math.exp(-(d * d) / (2 * 70 * 70));
@@ -194,20 +209,28 @@
     window.addEventListener('resize', resize);
     draw(0); // klatka spoczynkowa — bez pętli rAF, dopóki nic się nie zmienia
 
-    if (coarse) return; // ekran dotykowy: fala zostaje nieruchoma
+    if (coarse) return; // ekran dotykowy: fala zostaje nieruchoma, bez nasłuchu scrolla/myszy
 
-    var startT = null, idleTimer = null;
+    var visible = false, startT = null, lastT = 0, idleTimer = null;
+    var now2 = function () { return (window.performance && performance.now) ? performance.now() : Date.now(); };
     var loop = function (now) {
       if (startT === null) startT = now;
-      draw((now - startT) / 1000);
+      lastT = (now - startT) / 1000;
+      draw(lastT);
       raf = requestAnimationFrame(loop);
     };
     var stop = function () { if (raf) { cancelAnimationFrame(raf); raf = 0; } };
-    var startLoop = function () { if (!raf) { startT = null; raf = requestAnimationFrame(loop); } };
+    var startLoop = function () { if (!raf && visible) { startT = now2() - lastT * 1000; raf = requestAnimationFrame(loop); } };
     var scheduleStop = function () {
       clearTimeout(idleTimer);
       idleTimer = setTimeout(stop, 2000);
     };
+
+    var io = new IntersectionObserver(function (entries) {
+      visible = entries[entries.length - 1].isIntersecting;
+      if (!visible) stop(); else draw(lastT); // wróciła w kadr: dorysuj bieżącą klatkę bez uruchamiania pętli
+    });
+    io.observe(wave);
     hero.addEventListener('mousemove', function (e) {
       var r = wave.getBoundingClientRect();
       if (!r.height) return;
@@ -219,6 +242,10 @@
       pointerY = null;
       scheduleStop();
     });
+    window.addEventListener('scroll', function () {
+      startLoop();
+      scheduleStop();
+    }, { passive: true });
     document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); });
   }
 
