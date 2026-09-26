@@ -1251,14 +1251,14 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
    Tylko modyfikator — okno odcinka Podcastu (.pod-modal bez modyfikatora) zostaje bez zmian. */
 .pod-modal--speaker { color: var(--color-ink); overflow: hidden; }
 .pod-modal--speaker .pod-modal__panel {
-  display: flex; flex-direction: column; max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px);
+  display: flex; flex-direction: column; max-width: 720px; max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px);
   background: var(--color-surface); border: 0; box-shadow: 0 40px 90px -30px rgba(0,0,0,.6);
 }
 .pod-modal--speaker .pod-modal__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .pod-modal--speaker .pod-modal__close { background: var(--color-surface); color: var(--color-ink); border: 1.5px solid var(--color-ink); }
 .pod-modal--speaker .pod-modal__close:hover { background: var(--color-bg); }
 .speaker-modal__media { display: block; margin: -28px -32px 26px; }
-.speaker-modal__img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+.speaker-modal__img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; }
 .pod-modal--speaker .pod-modal__title { color: var(--color-ink); margin-top: 0; }
 .pod-modal--speaker .pod-modal__title:first-child { padding-right: 52px; }
 .pod-modal--speaker .speaker__note { color: var(--color-ink); margin-top: 8px; }
