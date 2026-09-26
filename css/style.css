@@ -867,10 +867,10 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 
 /* Nagłówki sekcji */
 .about-h2 { font: 600 clamp(26px, 3.4vw, 32px)/1.15 var(--font-head); letter-spacing: -.02em; }
-.about-sub { font: 400 15px/1.5 var(--font-body); color: var(--color-text-muted); margin: 8px 0 30px; }
 
 /* Struktura koła */
 .about-structure { padding: 64px 0; }
+.about-structure .about-h2 { margin-bottom: 30px; }
 .about-board { display: flex; flex-direction: column; align-items: center; }
 .about-board__list { display: flex; flex-direction: column; gap: 14px; align-items: stretch; max-width: 100%; }
 .about-board__card {
