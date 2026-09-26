@@ -82,7 +82,11 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* ---------- Case Koła: sekcje ujawniane po kolei (initCaseReveal w v2.js) ----------
-   W trybie pełnym animację robi GSAP, więc [data-reveal] z main.js w tych sekcjach jest wyłączony
-   (bez podwójnego wjazdu i bez przejścia CSS walczącego z GSAP). Gdy biblioteki się nie wczytają,
-   v2.js zdejmuje .v2-enhanced i wraca zwykły [data-reveal]. */
-.v2-enhanced main[data-case-reveal] > .case-section [data-reveal] { opacity: 1; transform: none; transition: none; }
+   Jedyny mechanizm odsłaniania tych sekcji to GSAP (≥ 961 px, bez reduced-motion), więc [data-reveal]
+   z main.js jest tu wyłączony zawsze: bez podwójnego wjazdu, a < 961 px, przy reduced-motion i gdy CDN się
+   nie wczyta (v2.js zdejmuje wtedy .v2-enhanced) treść jest widoczna od razu. W trybie pełnym sekcja czeka
+   ukryta (bez zmiany układu), aż v2.js ją wpuści i oznaczy .is-case-in. */
+main[data-case-reveal] > .case-section [data-reveal] { opacity: 1; transform: none; transition: none; }
+@media (min-width: 961px) and (prefers-reduced-motion: no-preference) {
+  .v2-enhanced main[data-case-reveal] > .case-section:not(.is-case-in) { visibility: hidden; }
+}

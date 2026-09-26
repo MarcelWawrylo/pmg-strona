@@ -225,32 +225,100 @@
     });
   }
 
-  /* ---------- Case Koła: sekcje (O partnerze → … → Galeria) wjeżdżają po kolei przy przewijaniu ----------
-     <main data-case-reveal> na 4 podstronach case. Każda .case-section ma własny ScrollTrigger (raz, bez
-     scrub i pin), dzieci jej kontenera wchodzą z dołu z przesunięciem w czasie. Stan ukryty ustawia tylko
-     gsap.from w matchMedia — bez JS, < 961 px i przy reduced-motion treść jest widoczna od razu, a po
-     zejściu poniżej 961 px matchMedia cofa style. [data-reveal] z main.js w tych sekcjach jest wyłączony
-     w v2.css (.v2-enhanced), żeby ten sam element nie animował się dwa razy. */
+  /* ---------- Case Koła: sekcje (O partnerze → Wyzwanie → Co zrobiliśmy → Rezultat → Galeria) po kolei ----------
+     <main data-case-reveal> na 4 podstronach case. Każda .case-section „przylatuje” z dołu (y: 72 → 0) i dokleja się
+     pod poprzednią. Do tego czasu jest ukryta przez v2.css (visibility: hidden, tylko z .v2-enhanced ≥ 961 px bez
+     reduced-motion), więc bez JS, bez CDN, < 961 px i przy reduced-motion wszystko jest widoczne od razu.
+     - Kolejka: sekcje startują w kolejności DOM co GAP s, nawet gdy kilka wejdzie w widok naraz (szybki scroll).
+     - Bez nakładania: w trakcie ruchu dół sekcji jest przycięty (clip-path) o tyle, o ile jest przesunięta, więc
+       widoczna część nie wychodzi poza jej miejsce w układzie; układ (także galerii) się nie zmienia.
+     - Raz pokazana zostaje (.is-case-in), bez chowania przy przewijaniu w górę.
+     - Sekcje, które są już nad oknem (hash, odświeżenie w połowie strony, skok na dół), pokazują się od razu.
+     [data-reveal] z main.js w tych sekcjach jest wyłączony w v2.css, żeby nic nie animowało się dwa razy. */
   function initCaseReveal() {
-    var sections = document.querySelectorAll('main[data-case-reveal] > .case-section');
+    var sections = Array.prototype.slice.call(document.querySelectorAll('main[data-case-reveal] > .case-section'));
     if (!sections.length) return;
     var gsap = window.gsap;
+    var Y = 72, DURATION = 1, GAP = 0.22, START = 0.85; // START: górna krawędź sekcji na 85% wysokości okna
+
+    // elementy do lekkiego przesunięcia w czasie wewnątrz sekcji (nagłówek → treść; w galerii każde zdjęcie osobno)
+    var itemsOf = function (section) {
+      var box = section.firstElementChild;
+      if (!box) return [];
+      // .measure > .result > h2, p… — schodź przez pojedyncze opakowania, ale nie do liścia (Solvro: .measure > p)
+      while (box.children.length === 1 && box.firstElementChild.children.length) box = box.firstElementChild;
+      return Array.prototype.slice.call(box.children).reduce(function (acc, el) {
+        return acc.concat(el.classList.contains('gallery') ? Array.prototype.slice.call(el.children) : [el]);
+      }, []);
+    };
+
     gsap.matchMedia().add('(min-width: 961px) and (prefers-reduced-motion: no-preference)', function () {
-      Array.prototype.forEach.call(sections, function (section) {
-        var box = section.firstElementChild;
-        if (!box) return;
-        // .measure > .result > h2, p… — schodź przez pojedyncze opakowania, ale nie do liścia (Solvro: .measure > p)
-        while (box.children.length === 1 && box.firstElementChild.children.length) box = box.firstElementChild;
-        var items = Array.prototype.slice.call(box.children);
-        // galeria: nagłówek i każde zdjęcie osobno, nie cała siatka naraz
-        items = items.reduce(function (acc, el) {
-          return acc.concat(el.classList.contains('gallery') ? Array.prototype.slice.call(el.children) : [el]);
-        }, []);
-        gsap.from(items, {
-          y: 40, autoAlpha: 0, duration: 0.9, stagger: 0.1, ease: 'expo.out',
-          scrollTrigger: { trigger: section, start: 'top 85%', once: true }
+      // 0 czeka, 1 w kolejce, 2 w ruchu, 3 pokazana
+      var state = sections.map(function (s) { return s.classList.contains('is-case-in') ? 3 : 0; });
+      var items = sections.map(itemsOf);
+      var pending = [], timelines = [], nextStart = 0, watcher;
+
+      var finish = function (i) {
+        if (state[i] === 3) return;
+        state[i] = 3;
+        sections[i].classList.add('is-case-in');
+        gsap.set(sections[i], { clearProps: 'transform,opacity,visibility,clipPath' });
+        gsap.set(items[i], { clearProps: 'transform,opacity,visibility' });
+        if (state.every(function (s) { return s === 3; }) && watcher) { watcher.kill(); watcher = null; }
+      };
+      var play = function (i) {
+        pending[i] = null;
+        state[i] = 2;
+        var clip = { b: Y };
+        var tl = timelines[i] = gsap.timeline({ onComplete: function () { timelines[i] = null; finish(i); } });
+        tl.fromTo(sections[i], { y: Y }, { y: 0, duration: DURATION, ease: 'expo.out' }, 0)
+          .fromTo(clip, { b: Y }, {
+            b: 0, duration: DURATION, ease: 'expo.out',
+            onUpdate: function () { sections[i].style.clipPath = 'inset(0px 0px ' + clip.b.toFixed(2) + 'px 0px)'; }
+          }, 0)
+          .fromTo(sections[i], { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.5, ease: 'power2.out' }, 0)
+          .from(items[i], { y: 24, autoAlpha: 0, duration: 0.8, stagger: 0.08, ease: 'power3.out' }, 0.1);
+      };
+      var enqueue = function (i) {
+        state[i] = 1;
+        var now = gsap.ticker.time;
+        var at = Math.max(now, nextStart);
+        nextStart = at + GAP;
+        pending[i] = gsap.delayedCall(at - now, play, [i]);
+      };
+      // sekcja i jest już nad oknem → ona i wszystkie przed nią od razu w pełni widoczne
+      var showNow = function (i) {
+        for (var j = 0; j <= i; j++) {
+          if (state[j] === 3) continue;
+          if (pending[j]) { pending[j].kill(); pending[j] = null; }
+          if (timelines[j]) timelines[j].progress(1); else finish(j);
+        }
+      };
+      var sweep = function () {
+        var vh = window.innerHeight, last = -1, above = -1;
+        sections.forEach(function (s, i) {
+          if (state[i] === 3) return;
+          var r = s.getBoundingClientRect();
+          var shift = Number(gsap.getProperty(s, 'y')) || 0; // miejsce w układzie, bez przesunięcia animacji
+          if (r.top - shift < vh * START) last = i;
+          if (r.bottom - shift <= 0) above = i;
         });
-      });
+        if (above >= 0) showNow(above);
+        for (var i = 0; i <= last; i++) if (state[i] === 0) enqueue(i);
+      };
+
+      watcher = window.ScrollTrigger.create({ start: 0, end: 'max', onUpdate: sweep, onRefresh: sweep });
+      sweep();
+
+      return function () {
+        if (watcher) watcher.kill();
+        pending.forEach(function (d) { if (d) d.kill(); });
+        timelines.forEach(function (t) { if (t) t.kill(); });
+        sections.forEach(function (s, i) {
+          gsap.set(s, { clearProps: 'transform,opacity,visibility,clipPath' });
+          gsap.set(items[i], { clearProps: 'transform,opacity,visibility' });
+        });
+      };
     });
   }
 
