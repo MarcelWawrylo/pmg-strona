@@ -423,8 +423,10 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .case-card__media { position: relative; aspect-ratio: 16 / 9; overflow: hidden; }
 .hub-grid .case-card__media { aspect-ratio: 5 / 2; }
 .hub-grid .case-card__media { background: #141414; }
+/* QUBIT i Debate Lab: logo ma białe tło wbudowane w plik — tło kafla białe, żeby się z nim zlewało (Solvro i PWR Racing Team bez zmian) */
+.hub-grid .case-card__media--logo-light { background: #fff; }
 .case-card__media--logo { display: flex; align-items: center; justify-content: center; padding: 20px; }
-.case-card__media--logo img { width: auto; height: auto; max-width: 70%; max-height: 64px; object-fit: contain; }
+.case-card__media--logo img { width: auto; height: auto; max-width: 70%; max-height: 64px; object-fit: contain; margin: 0 auto; }
 .case-card__media--logo-tall img { max-height: 74px; }
 .case-card__media__logo-plate { border-radius: 8px; }
 .case-card__media img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform var(--card-t); }
