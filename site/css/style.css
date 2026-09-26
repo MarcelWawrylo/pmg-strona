@@ -658,6 +658,10 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 [data-page="pm-session-xiv"] .speaker { padding: 10px; }
 [data-page="pm-session-xiv"] .speaker__name { display: block; margin-top: 10px; font-size: 16px; }
 [data-page="pm-session-xiv"] .speaker__name::after { content: none; }
+/* PM Session XIV: karty równej wysokości w wierszu, niezależnie od długości nazwiska */
+[data-page="pm-session-xiv"] .speakers { align-items: stretch; }
+[data-page="pm-session-xiv"] .speaker { display: flex; flex-direction: column; }
+[data-page="pm-session-xiv"] .speaker__card { display: flex; flex-direction: column; flex: 1 1 auto; }
 .speaker__card { all: unset; box-sizing: border-box; display: block; width: 100%; cursor: pointer; }
 .speaker__card:focus-visible { outline: 3px solid var(--color-blue); outline-offset: 3px; border-radius: 12px; }
 @media (hover: hover) {
@@ -1241,6 +1245,35 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
   .pod-modal__heading { position: relative; left: auto; right: auto; bottom: auto; margin-top: 18px; padding: 0 20px; }
   .pod-modal__body { padding: 22px 20px 28px; }
   .pod-modal__links .pod-btn { width: 100%; justify-content: center; }
+}
+
+/* Okno prelegenta (PM Session XIV): białe, jeden kolor tekstu, przewijana treść.
+   Tylko modyfikator — okno odcinka Podcastu (.pod-modal bez modyfikatora) zostaje bez zmian. */
+.pod-modal--speaker { color: var(--color-ink); overflow: hidden; }
+.pod-modal--speaker .pod-modal__panel {
+  display: flex; flex-direction: column; max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px);
+  background: var(--color-surface); border: 0; box-shadow: 0 40px 90px -30px rgba(0,0,0,.6);
+}
+.pod-modal--speaker .pod-modal__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.pod-modal--speaker .pod-modal__close { background: var(--color-surface); color: var(--color-ink); border: 1.5px solid var(--color-ink); }
+.pod-modal--speaker .pod-modal__close:hover { background: var(--color-bg); }
+.speaker-modal__media { display: block; margin: -28px -32px 26px; }
+.speaker-modal__img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+.pod-modal--speaker .pod-modal__title { color: var(--color-ink); margin-top: 0; }
+.pod-modal--speaker .pod-modal__title:first-child { padding-right: 52px; }
+.pod-modal--speaker .speaker__note { color: var(--color-ink); margin-top: 8px; }
+.pod-modal--speaker .pod-modal__num { font: 600 17px/1.4 var(--font-head); color: var(--color-ink); text-shadow: none; margin-top: 14px; text-wrap: pretty; }
+.pod-modal--speaker .pod-modal__desc { font-size: 15px; color: var(--color-ink); margin-top: 12px; }
+.speaker-modal__label {
+  font: 600 11px var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: var(--color-ink);
+  margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--color-border);
+}
+.pod-modal--speaker .pod-modal__links { margin: 24px 0 0; }
+.pod-modal--speaker .chip-link { color: var(--color-ink); border-color: rgba(20,20,20,.4); text-decoration: underline; text-underline-offset: 2px; }
+.pod-modal--speaker .chip-link:hover { background: var(--color-bg); }
+@media (max-width: 640px) {
+  .pod-modal--speaker .pod-modal__panel { max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); }
+  .speaker-modal__media { margin: -22px -20px 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .pod-ep:hover, .pod-ep:focus-within, .pod-btn:hover, .pod-btn:focus-visible { transform: none; }
