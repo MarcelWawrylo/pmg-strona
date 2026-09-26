@@ -34,7 +34,7 @@ GitHub Pages publikuje się z gałęzi `gh-pages` poleceniem `git subtree push -
 2. **Ścieżki różnią się między wersjami:** v1 używa `img/...`, v2 i v3 `../img/...`, a `404.html` ścieżek bezwzględnych `/img/...` (bo 404 wyświetla się pod dowolnym adresem).
 3. **Stopka jest ciemna (`#141414`), a CSS zamienia każdy obrazek w `.site-footer__brand` na biały kształt** (`filter: brightness(0) invert(1)`). Cudze logo (np. uczelni) wrzucone w ten blok zostanie przebarwione. Dla logotypów z księgą znaku trzeba użyć ich oficjalnej wersji na ciemne tło i nie stosować filtra.
 4. **Atrybuty `data-set="..."`** (np. e-mail, linki social w stopce) wypełnia panel przez `main.js`. Nie usuwaj ich i nie zmieniaj ich wartości.
-5. **Równoległe gałęzie.** Sprawdź `git log --oneline main..origin/noc-ui` i `main..origin/cms-panel`. Jeśli są tam niescalone commity, zmieniają one te same pliki HTML (m.in. stopkę). Nie zaczynaj pracy na starej bazie, tylko zapytaj, od której gałęzi wyjść.
+5. **Równoległe gałęzie.** Przed startem zrób `git fetch origin` i sprawdź `git branch -r`. Jeśli jakaś gałąź ma niescalone commity w tych samych plikach HTML (np. w stopce), nie zaczynaj pracy na starej bazie, tylko zapytaj, od której gałęzi wyjść.
 6. Claude lubi „przy okazji uporządkować” HTML. Tutaj nie wolno: żadnego przeformatowania, zmiany wcięć ani kolejności atrybutów w liniach, których zadanie nie dotyczy. Diff ma zawierać tylko zmianę z zadania.
 
 ## Zasady przy zmianach
@@ -60,8 +60,8 @@ GitHub Pages publikuje się z gałęzi `gh-pages` poleceniem `git subtree push -
 - 16.09: v1, 12 podstron z makiety; v2 „płynna” + przełącznik wersji w stopce.
 - 17.09: audyt v1/v2, naprawa logo na stronie głównej, fala podcastu, PM Session (przypinanie sekcji, kontrast).
 - 23.09: Aktualności (3 wpisy od Marketingu) + panel PHP/MariaDB; formularz kontaktowy przez PHP (fallback `mailto`); decyzje: Facebook + LinkedIn, 4 etapy rekrutacji + kontakt HR, liczby PM Session bez zaokrągleń; link do formularza rekrutacyjnego Google; robocza v3 zakładki PM Session.
-- 24.09: TikTok @pmgroup_ w stopce. To jest obecny stan `main` i wersji opublikowanej na GitHub Pages.
-- 25–26.09, **niescalone**: `cms-panel` (panel: konta, role, dziennik zmian, ustawienia strony, członkowie, PM Session; strony prawne: polityka prywatności, deklaracja dostępności, 404, `.htaccess`, `robots.txt`) oraz `noc-ui` (zawiera `cms-panel` + nowy wygląd panelu i poprawki UI strony: Dołącz, CTA w hero, kafelki Aktualności, Case Koła).
+- 24.09: TikTok @pmgroup_ w stopce. To jest wersja opublikowana obecnie na GitHub Pages.
+- 25–26.09, scalone do `main` 26.09: `cms-panel` (panel: konta, role, dziennik zmian, ustawienia strony, członkowie, PM Session; strony prawne: polityka prywatności, deklaracja dostępności, 404, `.htaccess`, `robots.txt`) oraz `noc-ui` (zawiera `cms-panel` + nowy wygląd panelu i poprawki UI strony: Dołącz, CTA w hero, kafelki Aktualności, Case Koła).
 
 ## Decyzje otwarte (nie rozstrzygaj sam)
 
