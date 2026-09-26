@@ -524,8 +524,12 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 
 .home-news { padding: 66px 0; }
 .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
-.section-head__link { font: 600 14px var(--font-body); color: var(--color-purple); text-decoration: none; }
+.section-head__link { font: 600 14px var(--font-body); color: var(--color-ink); text-decoration: none; }
 .section-head__link:hover { text-decoration: underline; }
+.section-head__link:focus-visible { text-decoration: underline; }
+
+.home-back { padding-top: 28px; }
+.home-back__link { font-size: 13px; padding: 10px 20px; }
 .home-h2 { font: 600 32px var(--font-head); letter-spacing: -.02em; }
 .home-h2--lg { font-size: clamp(28px, 3.6vw, 36px); margin: 8px 0 30px; }
 .news-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
