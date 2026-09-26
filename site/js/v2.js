@@ -1,6 +1,6 @@
-/* PMG — wersja 2 („płynna”). Rozszerza ../js/main.js.
+/* PMG — animacje strony („płynna” wersja). Rozszerza js/main.js.
    Tryb pełny tylko ≥ 961 px i bez prefers-reduced-motion: wtedy doładowuje Lenis + GSAP + ScrollTrigger (CDN, SRI).
-   Na mobile i przy ograniczonym ruchu nic się nie ładuje — strona działa jak v1. */
+   Na mobile i przy ograniczonym ruchu nic się nie ładuje — strona działa na samym main.js. */
 (function () {
   'use strict';
 

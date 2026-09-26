@@ -13,7 +13,7 @@ Ten plik czyta automatycznie każdy Claude Code otwarty w tym repozytorium. Jest
 
 | Środowisko | Adres | Uwagi |
 |---|---|---|
-| Robocze (GitHub Pages) | https://marcelwawrylo.github.io/pmg-strona/ (v1), `/v2/` (v2) | Nie jest produkcją. PHP tu nie działa. |
+| Robocze (GitHub Pages) | https://marcelwawrylo.github.io/pmg-strona/ | Nie jest produkcją. PHP tu nie działa. |
 | Produkcja (docelowo) | serwer PWr / WCSS, Apache 2.4 + PHP + MariaDB | Formularz kontaktowy i panel Aktualności działają tylko tu. |
 
 GitHub Pages publikuje się z gałęzi `gh-pages` poleceniem `git subtree push --prefix site origin gh-pages`, uruchamianym **na aktualnym `main`** (`git checkout main && git pull origin main`). Publikacja wysyła na stronę **wszystko**, co jest w `main`, a nie tylko twoją zmianę: przed nią sprawdź `git log --oneline origin/gh-pages -1` i `git log --oneline main`, żeby wiedzieć, co pójdzie na stronę. Jeśli push do `gh-pages` zostanie odrzucony, nie wymuszaj go (`--force`), tylko zapytaj Marcela. Po publikacji odczekaj 1–2 minuty i sprawdź stronę pod adresem roboczym.
@@ -22,16 +22,15 @@ GitHub Pages publikuje się z gałęzi `gh-pages` poleceniem `git subtree push -
 
 - Zwykły HTML + CSS + vanilla JS w katalogu `site/`. Bez frameworka, bez npm, bez kroku budowania. Do repo trafia tylko `site/`, `README.md`, `.gitignore` i ten plik (biała lista w `.gitignore`).
 - Podgląd lokalny: w katalogu `site/` uruchom `python -m http.server 8000` i otwórz http://localhost:8000
-- **v1** (`site/*.html`, `site/css/style.css`, `site/js/main.js`): wersja podstawowa, odtworzenie makiety z Claude Design.
-- **v2** (`site/v2/`): te same treści co v1 + „płynne” animacje (`v2/css/v2.css`, `v2/js/v2.js`, Lenis + GSAP z CDN). Obrazy bierze z `../img/`. Koncepcja: `site/v2/KONCEPCJA.md`.
+- **Jedna wersja strony** (od 26.09.2026): `site/*.html` + `site/css/style.css` i `site/js/main.js` (podstawa) + `site/css/v2.css` i `site/js/v2.js` („płynne” animacje, Lenis + GSAP z CDN, tylko ≥ 961 px i bez `prefers-reduced-motion`). Klasy `v2`, `v2-page`, `v2-enhanced` w HTML/CSS zostały z dawnej wersji 2, nie usuwaj ich. Koncepcja animacji: `site/KONCEPCJA-v2.md`.
 - **v3** (`site/v3/pm-session.html`): robocza wersja jednej zakładki, nie jest podlinkowana w menu.
 - Backend PHP (tylko serwer PWr): `site/api/` (formularz kontaktowy, Aktualności, ustawienia), `site/panel/` (panel administracyjny z logowaniem). `site/api/config.php` z hasłami **nigdy** nie trafia do repo.
 - Tokeny wyglądu są w `:root` w `site/css/style.css`: kolory marki `--color-pink #e5185e`, `--color-purple #8b2c9c`, `--color-blue #1d46e0`, `--color-ink #141414`, tło `--color-bg #F7F6F3`. Fonty: Space Grotesk (nagłówki), Manrope (tekst). Punkty łamania: 640 / 960 / 1240 px.
 
 ## Pułapki, na które łatwo wpaść
 
-1. **Menu i stopka są skopiowane w każdym pliku HTML.** Zmiana w stopce = ta sama zmiana we wszystkich plikach v1, v2 i v3 (na gałęzi `noc-ui` to 28 plików; sprawdź: `grep -l site-footer__brand -r site --include=*.html`).
-2. **Ścieżki różnią się między wersjami:** v1 używa `img/...`, v2 i v3 `../img/...`, a `404.html` ścieżek bezwzględnych `/img/...` (bo 404 wyświetla się pod dowolnym adresem).
+1. **Menu i stopka są skopiowane w każdym pliku HTML.** Zmiana w stopce = ta sama zmiana we wszystkich plikach `site/*.html` i w `site/v3/pm-session.html` (sprawdź: `grep -l site-footer__brand -r site --include=*.html`).
+2. **Ścieżki:** podstrony używają `img/...`, v3 `../img/...`, a `404.html` ścieżek bezwzględnych `/img/...` (bo 404 wyświetla się pod dowolnym adresem).
 3. **Stopka jest ciemna (`#141414`), a CSS zamienia każdy obrazek w `.site-footer__brand` na biały kształt** (`filter: brightness(0) invert(1)`). Cudze logo (np. uczelni) wrzucone w ten blok zostanie przebarwione. Dla logotypów z księgą znaku trzeba użyć ich oficjalnej wersji na ciemne tło i nie stosować filtra.
 4. **Atrybuty `data-set="..."`** (np. e-mail, linki social w stopce) wypełnia panel przez `main.js`. Nie usuwaj ich i nie zmieniaj ich wartości.
 5. **Równoległe gałęzie.** Przed startem zrób `git fetch origin` i sprawdź `git branch -r`. Jeśli jakaś gałąź ma niescalone commity w tych samych plikach HTML (np. w stopce), nie zaczynaj pracy na starej bazie, tylko zapytaj, od której gałęzi wyjść.
@@ -43,18 +42,17 @@ GitHub Pages publikuje się z gałęzi `gh-pages` poleceniem `git subtree push -
 - Nowy obraz rastrowy: `.webp` + `.png`/`.jpg` w dwóch szerokościach (1x i 2x), `<picture>` jak przy istniejących logo, atrybuty `width`, `height`, `alt`. Logo w SVG może być pojedynczym plikiem `.svg`.
 - Linki między podstronami względne (`href="kontakt.html"`), bez domeny.
 - Dostępność (WCAG): każdy obraz ma sensowny `alt`, przyciski to `<button>`, linki to `<a>`, kontrast tekstu ≥ 4.5:1, działa klawiatura.
-- Każdą zmianę w v1 przenieś też do v2 (i v3, jeśli dotyczy), chyba że zadanie mówi inaczej.
-- Sprawdź wynik w przeglądarce na szerokości 375 px i 1440 px, w v1 i w v2.
+- Sprawdź wynik w przeglądarce na szerokości 375 px (bez animacji GSAP) i 1440 px (z animacjami).
 - Nie dodawaj bibliotek, narzędzi budowania, frameworków ani nowych plików konfiguracyjnych.
 
 ## Git: jak pracować, żeby nic nie zepsuć
 
-- Pracuj na **własnej gałęzi** (np. `agnieszka/logo-uczelni`), nigdy bezpośrednio na `main`, `gh-pages`, `noc-ui` ani `cms-panel`.
+- Pracuj na **własnej gałęzi** (np. `agnieszka/nazwa-zadania`), nigdy bezpośrednio na `main` ani `gh-pages`. Po scaleniu PR usuń swoją gałąź (przycisk „Delete branch” na GitHubie): w repo stale są tylko `main` i `gh-pages`.
 - Nigdy: `git push --force`, `git reset --hard` na cudzej gałęzi, `git rebase` gałęzi wspólnej, usuwanie cudzych gałęzi, edycja plików przez stronę github.com. `git subtree push` tylko według zasad publikacji powyżej.
 - Nie ruszaj bez wyraźnej prośby: `site/api/`, `site/panel/`, `site/uploads/`, żadnego `.htaccess`, `robots.txt`, `.gitignore`.
 - Małe commity z opisem po polsku, co i dlaczego (styl historii: „Stopka: logo PWr i Wydziału Zarządzania”).
 - Każda zmiana idzie przez Pull Request do `main` z opisem po polsku (co, dlaczego, jak sprawdzić), nawet jeśli scalasz ją sam(a). PR to ślad, który druga osoba może później przejrzeć.
-- Scalaj dopiero wtedy, gdy PR nie ma konfliktów, a strona była sprawdzona lokalnie (v1 i v2, 375 px i 1440 px). Scalaj przez „Merge” na GitHubie (zwykły merge commit), bez squash i bez rebase.
+- Scalaj dopiero wtedy, gdy PR nie ma konfliktów, a strona była sprawdzona lokalnie (375 px i 1440 px). Scalaj przez „Merge” na GitHubie (zwykły merge commit), bez squash i bez rebase.
 - Jeśli coś po publikacji jest zepsute: `git revert -m 1 <commit scalenia>` na nowej gałęzi od `main`, PR z revertem, ponowna publikacja. Nigdy nie cofaj historii przez reset ani force push.
 
 ## Co już zostało zrobione (stan: 26.09.2026)
@@ -64,9 +62,10 @@ GitHub Pages publikuje się z gałęzi `gh-pages` poleceniem `git subtree push -
 - 23.09: Aktualności (3 wpisy od Marketingu) + panel PHP/MariaDB; formularz kontaktowy przez PHP (fallback `mailto`); decyzje: Facebook + LinkedIn, 4 etapy rekrutacji + kontakt HR, liczby PM Session bez zaokrągleń; link do formularza rekrutacyjnego Google; robocza v3 zakładki PM Session.
 - 24.09: TikTok @pmgroup_ w stopce. To jest wersja opublikowana obecnie na GitHub Pages.
 - 25–26.09, scalone do `main` 26.09: `cms-panel` (panel: konta, role, dziennik zmian, ustawienia strony, członkowie, PM Session; strony prawne: polityka prywatności, deklaracja dostępności, 404, `.htaccess`, `robots.txt`) oraz `noc-ui` (zawiera `cms-panel` + nowy wygląd panelu i poprawki UI strony: Dołącz, CTA w hero, kafelki Aktualności, Case Koła).
+- 26.09 (Marcel): PR #6 — ostatni commit z `noc-ui` (logo PMG w hero, „Nasze sekcje” w O nas, linia procesu w Dołącz) scalony do `main`; odblokowało to publikację z `main`.
+- 26.09 (Marcel): **koniec dwóch wersji strony.** Dawna v2 jest jedyną wersją, w głównym katalogu `site/`; dawna v1 i katalog `site/v2/` usunięte (są w historii gita), przełącznik wersji ze stopki usunięty. Strony prawne i 404 też ładują `v2.css`/`v2.js`. PM Session: opis „Co to PM Session?” zwykłą czcionką jak w dawnej v1 (bez pogrubienia), animacja kolorowania słów została. W repo zostały tylko gałęzie `main` i `gh-pages`; `noc-ui`, `cms-panel`, `agnieszka/logo-uczelni` (scalona w PR #5) i `claude/…` usunięte. **Jeśli masz lokalnie starą gałąź, nie wysyłaj jej, tylko zacznij nową od aktualnego `main`** (`git checkout main && git pull origin main && git checkout -b agnieszka/nazwa-zadania`).
 
 ## Decyzje otwarte (nie rozstrzygaj sam)
 
 - Szablony PHP (`include`) zamiast powielonego menu i stopki: decyzja przy przejściu na serwer PWr.
-- Która wersja (v1 czy v2) będzie główna na produkcji.
-- Rzeczy „poza zakresem v2” z `site/v2/KONCEPCJA.md`.
+- Rzeczy „poza zakresem v2” z `site/KONCEPCJA-v2.md`.
