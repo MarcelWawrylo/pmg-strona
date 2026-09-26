@@ -75,47 +75,59 @@ if ($sub === 'ustawienia') {
         }
     }
     ?>
-    <h2>Ustawienia strony</h2>
     <?php // Błąd ($error) wyświetla wspólny szablon w index.php — nie powielamy go tutaj. ?>
-    <form class="box" method="post">
+    <form class="pmg-card" method="post" data-pmg-niezapisane>
       <input type="hidden" name="csrf" value="<?= h(csrf()) ?>">
 
-      <label for="instagram">Instagram</label>
-      <p class="hint" id="instagram_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-      <input type="text" id="instagram" name="instagram" value="<?= h($wartosci['instagram']) ?>" aria-describedby="instagram_h">
+      <section class="pmg-form-section" aria-labelledby="sek-social">
+        <h2 class="pmg-form-section__title" id="sek-social">Media społecznościowe</h2>
+        <label for="instagram">Instagram</label>
+        <p class="pmg-hint" id="instagram_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
+        <input type="text" id="instagram" name="instagram" value="<?= h($wartosci['instagram']) ?>" aria-describedby="instagram_h">
 
-      <label for="facebook">Facebook</label>
-      <p class="hint" id="facebook_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-      <input type="text" id="facebook" name="facebook" value="<?= h($wartosci['facebook']) ?>" aria-describedby="facebook_h">
+        <label for="facebook">Facebook</label>
+        <p class="pmg-hint" id="facebook_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
+        <input type="text" id="facebook" name="facebook" value="<?= h($wartosci['facebook']) ?>" aria-describedby="facebook_h">
 
-      <label for="linkedin">LinkedIn</label>
-      <p class="hint" id="linkedin_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-      <input type="text" id="linkedin" name="linkedin" value="<?= h($wartosci['linkedin']) ?>" aria-describedby="linkedin_h">
+        <label for="linkedin">LinkedIn</label>
+        <p class="pmg-hint" id="linkedin_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
+        <input type="text" id="linkedin" name="linkedin" value="<?= h($wartosci['linkedin']) ?>" aria-describedby="linkedin_h">
 
-      <label for="tiktok">TikTok</label>
-      <p class="hint" id="tiktok_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-      <input type="text" id="tiktok" name="tiktok" value="<?= h($wartosci['tiktok']) ?>" aria-describedby="tiktok_h">
+        <label for="tiktok">TikTok</label>
+        <p class="pmg-hint" id="tiktok_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
+        <input type="text" id="tiktok" name="tiktok" value="<?= h($wartosci['tiktok']) ?>" aria-describedby="tiktok_h">
+      </section>
 
-      <label for="email">E-mail kontaktowy</label>
-      <p class="hint" id="email_h">Adres pokazywany na stronie (stopka, Kontakt). Puste pole = strona pokazuje obecny adres.</p>
-      <input type="email" id="email" name="email" value="<?= h($wartosci['email']) ?>" aria-describedby="email_h">
+      <section class="pmg-form-section" aria-labelledby="sek-kontakt">
+        <h2 class="pmg-form-section__title" id="sek-kontakt">Kontakt</h2>
+        <label for="email">E-mail kontaktowy</label>
+        <p class="pmg-hint" id="email_h">Adres pokazywany na stronie (stopka, Kontakt). Puste pole = strona pokazuje obecny adres.</p>
+        <input type="email" id="email" name="email" value="<?= h($wartosci['email']) ?>" aria-describedby="email_h">
+      </section>
 
-      <fieldset>
-        <legend>Rekrutacja</legend>
-        <label><input type="radio" name="rekrutacja_otwarta" value="1"<?= $wartosci['rekrutacja_otwarta'] !== '0' ? ' checked' : '' ?>> Otwarta</label>
-        <label><input type="radio" name="rekrutacja_otwarta" value="0"<?= $wartosci['rekrutacja_otwarta'] === '0' ? ' checked' : '' ?>> Zamknięta</label>
-      </fieldset>
-      <p class="hint">Przy „Zamknięta” strona Dołącz ukrywa przycisk do formularza i podpowiedź pod nim.</p>
+      <section class="pmg-form-section" aria-labelledby="sek-rekrutacja">
+        <h2 class="pmg-form-section__title" id="sek-rekrutacja">Rekrutacja</h2>
+        <fieldset class="pmg-fieldset">
+          <legend class="pmg-legend">Rekrutacja</legend>
+          <p class="pmg-hint" id="rekrutacja_otwarta_h">Przy „Zamknięta” strona Dołącz ukrywa przycisk do formularza i podpowiedź pod nim.</p>
+          <div class="pmg-options">
+            <label class="pmg-option"><input type="radio" name="rekrutacja_otwarta" value="1" aria-describedby="rekrutacja_otwarta_h"<?= $wartosci['rekrutacja_otwarta'] !== '0' ? ' checked' : '' ?>><span>Otwarta</span></label>
+            <label class="pmg-option"><input type="radio" name="rekrutacja_otwarta" value="0" aria-describedby="rekrutacja_otwarta_h"<?= $wartosci['rekrutacja_otwarta'] === '0' ? ' checked' : '' ?>><span>Zamknięta</span></label>
+          </div>
+        </fieldset>
 
-      <label for="rekrutacja_link">Link do formularza rekrutacyjnego</label>
-      <p class="hint" id="rekrutacja_link_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-      <input type="text" id="rekrutacja_link" name="rekrutacja_link" value="<?= h($wartosci['rekrutacja_link']) ?>" aria-describedby="rekrutacja_link_h">
+        <label for="rekrutacja_link">Link do formularza rekrutacyjnego</label>
+        <p class="pmg-hint" id="rekrutacja_link_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
+        <input type="text" id="rekrutacja_link" name="rekrutacja_link" value="<?= h($wartosci['rekrutacja_link']) ?>" aria-describedby="rekrutacja_link_h">
 
-      <label for="rekrutacja_tekst">Krótki tekst o rekrutacji</label>
-      <p class="hint" id="rekrutacja_tekst_h">Maksymalnie 300 znaków. Puste pole = strona pokazuje obecny tekst.</p>
-      <textarea id="rekrutacja_tekst" name="rekrutacja_tekst" maxlength="300" aria-describedby="rekrutacja_tekst_h"><?= h($wartosci['rekrutacja_tekst']) ?></textarea>
+        <label for="rekrutacja_tekst">Krótki tekst o rekrutacji</label>
+        <p class="pmg-hint" id="rekrutacja_tekst_h">Maksymalnie 300 znaków. Puste pole = strona pokazuje obecny tekst.</p>
+        <textarea id="rekrutacja_tekst" name="rekrutacja_tekst" maxlength="300" aria-describedby="rekrutacja_tekst_h" data-pmg-licznik><?= h($wartosci['rekrutacja_tekst']) ?></textarea>
+      </section>
 
-      <div class="row"><button type="submit">Zapisz</button></div>
+      <div class="pmg-form-actions">
+        <button class="pmg-btn pmg-btn--primary" type="submit">Zapisz</button>
+      </div>
     </form>
     <?php
     return;
@@ -128,17 +140,30 @@ if ($sub === 'dziennik') {
          FROM pmg_dziennik d JOIN pmg_uzytkownicy u ON u.id = d.uzytkownik_id
          ORDER BY d.id DESC LIMIT 200'
     )->fetchAll();
+    // Etykiety PL akcji dziennika — tylko widok; nieznany klucz pokazuje surową wartość.
+    $pmgAkcjeDziennika = [
+        'dodanie' => 'Dodanie', 'edycja' => 'Edycja', 'usuniecie' => 'Usunięcie',
+        'zaproszenie' => 'Zaproszenie', 'blokada' => 'Blokada', 'odblokowanie' => 'Odblokowanie',
+        'reset' => 'Reset hasła', 'biezaca' => 'Ustawienie bieżącej edycji', 'pobranie' => 'Pobranie kopii',
+    ];
     ?>
-    <h2>Dziennik zmian</h2>
-    <p class="hint">Ostatnie 200 zapisanych zmian.</p>
-    <div class="box tabela">
-      <table>
-        <thead><tr><th>Kiedy</th><th>Kto</th><th>Moduł</th><th>Akcja</th><th>Rekord</th></tr></thead>
+    <div class="pmg-table-wrap">
+      <table class="pmg-table">
+        <caption class="pmg-vh">Dziennik zmian</caption>
+        <thead><tr>
+          <th scope="col">Kiedy</th><th scope="col">Kto</th><th scope="col">Moduł</th><th scope="col">Akcja</th><th scope="col">Rekord</th>
+        </tr></thead>
         <tbody>
         <?php foreach ($wpisy as $w): ?>
-          <tr><td><?= h($w['kiedy']) ?></td><td><?= h($w['imie_nazwisko']) ?></td><td><?= h($w['modul']) ?></td><td><?= h($w['akcja']) ?></td><td><?= $w['rekord_id'] !== null ? (int) $w['rekord_id'] : '—' ?></td></tr>
+          <tr>
+            <td class="pmg-td-main" data-label="Kiedy"><time datetime="<?= h($w['kiedy']) ?>"><?= h($w['kiedy']) ?></time></td>
+            <td data-label="Kto"><?= h($w['imie_nazwisko']) ?></td>
+            <td data-label="Moduł"><?= h($etykietyModulow[$w['modul']] ?? $w['modul']) ?></td>
+            <td data-label="Akcja"><?= h($pmgAkcjeDziennika[$w['akcja']] ?? $w['akcja']) ?></td>
+            <td class="pmg-num" data-label="Rekord"><?= $w['rekord_id'] !== null ? (int) $w['rekord_id'] : '—' ?></td>
+          </tr>
         <?php endforeach; ?>
-        <?php if (!$wpisy): ?><tr><td colspan="5">Brak wpisów.</td></tr><?php endif; ?>
+        <?php if (!$wpisy): ?><tr><td colspan="5" class="pmg-empty">Brak wpisów.</td></tr><?php endif; ?>
         </tbody>
       </table>
     </div>
@@ -268,62 +293,103 @@ if (!isset($edit)) {
         $edit = $st->fetch() ?: null;
     }
 }
+
+if ($edit !== null) {
+    $pmgNaglowek = [
+        'tytul' => $edit['id'] ? 'Edytuj konto' : 'Nowe konto',
+        'opis' => $edit['id'] ? (string) $edit['email'] : 'Po zapisaniu zobaczysz tu link do przekazania nowej osobie (ważny 72 h).',
+        'wstecz' => ['href' => '?m=konta', 'etykieta' => 'Konta'],
+    ];
+} else {
+    $pmgNaglowek = [
+        'akcje' => [
+            ['href' => '?m=konta&nowy', 'etykieta' => '+ Nowe konto', 'rodzaj' => 'primary'],
+        ],
+    ];
+}
 ?>
-<h2>Konta</h2>
 <?php // Błąd ($error) wyświetla wspólny szablon w index.php — nie powielamy go tutaj. ?>
-<?php if ($pokazLink): ?>
-  <div class="box">
-    <p><strong>Link do przekazania tej osobie — ważny 72 h:</strong></p>
-    <input type="text" readonly value="<?= h($pokazLink) ?>">
-  </div>
-<?php endif; ?>
 
 <?php if ($edit !== null): ?>
-  <form class="box" method="post">
+  <form class="pmg-card" method="post" data-pmg-niezapisane>
     <input type="hidden" name="csrf" value="<?= h(csrf()) ?>">
     <input type="hidden" name="a" value="<?= $edit['id'] ? 'edytuj' : 'zapros' ?>">
     <input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
-    <h3><?= $edit['id'] ? 'Edycja konta' : 'Nowe konto' ?></h3>
     <label for="imie_nazwisko">Imię i nazwisko</label>
-    <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" value="<?= h($edit['imie_nazwisko']) ?>" required autofocus>
+    <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" value="<?= h($edit['imie_nazwisko']) ?>" required>
     <label for="email">E-mail (login)</label>
     <input type="email" id="email" name="email" maxlength="150" value="<?= h($edit['email']) ?>" required>
-    <fieldset>
-      <legend>Rola</legend>
-      <label><input type="radio" name="rola" value="redaktor"<?= $edit['rola'] === 'redaktor' ? ' checked' : '' ?>> Redaktor</label>
-      <label><input type="radio" name="rola" value="admin"<?= $edit['rola'] === 'admin' ? ' checked' : '' ?>> Administrator</label>
+    <fieldset class="pmg-fieldset">
+      <legend class="pmg-legend">Rola</legend>
+      <p class="pmg-hint" id="rola_h">Administrator ma dostęp do wszystkich modułów oraz do kont, dziennika i kopii bazy.</p>
+      <div class="pmg-options">
+        <label class="pmg-option"><input type="radio" name="rola" value="redaktor" aria-describedby="rola_h"<?= $edit['rola'] === 'redaktor' ? ' checked' : '' ?>><span>Redaktor</span></label>
+        <label class="pmg-option"><input type="radio" name="rola" value="admin" aria-describedby="rola_h"<?= $edit['rola'] === 'admin' ? ' checked' : '' ?>><span>Administrator</span></label>
+      </div>
     </fieldset>
-    <p class="hint">Administrator ma dostęp do wszystkich modułów oraz do kont, dziennika i kopii bazy.</p>
-    <fieldset>
-      <legend>Moduły (dla redaktora)</legend>
-      <?php $wybrane = explode(',', $edit['moduly']); foreach (MODULY_REDAKTORA as $mk => $ml): ?>
-        <label><input type="checkbox" name="moduly[]" value="<?= $mk ?>"<?= in_array($mk, $wybrane, true) ? ' checked' : '' ?>> <?= h($ml) ?></label>
-      <?php endforeach; ?>
+    <fieldset class="pmg-fieldset">
+      <legend class="pmg-legend">Moduły (dla redaktora)</legend>
+      <p class="pmg-hint" id="moduly_h">Dotyczy tylko roli Redaktor.</p>
+      <div class="pmg-options">
+        <?php $wybrane = explode(',', $edit['moduly']); foreach (MODULY_REDAKTORA as $mk => $ml): ?>
+          <label class="pmg-option"><input type="checkbox" name="moduly[]" value="<?= $mk ?>" aria-describedby="moduly_h"<?= in_array($mk, $wybrane, true) ? ' checked' : '' ?>><span><?= h($ml) ?></span></label>
+        <?php endforeach; ?>
+      </div>
     </fieldset>
-    <div class="row"><button type="submit">Zapisz</button><a class="btn btn--light" href="?m=konta">Anuluj</a></div>
+    <div class="pmg-form-actions">
+      <button class="pmg-btn pmg-btn--primary" type="submit">Zapisz</button>
+      <a class="pmg-btn pmg-btn--secondary" href="?m=konta">Anuluj</a>
+    </div>
   </form>
-  <?php if (!$edit['id']): ?><p class="hint">Po zapisaniu zobaczysz tu link do przekazania nowej osobie (ważny 72 h).</p><?php endif; ?>
 
 <?php else: ?>
-  <div class="row" style="margin: 0 0 18px"><a class="btn" href="?m=konta&nowy">+ Nowe konto</a></div>
-  <div class="box tabela">
-    <table>
-      <thead><tr><th>Imię i nazwisko</th><th>E-mail</th><th>Rola</th><th>Moduły</th><th>Status</th><th>Akcje</th></tr></thead>
+  <?php if ($pokazLink): ?>
+    <div class="pmg-card">
+      <h2 class="pmg-h2">Link zaproszenia</h2>
+      <label for="link-zaproszenia">Link do przekazania tej osobie — ważny 72 h</label>
+      <p class="pmg-hint" id="link-zaproszenia_h">Wyślij go tej osobie — po otwarciu ustawi swoje hasło.</p>
+      <div class="pmg-copy">
+        <input type="text" id="link-zaproszenia" readonly value="<?= h($pokazLink) ?>" aria-describedby="link-zaproszenia_h">
+        <button type="button" class="pmg-btn pmg-btn--secondary" data-pmg-kopiuj="link-zaproszenia" hidden><?= pmg_ikona('kopiuj') ?>Kopiuj link</button>
+      </div>
+      <p class="pmg-hint" role="status" data-pmg-kopiuj-status></p>
+    </div>
+  <?php endif; ?>
+  <div class="pmg-table-wrap">
+    <table class="pmg-table pmg-table--klikalna">
+      <caption class="pmg-vh">Konta</caption>
+      <thead><tr>
+        <th scope="col">Imię i nazwisko</th><th scope="col">Rola</th><th scope="col">Moduły</th><th scope="col">Status</th><th scope="col">Akcje</th>
+      </tr></thead>
       <tbody>
       <?php foreach (pmg_db()->query('SELECT * FROM pmg_uzytkownicy ORDER BY imie_nazwisko') as $k): ?>
+        <?php
+          if ($k['rola'] === 'admin') {
+              $modulyTekst = 'Wszystkie';
+          } else {
+              $wybraneL = array_filter(explode(',', $k['moduly']), function ($mk) { return $mk !== ''; });
+              $etykietyL = array_map(function ($mk) { return MODULY_REDAKTORA[$mk] ?? $mk; }, $wybraneL);
+              $modulyTekst = $etykietyL ? implode(', ', $etykietyL) : '—';
+          }
+          if (!$k['aktywny']) { $statusKlasa = 'pmg-chip--danger'; $statusTekst = 'Zablokowane'; }
+          elseif ($k['haslo'] === null) { $statusKlasa = 'pmg-chip--warning'; $statusTekst = 'Czeka na hasło'; }
+          else { $statusKlasa = 'pmg-chip--success'; $statusTekst = 'Aktywne'; }
+        ?>
         <tr>
-          <td><?= h($k['imie_nazwisko']) ?></td>
-          <td><?= h($k['email']) ?></td>
-          <td><?= $k['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?></td>
-          <td><?= h($k['moduly'] !== '' ? str_replace(',', ', ', $k['moduly']) : '—') ?></td>
-          <td><?= $k['aktywny'] ? 'Aktywne' : 'Zablokowane' ?> · hasło: <?= $k['haslo'] === null ? 'nieustawione' : 'ustawione' ?></td>
-          <td>
-            <a href="?m=konta&id=<?= (int) $k['id'] ?>">Edytuj</a>
-            <form method="post" style="display:inline"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="reset"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button type="submit"><?= $k['haslo'] === null ? 'Link zaproszenia' : 'Resetuj hasło' ?></button></form>
+          <td class="pmg-td-main" data-label="Imię i nazwisko">
+            <a class="pmg-row-link" href="?m=konta&id=<?= (int) $k['id'] ?>"><?= h($k['imie_nazwisko']) ?></a>
+            <span class="pmg-row-sub"><?= h($k['email']) ?></span>
+          </td>
+          <td data-label="Rola"><?= $k['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?></td>
+          <td data-label="Moduły"><?= h($modulyTekst) ?></td>
+          <td data-label="Status"><span class="pmg-chip <?= $statusKlasa ?>"><?= $statusTekst ?></span></td>
+          <td class="pmg-td-actions" data-label="Akcje">
+            <a class="pmg-btn pmg-btn--text pmg-btn--sm" href="?m=konta&id=<?= (int) $k['id'] ?>">Edytuj<span class="pmg-vh"> <?= h($k['imie_nazwisko']) ?></span></a>
+            <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="reset"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit"><?= $k['haslo'] === null ? 'Link zaproszenia' : 'Resetuj hasło' ?></button></form>
             <?php if ($k['aktywny']): ?>
-              <form method="post" style="display:inline"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="blokuj"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="btn--light" type="submit">Zablokuj</button></form>
+              <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="blokuj"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="pmg-btn pmg-btn--danger-outline pmg-btn--sm" type="submit">Zablokuj</button></form>
             <?php else: ?>
-              <form method="post" style="display:inline"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="odblokuj"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="btn--light" type="submit">Odblokuj</button></form>
+              <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="odblokuj"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit">Odblokuj</button></form>
             <?php endif; ?>
           </td>
         </tr>
