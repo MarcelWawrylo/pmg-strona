@@ -379,6 +379,20 @@
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(function () { window.ScrollTrigger.refresh(); }, 200);
       });
+
+      // Wysokość strony zmienia się też bez zmiany okna: nav po przewinięciu kurczy się do pigułki
+      // (strona jest wtedy niższa o ok. 40 px). Bez przeliczenia koniec scrubu może wypaść za dołem
+      // strony (np. Dołącz: linia procesu nie dochodzi do końca). Przeliczamy, gdy zmieni się wysokość body.
+      if ('ResizeObserver' in window) {
+        var bodyH = document.body.offsetHeight, heightTimer = null;
+        new ResizeObserver(function () {
+          var h = document.body.offsetHeight;
+          if (Math.abs(h - bodyH) < 2) return;
+          bodyH = h;
+          clearTimeout(heightTimer);
+          heightTimer = setTimeout(function () { window.ScrollTrigger.refresh(); }, 150);
+        }).observe(document.body);
+      }
     });
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
