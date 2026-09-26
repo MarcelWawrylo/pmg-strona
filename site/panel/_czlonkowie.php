@@ -202,7 +202,7 @@ if ($editOsoba !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
       <h2 class="pmg-form-section__title" id="sek-zdjecie">Zdjęcie</h2>
       <label for="zdjecie">Zdjęcie 1:1 — kwadrat (JPG, PNG albo WebP)</label>
-      <p class="pmg-hint" id="zdjecie_h">JPG, PNG albo WebP, maks. 10 MB. Proporcje 1:1 (kwadrat), np. 800 × 800 px. Opcjonalne. Obecnie niewidoczne na stronie (brak miejsca w projekcie graficznym „O nas”) — zapisujemy je na zapas.</p>
+      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Kwadrat 1:1, np. 800 × 800 px. Opcjonalne. Obecnie niewidoczne na stronie (brak miejsca w projekcie graficznym „O nas”) — zapisujemy je na zapas.</p>
       <?php if (!empty($editOsoba['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--1x1"><img src="../<?= h($editOsoba['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>
@@ -264,9 +264,9 @@ if ($editOsoba !== null) {
   <div class="pmg-card">
     <div class="pmg-card__head"><h2 class="pmg-h2">Zarząd</h2></div>
     <div class="pmg-table-wrap pmg-table-wrap--flush">
-      <table class="pmg-table pmg-table--klikalna">
+      <table class="pmg-table pmg-table--klikalna pmg-table--osoby">
         <caption class="pmg-vh">Zarząd</caption>
-        <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Funkcja</th><th scope="col">E-mail</th><th scope="col">Kolejność</th><th scope="col">Status</th></tr></thead>
+        <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Funkcja</th><th scope="col">E-mail</th><th scope="col" class="pmg-num">Kolejność</th><th scope="col">Status</th></tr></thead>
         <tbody>
         <?php $zarzad = pmg_db()->query('SELECT * FROM pmg_osoby WHERE sekcja_id IS NULL ORDER BY kolejnosc, nazwisko'); $bylZarzad = false; ?>
         <?php foreach ($zarzad as $o): $bylZarzad = true; ?>
@@ -297,9 +297,9 @@ if ($editOsoba !== null) {
       </div>
       <?php if ($s['opis'] !== ''): ?><p class="pmg-hint"><?= h($s['opis']) ?></p><?php endif; ?>
       <div class="pmg-table-wrap pmg-table-wrap--flush">
-        <table class="pmg-table pmg-table--klikalna">
+        <table class="pmg-table pmg-table--klikalna pmg-table--osoby">
           <caption class="pmg-vh">Sekcja <?= h($s['nazwa']) ?></caption>
-          <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Funkcja</th><th scope="col">E-mail</th><th scope="col">Kolejność</th><th scope="col">Status</th></tr></thead>
+          <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Funkcja</th><th scope="col">E-mail</th><th scope="col" class="pmg-num">Kolejność</th><th scope="col">Status</th></tr></thead>
           <tbody>
           <?php $st = pmg_db()->prepare('SELECT * FROM pmg_osoby WHERE sekcja_id = ? ORDER BY koordynator DESC, kolejnosc, nazwisko'); $st->execute([$s['id']]); $osoby = $st->fetchAll(); ?>
           <?php foreach ($osoby as $o): ?>

@@ -442,8 +442,6 @@ button { font: inherit; }
 
 /* ---------- 10d. Strona główna ---------- */
 .btn--lg { font-size: 15px; padding: 15px 30px; }
-.link-underline { font: 600 15px var(--font-body); color: var(--color-ink); border-bottom: 2px solid var(--color-pink); padding-bottom: 3px; text-decoration: none; }
-.link-underline:hover { color: var(--color-pink-text); }
 .home-hero { padding: 78px 0 70px; position: relative; overflow: hidden; }
 .home-hero__inner { display: flex; align-items: center; justify-content: space-between; gap: 48px; flex-wrap: wrap; }
 .home-hero__text { flex: 1 1 420px; max-width: 660px; }
@@ -473,6 +471,8 @@ button { font: inherit; }
   .home-hero { padding: 44px 0 50px; }
   .home-hero__text { flex-basis: 100%; }
   .home-hero__lead { font-size: 17px; }
+  .home-hero__actions { flex-direction: column; align-items: stretch; gap: 12px; }
+  .home-hero__actions .btn { width: 100%; }
   /* mobile: logo mniejsze i statyczne (struktura-strony-PMG.md) */
   .hero-logo { transform: scale(.62); transform-origin: left top; margin: 0 -114px -114px 0; }
   .hero-logo__bar { animation: none; }
@@ -603,9 +603,15 @@ button { font: inherit; }
 .js .speaker__more { margin-top: 0; }
 .js .speaker.is-open .speaker__more { max-height: 420px; opacity: 1; margin-top: 12px; }
 .speaker.is-open { transform: translateY(-6px); box-shadow: var(--shadow-card); }
+.speaker__name::after { content: "▾" / ""; display: inline-block; margin-left: 6px; color: var(--color-text-muted); transition: transform var(--ease); }
+.speaker.is-open .speaker__name::after { transform: rotate(180deg); }
 @media (hover: hover) {
   .js .speaker:hover .speaker__more { max-height: 420px; opacity: 1; margin-top: 12px; }
   .speaker:hover { transform: translateY(-6px); box-shadow: var(--shadow-card); }
+  .speaker:hover .speaker__name::after { transform: rotate(180deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .speaker__name::after { transition: none; }
 }
 
 .schedule { margin-top: 22px; border-bottom: 1px solid rgba(0,0,0,.08); }
@@ -677,7 +683,6 @@ button { font: inherit; }
 .join-page-col { min-width: 0; }
 .join-page-col--units { grid-column: 1 / -1; }
 .join-page-h2 { font: 600 clamp(26px, 3.2vw, 32px)/1.15 var(--font-head); letter-spacing: -.02em; margin: 0 0 22px; }
-.join-page-h2--sm { font-size: clamp(22px, 2.6vw, 26px); margin: 44px 0 26px; }
 .join-page-col--units .join-page-h2 { margin-bottom: 10px; }
 .join-page-units-intro { font: 400 15px/1.5 var(--font-body); color: var(--color-text-muted); margin: 0 0 22px; }
 

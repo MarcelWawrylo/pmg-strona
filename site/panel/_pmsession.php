@@ -347,7 +347,7 @@ if ($editPrelegent !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
       <h2 class="pmg-form-section__title" id="sek-zdjecie">Zdjęcie</h2>
       <label for="zdjecie">Zdjęcie 1:1 — kwadrat (JPG, PNG albo WebP)</label>
-      <p class="pmg-hint" id="zdjecie_h">JPG, PNG albo WebP, maks. 10 MB. Proporcje 1:1 (kwadrat), np. 800 × 800 px. Opcjonalne.</p>
+      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Kwadrat 1:1, np. 800 × 800 px. Opcjonalne.</p>
       <?php if (!empty($editPrelegent['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--1x1"><img src="../<?= h($editPrelegent['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>
@@ -444,7 +444,7 @@ if ($editPrelegent !== null) {
     <div class="pmg-table-wrap pmg-table-wrap--flush">
       <table class="pmg-table pmg-table--klikalna">
         <caption class="pmg-vh">Prelegenci — Edycja <?= h($edycjaWidok['numer']) ?></caption>
-        <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Temat</th><th scope="col">Kolejność</th></tr></thead>
+        <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Temat</th><th scope="col" class="pmg-num">Kolejność</th></tr></thead>
         <tbody>
         <?php $stP = pmg_db()->prepare('SELECT * FROM pmg_prelegenci WHERE edycja_id = ? ORDER BY kolejnosc, id'); $stP->execute([$eid]); $prelegenci = $stP->fetchAll(); ?>
         <?php foreach ($prelegenci as $p): ?>
@@ -494,7 +494,7 @@ if ($editPrelegent !== null) {
     <div class="pmg-table-wrap pmg-table-wrap--flush">
       <table class="pmg-table pmg-table--klikalna">
         <caption class="pmg-vh">Edycje PM Session</caption>
-        <thead><tr><th scope="col">Numer</th><th scope="col">Temat</th><th scope="col">Data</th><th scope="col">Status</th><th scope="col">Akcje</th></tr></thead>
+        <thead><tr><th scope="col">Numer</th><th scope="col">Temat</th><th scope="col" class="pmg-num">Data</th><th scope="col">Status</th><th scope="col">Akcje</th></tr></thead>
         <tbody>
         <?php $edycjeLista = pmg_db()->query('SELECT * FROM pmg_edycje ORDER BY data DESC, id DESC')->fetchAll(); ?>
         <?php foreach ($edycjeLista as $e): ?>

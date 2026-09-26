@@ -129,7 +129,7 @@ if ($edit !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
       <h2 class="pmg-form-section__title" id="sek-zdjecie">Zdjęcie</h2>
       <label for="zdjecie">Zdjęcie 16:9 (JPG, PNG albo WebP)</label>
-      <p class="pmg-hint" id="zdjecie_h">JPG, PNG albo WebP, maks. 10 MB. Proporcje 16:9, np. 1600 × 900 px.</p>
+      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Proporcje 16:9, np. 1600 × 900 px.</p>
       <?php if (!empty($edit['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--16x9"><img src="../<?= h($edit['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>

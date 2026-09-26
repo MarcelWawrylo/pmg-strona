@@ -241,6 +241,7 @@ a, button, summary, label, input, select, textarea {
 .pmg-tile__desc { display: block; font: 400 14px/1.45 var(--pmg-font-body); color: var(--pmg-text-2); margin-top: 2px; }
 .pmg-tile__meta { display: block; font: 600 13px/1.4 var(--pmg-font-body); color: var(--pmg-text-3); margin-top: 8px; font-variant-numeric: tabular-nums; }
 .pmg-tile__chevron { color: var(--pmg-text-3); transform: rotate(-90deg); transition: color var(--pmg-t) var(--pmg-ease); }
+.pmg-tile--download .pmg-tile__chevron { transform: none; }
 @media (hover: hover) {
   .pmg-tile:hover { border-color: var(--pmg-border-strong); }
   .pmg-tile:hover .pmg-tile__chevron { color: var(--pmg-text); }
@@ -347,11 +348,15 @@ input[type=file]::file-selector-button {
 }
 .pmg-hint--check { margin-left: 36px; margin-top: -4px; }
 .pmg-hint.is-warning { color: #7A4E00; }
+.pmg-hint code {
+  font-family: var(--pmg-font-mono); font-size: 14px; background: var(--pmg-surface-sunken);
+  padding: 0 4px; border-radius: 4px;
+}
 
 /* ===================== 11. Checkbox / radio ===================== */
 input[type=checkbox], input[type=radio] { width: 24px; height: 24px; margin: 0; flex: none; accent-color: #141414; cursor: pointer; }
 .pmg-check {
-  display: flex; gap: 12px; align-items: flex-start; min-height: 44px; padding: 10px 0;
+  display: flex; gap: 12px; align-items: flex-start; min-height: 44px; padding: 10px 0; margin: 0;
   font-weight: 500; cursor: pointer;
 }
 .pmg-fieldset { border: 0; margin: 20px 0 0; padding: 0; }
@@ -359,7 +364,7 @@ input[type=checkbox], input[type=radio] { width: 24px; height: 24px; margin: 0; 
 .pmg-options { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 639px) { .pmg-options { flex-direction: column; } .pmg-options .pmg-option { width: 100%; } }
 .pmg-option {
-  min-height: 44px; padding: 10px 14px; border: 1px solid #8A867C; border-radius: var(--pmg-r);
+  min-height: 44px; padding: 10px 14px; margin: 0; border: 1px solid #8A867C; border-radius: var(--pmg-r);
   display: inline-flex; gap: 10px; align-items: center; cursor: pointer;
   transition: border-color var(--pmg-t) var(--pmg-ease), background-color var(--pmg-t) var(--pmg-ease), box-shadow var(--pmg-t) var(--pmg-ease);
 }
@@ -378,8 +383,8 @@ input[type=checkbox], input[type=radio] { width: 24px; height: 24px; margin: 0; 
   .pmg-form-actions {
     position: sticky; bottom: 0; z-index: 5; margin: 24px -16px -16px;
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-    background: rgba(255,255,255,.96); border-top: 1px solid var(--pmg-border);
-    box-shadow: var(--pmg-shadow-bar); border-radius: 0 0 var(--pmg-r-lg) var(--pmg-r-lg);
+    background: rgba(255,255,255,.96);
+    box-shadow: 0 -1px 0 var(--pmg-border); border-radius: 0 0 var(--pmg-r-lg) var(--pmg-r-lg);
   }
   .pmg-form-actions .pmg-btn--primary { flex: 1; }
   .pmg-card > form.pmg-card, form.pmg-card { padding: 16px; }
@@ -390,6 +395,14 @@ input[type=checkbox], input[type=radio] { width: 24px; height: 24px; margin: 0; 
   background: #FFF; border: 1px solid var(--pmg-border); border-radius: var(--pmg-r-lg); box-shadow: var(--pmg-shadow-1);
 }
 .pmg-table-wrap--flush { background: transparent; border: 0; box-shadow: none; }
+.pmg-table-wrap--flush .pmg-table th:first-child, .pmg-table-wrap--flush .pmg-table td:first-child { padding-left: 0; }
+.pmg-table-wrap--flush .pmg-table th:last-child, .pmg-table-wrap--flush .pmg-table td:last-child { padding-right: 0; }
+.pmg-table--osoby { table-layout: fixed; }
+.pmg-table--osoby th:nth-child(1) { width: 28%; }
+.pmg-table--osoby th:nth-child(2) { width: 20%; }
+.pmg-table--osoby th:nth-child(3) { width: 26%; }
+.pmg-table--osoby th:nth-child(4) { width: 12%; }
+.pmg-table--osoby th:nth-child(5) { width: 14%; }
 .pmg-table { width: 100%; border-collapse: collapse; }
 .pmg-table th {
   text-align: left; font: 600 13px/1.4 var(--pmg-font-body); color: var(--pmg-text-2);
@@ -399,9 +412,9 @@ input[type=checkbox], input[type=radio] { width: 24px; height: 24px; margin: 0; 
   font: 400 15px/1.45 var(--pmg-font-body); padding: 12px 16px; border-bottom: 1px solid var(--pmg-border);
   vertical-align: middle;
 }
+.pmg-table .pmg-td-main { font-weight: 600; }
 .pmg-table tr:last-child td { border-bottom: 0; }
 .pmg-table .pmg-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.pmg-table td.pmg-num[data-label*="ata"], .pmg-table th:has(+ .pmg-num) { }
 .pmg-table td.pmg-num { text-align: right; }
 .pmg-table--klikalna tr { position: relative; }
 .pmg-table--klikalna .pmg-row-link::after { content: ""; position: absolute; inset: 0; }
@@ -417,16 +430,20 @@ input[type=checkbox], input[type=radio] { width: 24px; height: 24px; margin: 0; 
   .pmg-table-wrap thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
   .pmg-table, .pmg-table tbody, .pmg-table tr, .pmg-table td { display: block; }
   .pmg-table tr { padding: 14px 16px; border-bottom: 1px solid var(--pmg-border); min-height: 44px; }
+  .pmg-table tr:last-child { border-bottom: 0; }
+  .pmg-table-wrap--flush .pmg-table tr { padding-left: 0; padding-right: 0; }
   .pmg-table td {
     display: grid; grid-template-columns: 7.5rem minmax(0,1fr); gap: 8px; padding: 3px 0; border: 0; font-size: 14px;
     justify-items: start;
   }
   .pmg-table td::before { content: attr(data-label); font: 600 13px/1.4 var(--pmg-font-body); color: var(--pmg-text-2); }
   .pmg-table td.pmg-num { text-align: left; }
+  .pmg-table td:empty { display: none; }
   .pmg-table .pmg-td-main { display: block; font-size: 16px; padding-bottom: 6px; }
   .pmg-table .pmg-td-main::before { content: none; }
   .pmg-table .pmg-td-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 10px; }
   .pmg-table .pmg-td-actions::before { content: none; }
+  .pmg-table .pmg-td-actions .pmg-btn--text:first-child { margin-left: -12px; }
   .pmg-table td.pmg-empty { display: block; }
 }
 
@@ -529,6 +546,7 @@ body.pmg--auth { background: var(--pmg-bg); }
 .pmg-card--auth > p { color: var(--pmg-text-2); font-size: 14px; margin: 4px 0 0; }
 .pmg-card--auth form { margin-top: 20px; }
 .pmg-card--auth .pmg-btn--primary { width: 100%; margin-top: 24px; }
+.pmg-card--auth .pmg-alert { margin: 16px 0 0; }
 .pmg-auth-foot { text-align: center; font: 400 14px/1.5 var(--pmg-font-body); color: var(--pmg-text-2); margin-top: 20px; }
 
 /* ===================== 22. Siatka pól (PM Session w liczbach) ===================== */
