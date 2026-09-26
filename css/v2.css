@@ -90,6 +90,7 @@ html.lenis, html.lenis body { height: auto; }
 .v2-enhanced .join-page-steps > li { position: relative; z-index: 1; }
 @media (min-width: 961px) {
   .v2-enhanced .join-page-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 26px; }
-  .v2-enhanced .join-page-steps__item { padding: 38px 14px 0 0; }
+  /* padding-top powiększony o tyle, o ile urosła kropka (20px → 32px), żeby odstęp kropka–tekst się nie zmienił */
+  .v2-enhanced .join-page-steps__item { padding: 50px 14px 0 0; }
   .v2-enhanced .join-page-steps__title { margin-top: 14px; }
 }

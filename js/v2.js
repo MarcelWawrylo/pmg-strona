@@ -281,8 +281,10 @@
 
     var len = 0;
     // linia jedzie o tyle dalej za ostatnią kropkę, żeby grot nie chował się pod nią, tylko był
-    // wyraźnie widoczny za końcem ścieżki (w tym samym kierunku co ostatni odcinek)
-    var ARROW_EXTEND = 28;
+    // wyraźnie widoczny za końcem ścieżki (w tym samym kierunku co ostatni odcinek); wartość rośnie
+    // wraz z promieniem kropki (32px / promień 16 — było 20px / promień 10), żeby zachować ten sam
+    // odstęp grotu za krawędzią kropki
+    var ARROW_EXTEND = 34;
     var draw = function () {
       var lr = list.getBoundingClientRect();
       var pts = Array.prototype.map.call(dots, function (dot) {
