@@ -418,10 +418,10 @@
       };
       var f = posts[0];
       $('.blog-featured', list).innerHTML = img(f, 'blog-featured__img') + '<div class="blog-featured__body">' + meta(f) + link(f, 'h2', 'blog-featured__title') +
-        '<p class="blog-featured__excerpt">' + esc(f.zajawka) + '</p><p class="blog-more blog-more--' + esc(f.kolor) + '" aria-hidden="true">Czytaj artykuł →</p></div>';
+        '<p class="blog-featured__excerpt">' + esc(f.zajawka) + '</p><p class="blog-more blog-more--' + esc(f.kolor) + '" aria-hidden="true">Czytaj więcej →</p></div>';
       $('.blog-grid', list).innerHTML = posts.slice(1).map(function (p) {
         return '<li class="blog-card" data-blog-card>' + img(p, 'blog-card__img') + '<div class="blog-card__body">' + meta(p) + link(p, 'h3', 'blog-card__title') +
-          '<p class="blog-card__excerpt">' + esc(p.zajawka) + '</p><p class="blog-more blog-more--' + esc(p.kolor) + '" aria-hidden="true">Czytaj więcej ↘</p></div></li>';
+          '<p class="blog-card__excerpt">' + esc(p.zajawka) + '</p><p class="blog-more blog-more--' + esc(p.kolor) + '" aria-hidden="true">Czytaj więcej →</p></div></li>';
       }).join('');
       $('.blog-posts', list).hidden = posts.length < 2;
       wrap.innerHTML = posts.map(function (p) {
