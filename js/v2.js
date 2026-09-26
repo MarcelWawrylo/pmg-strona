@@ -222,7 +222,10 @@
     document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); });
   }
 
-  /* ---------- Dołącz: ścieżka procesu rysowana przy przewijaniu ---------- */
+  /* ---------- Dołącz: pozioma ścieżka procesu rysowana przy przewijaniu, z grotem strzałki ----------
+     Kroki są ułożone w jednym poziomym rzędzie (v2.css, ≥ 961 px), więc kropki leżą w jednej linii —
+     ścieżka to proste odcinki kropka → kropka w kolejności z DOM. Grot to osobny trójkąt SVG,
+     przesuwany i obracany tak, żeby zawsze siedział na aktualnym końcu rysowanej linii (scrub). */
   function initJoinPath() {
     var list = document.querySelector('.join-page-steps');
     if (!list) return;
@@ -237,55 +240,64 @@
     var path = document.createElementNS(NS, 'path');
     path.setAttribute('fill', 'none');
     path.setAttribute('stroke', 'url(#v2-path-g)');
-    path.setAttribute('stroke-width', '2.5');
+    path.setAttribute('stroke-width', '6');
     path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
     svg.appendChild(path);
+    var arrow = document.createElementNS(NS, 'path');
+    arrow.setAttribute('d', 'M-3 -9 L13 0 L-3 9 Z');
+    arrow.setAttribute('fill', '#1d46e0');
+    arrow.style.opacity = '0';
+    svg.appendChild(arrow);
     list.insertBefore(svg, list.firstChild);
     list.classList.add('v2-path-ready');
 
+    var len = 0;
     var draw = function () {
       var lr = list.getBoundingClientRect();
       var pts = Array.prototype.map.call(dots, function (dot) {
         var r = dot.getBoundingClientRect();
         return { x: r.left - lr.left + r.width / 2, y: r.top - lr.top + r.height / 2 };
       });
-      var amp = 26;
-      // segment po segmencie: kropka i → kropka i+1, w kolejności z DOM
+      // odcinki kropka → kropka, w kolejności z DOM (przy poziomym rzędzie wychodzi prosta linia)
       var d = 'M' + pts[0].x + ' ' + pts[0].y;
-      for (var i = 1; i < pts.length; i++) {
-        var p = pts[i - 1], q = pts[i];
-        if (Math.abs(q.y - p.y) < 1) {
-          // ten sam rząd: łagodny łuk
-          d += ' Q' + (p.x + q.x) / 2 + ' ' + (p.y + (i % 2 ? -amp : amp)) + ' ' + q.x + ' ' + q.y;
-        } else if (Math.abs(q.x - p.x) < 1) {
-          // jedna kolumna (mobile): pionowo
-          d += ' L' + q.x + ' ' + q.y;
-        } else {
-          // nowy rząd w siatce 2×2: łagodnie po skosie, za tekstem kroków (tło tekstu w v2.css)
-          var dx = q.x - p.x, dy = q.y - p.y;
-          d += ' C' + (p.x + dx * 0.1) + ' ' + (p.y + dy * 0.4) + ' ' + (q.x - dx * 0.1) + ' ' + (q.y - dy * 0.4) + ' ' + q.x + ' ' + q.y;
-        }
-      }
+      for (var i = 1; i < pts.length; i++) d += ' L' + pts[i].x + ' ' + pts[i].y;
       path.setAttribute('d', d);
-      // gradient w układzie strony: pionowa linia ma zerową szerokość, więc objectBoundingBox by jej nie pokolorował
       var a = pts[0], b = pts[pts.length - 1];
       grad.setAttribute('x1', a.x); grad.setAttribute('y1', a.y);
       grad.setAttribute('x2', b.x); grad.setAttribute('y2', b.y);
-      var len = path.getTotalLength();
+      len = path.getTotalLength();
       path.style.strokeDasharray = len;
       return len;
     };
-    var len = draw();
+    len = draw();
     path.style.strokeDashoffset = len;
+
+    // grot na aktualnym końcu narysowanego odcinka: pozycja i kąt liczone z getPointAtLength
+    var positionArrow = function () {
+      if (!len) { arrow.style.opacity = '0'; return; }
+      var offset = parseFloat(path.style.strokeDashoffset) || 0;
+      var drawn = Math.max(0, Math.min(len, len - offset));
+      if (drawn <= 0.5) { arrow.style.opacity = '0'; return; }
+      var p = path.getPointAtLength(drawn);
+      var back = path.getPointAtLength(Math.max(0, drawn - 1));
+      var angle = Math.atan2(p.y - back.y, p.x - back.x) * 180 / Math.PI;
+      arrow.setAttribute('transform', 'translate(' + p.x + ' ' + p.y + ') rotate(' + angle + ')');
+      arrow.style.opacity = String(Math.min(1, drawn / 10));
+    };
+    positionArrow();
+
     // strona jest krótka: cała linia rysuje się na ok. 300 px przewijania, od 0 i nie dalej niż koniec strony
     var listTop = function () { return list.getBoundingClientRect().top + window.scrollY; };
     var from = function () { return Math.max(0, listTop() - window.innerHeight * 0.8); };
     window.gsap.to(path, {
       strokeDashoffset: 0, ease: 'none',
+      onUpdate: positionArrow,
       scrollTrigger: {
         trigger: list, start: from,
         end: function () { return Math.min(window.ScrollTrigger.maxScroll(window), Math.max(from() + 250, listTop() - window.innerHeight * 0.3)); },
-        scrub: 0.5, invalidateOnRefresh: true, onRefresh: function () { draw(); }
+        scrub: 0.5, invalidateOnRefresh: true,
+        onRefresh: function () { len = draw(); positionArrow(); }
       }
     });
   }
