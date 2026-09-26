@@ -1,6 +1,6 @@
 /* =========================================================
    PMG — wersja 2 („płynna”). Nakładka na ../css/style.css.
-   Tryb pełny (.v2-enhanced) tylko ≥ 961 px i bez prefers-reduced-motion — patrz KONCEPCJA.md.
+   Tryb pełny (.v2-enhanced) tylko ≥ 961 px i bez prefers-reduced-motion — patrz KONCEPCJA-v2.md.
    ========================================================= */
 
 /* ---------- Lenis (reguły biblioteki) ---------- */
@@ -50,7 +50,7 @@ html.lenis, html.lenis body { height: auto; }
 
 /* ---------- PM Session: zdanie kolorowane słowo po słowie ---------- */
 .v2-enhanced .pms-about { padding-top: 40px; }
-.v2-enhanced .pms-about.v2-words-ready .pms-about__text { font: 500 clamp(22px, 2vw, 28px)/1.4 var(--font-head); letter-spacing: -.01em; color: var(--color-ink); }
+.v2-enhanced .pms-about.v2-words-ready .pms-about__text { color: var(--color-ink); }
 .v2-word { color: var(--color-text-muted); transition: color .15s linear; }
 
 /* ---------- Podcast: fala odcinków ---------- */

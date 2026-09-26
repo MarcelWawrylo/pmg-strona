@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="pl" class="v2">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,10 +10,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/v2.css">
 <script>document.documentElement.classList.add('js')</script>
 <script src="js/main.js" defer></script>
+<script src="js/v2.js" defer></script>
 </head>
-<body>
+<body class="v2-page">
 <a class="skip-link" href="#main">Przejdź do treści</a>
 <div class="page">
 
@@ -57,7 +59,7 @@
           <ul>
             <li>Mapa osadzona z Google Maps (podstrona Kontakt) — pochodzi z zewnętrznego serwisu i nie mamy wpływu na jej dostępność cyfrową.</li>
             <li>Odtwarzacz Spotify (podstrona Podcast) — pochodzi z zewnętrznego serwisu i nie mamy wpływu na jego dostępność cyfrową.</li>
-            <li>Wersja 2 strony (<code>/v2/</code>) zawiera dodatkowe animacje przewijania (biblioteki Lenis i GSAP). Włączają się wyłącznie na ekranach szerszych niż 960 px i tylko wtedy, gdy system operacyjny odwiedzającego nie ma włączonej opcji „ogranicz animacje" (<code>prefers-reduced-motion</code>) — w przeciwnym razie strona działa bez tych animacji.</li>
+            <li>Strona zawiera dodatkowe animacje przewijania (biblioteki Lenis i GSAP). Włączają się wyłącznie na ekranach szerszych niż 960 px i tylko wtedy, gdy system operacyjny odwiedzającego nie ma włączonej opcji „ogranicz animacje" (<code>prefers-reduced-motion</code>) — w przeciwnym razie strona działa bez tych animacji.</li>
             <li>Część zdjęć w kartach (np. lista projektów na stronie głównej, karty Case Koła) ma celowo puste opisy alternatywne (<code>alt=""</code>), ponieważ sąsiadujący z nimi tekst już opisuje treść zdjęcia — to zgodne z wytycznymi WCAG, nie jest to brak.</li>
           </ul>
           <p>Poza wskazanymi wyżej wyjątkami nie stwierdzono innych, systematycznie niedostępnych treści — pełny, formalny audyt zgodności ze wszystkimi kryteriami WCAG 2.1 AA nie został jeszcze przeprowadzony.</p>
