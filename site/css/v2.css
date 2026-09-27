@@ -15,6 +15,7 @@ html.lenis, html.lenis body { height: auto; }
 .v2 .h1,
 .v2 .pms-banner__title,
 .v2 .hub-banner__title { font-size: clamp(36px, 6vw, 72px); line-height: .98; letter-spacing: -.035em; }
+.v2 .hub-banner__logo { height: clamp(40px, 6.6vw, 79px); }
 .v2 .contact-hero__title { line-height: .92; letter-spacing: -.04em; }
 .v2 .home-h2, .v2 .pms-h2 { letter-spacing: -.03em; }
 
@@ -29,6 +30,8 @@ html.lenis, html.lenis body { height: auto; }
   }
   .v2 .site-nav.is-scrolled .site-nav__logo img { height: 44px; width: 44px; }
   .v2 .site-nav--dark.is-scrolled .site-nav__inner { background: rgba(12,12,16,.8); box-shadow: 0 14px 34px -14px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.08); }
+  /* Dołącz: pasek nad pigułką czarny jak hero pod nim (wyżej outer .site-nav jest przezroczysty) */
+  body.join-page-body .site-nav--dark.is-scrolled { background-color: var(--color-ink); }
 }
 
 /* ---------- Przejścia między podstronami (View Transitions, bez biblioteki) ---------- */
@@ -62,6 +65,8 @@ html.lenis, html.lenis body { height: auto; }
 .v2-enhanced .pms-intro.is-scrub .pms-intro__title { font-size: clamp(60px, 7vw, 124px); white-space: nowrap; text-wrap: nowrap; }
 .v2-enhanced .pms-intro:not(.is-scrub) .pms-intro__outline { visibility: hidden; }
 .v2-enhanced .pms-intro.is-scrub .pms-intro__outline { padding-left: 100px; font-size: clamp(40px, 4.4vw, 64px); white-space: nowrap; }
+/* przycisk pauzy baniek: przypięty ekran startuje pod menu, więc wyżej niż 16 px od dołu, żeby był widoczny od razu */
+.v2-enhanced .pms-intro.is-scrub .pms-intro__pause { bottom: 136px; }
 .pms-intro__line { display: inline-block; white-space: nowrap; will-change: transform; }
 .pms-intro__word { display: inline-block; }
 .pms-intro__bg { transform-origin: 50% 50%; }

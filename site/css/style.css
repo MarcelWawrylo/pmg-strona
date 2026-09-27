@@ -385,6 +385,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .section--gallery { padding-bottom: 70px; }
 .case-back--top { padding-top: 28px; }
 .case-back--bottom { padding-top: 0; padding-bottom: 46px; }
+/* po białej galerii: pas z linkiem też biały, od krawędzi do krawędzi (bez prześwitu tła body) */
+.bg-surface + .case-back--bottom { background: var(--color-surface); box-shadow: 0 0 0 100vmax var(--color-surface); clip-path: inset(-8px -100vmax 0); }
 .status--progress { color: var(--color-blue); background: rgba(29,70,224,.1); border-color: rgba(29,70,224,.3); }
 .case-hero__logo-box { background: var(--color-ink); display: flex; align-items: center; justify-content: center; padding: 6%; }
 .case-hero__logo-box picture { max-width: 52%; }
@@ -410,9 +412,11 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 /* ---------- 10b. Case Koła — hub ---------- */
 .eyebrow--blue { color: var(--color-blue); letter-spacing: .2em; margin: 0; }
 .hub-banner { padding: 66px 0 58px; }
-.hub-banner__brand { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.hub-banner__logo { width: 64px; height: 64px; border-radius: 16px; object-fit: contain; }
-.hub-banner__title { font: 600 clamp(36px, 5.6vw, 56px)/1.05 var(--font-head); letter-spacing: -.02em; margin-top: 16px; }
+.hub-banner__head { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.hub-banner__brand { display: flex; align-items: center; flex-shrink: 0; }
+.hub-banner__logo { width: auto; height: 56px; border-radius: 16px; object-fit: contain; }
+.hub-banner__title { font: 600 clamp(36px, 5.6vw, 56px)/1.05 var(--font-head); letter-spacing: -.02em; margin-top: 0; }
+@media (max-width: 640px) { .hub-banner__head { flex-direction: column; align-items: flex-start; gap: 16px; } }
 .hub-banner__lead { max-width: 760px; margin-top: 16px; text-wrap: pretty; }
 .hub-banner__lead--full { max-width: none; }
 .hub-grid { padding: 20px 0 80px; }
@@ -425,9 +429,19 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .hub-grid .case-card__media { background: #141414; }
 /* QUBIT i Debate Lab: logo ma białe tło wbudowane w plik — tło kafla białe, żeby się z nim zlewało (Solvro i PWR Racing Team bez zmian) */
 .hub-grid .case-card__media--logo-light { background: #fff; }
+/* QUBIT i Debate Lab: kafelek z jasnym tłem mediów dostaje ciemny body (odwrotność Solvro/PWR Racing Team) — kontrast tytułu na #141414 ok. 18.4:1, streszczenia (biały .7 alpha) ok. 9.3:1, oba >= 4.5:1 */
+.hub-grid .case-card__media--logo-light + .case-card__body { background: #141414; }
+.hub-grid .case-card { display: flex; flex-direction: column; }
+.hub-grid .case-card__body { flex: 1 0 auto; }
+.hub-grid .case-card__media--logo-light + .case-card__body .case-card__title { color: #fff; }
+.hub-grid .case-card__media--logo-light + .case-card__body .case-card__summary { color: rgba(255, 255, 255, .7); }
 .case-card__media--logo { display: flex; align-items: center; justify-content: center; padding: 20px; }
 .case-card__media--logo img { width: auto; height: auto; max-width: 70%; max-height: 64px; object-fit: contain; margin: 0 auto; }
-.case-card__media--logo-tall img { max-height: 74px; }
+.case-card__media--logo-tall img { max-height: 112px; }
+/* logotypy w kafelkach: stała wysokość zamiast 70% szerokości pliku (reguła .case-card__media img niżej nadpisuje width/height) */
+.case-card__media--logo:not(.case-card__media--logo-tall) img { height: 45px; max-width: none; }
+.hub-grid .case-card__media--logo-tall picture { display: contents; }
+.hub-grid .case-card__media--logo-tall img { width: auto; height: 100%; max-width: none; }
 .case-card__media__logo-plate { border-radius: 8px; }
 .case-card__media img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform var(--card-t); }
 .case-card__body { padding: 24px; }
@@ -613,6 +627,9 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .pms-banner__lead { max-width: 720px; margin-top: 16px; text-wrap: pretty; }
 .pms-banner__lead--full { max-width: none; }
 .pms-banner__date { font: 500 15px var(--font-body); color: var(--color-text-muted); margin-top: 8px; }
+[data-page="pm-session-xiv"] .pms-banner__head { align-items: baseline; }
+[data-page="pm-session-xiv"] .pms-banner__theme { font: italic 700 var(--fs-lead) var(--font-head); }
+[data-page="pm-session-xiv"] .pms-banner__date { font: 500 clamp(24px, 3.9vw, 47px) var(--font-body); white-space: nowrap; margin-top: 0; }
 .pms-about { padding: 0 0 58px; }
 .pms-about__grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 34px; align-items: center; }
 @media (max-width: 960px) { .pms-about__grid { grid-template-columns: minmax(0, 1fr); } }
@@ -654,9 +671,14 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .speaker.is-open { transform: translateY(-6px); box-shadow: var(--shadow-card); }
 .speaker__name::after { content: "▾" / ""; display: inline-block; margin-left: 6px; color: var(--color-text-muted); transition: transform var(--ease); }
 .speaker.is-open .speaker__name::after { transform: rotate(180deg); }
-[data-page="pm-session-xiv"] .speakers { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
-[data-page="pm-session-xiv"] .speaker { padding: 10px; }
-[data-page="pm-session-xiv"] .speaker__name { display: block; margin-top: 10px; font-size: 16px; }
+[data-page="pm-session-xiv"] .speakers { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 20px; }
+[data-page="pm-session-xiv"] .speaker { padding: 16px; }
+[data-page="pm-session-xiv"] .speaker__name { display: block; margin-top: 12px; font-size: 18px; }
+@media (max-width: 640px) {
+  [data-page="pm-session-xiv"] .speakers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  [data-page="pm-session-xiv"] .speaker { padding: 10px; }
+  [data-page="pm-session-xiv"] .speaker__name { margin-top: 10px; font-size: 16px; }
+}
 [data-page="pm-session-xiv"] .speaker__name::after { content: none; }
 /* PM Session XIV: karty równej wysokości w wierszu, niezależnie od długości nazwiska */
 [data-page="pm-session-xiv"] .speakers { align-items: stretch; }
@@ -729,20 +751,31 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   background: radial-gradient(50% 55% at 20% 38%, rgba(229,24,94,.09), transparent 70%), radial-gradient(50% 60% at 82% 64%, rgba(29,70,224,.09), transparent 70%);
 }
 .pms-intro__inner { position: relative; width: 100%; }
-/* statyczne bańki mydlane w tle zdania (stoją w przypiętym wrapperze, zdanie przesuwa się na ich tle); tylko pasy nad i pod linią tekstu */
+/* bańki mydlane w tle zdania (stoją w przypiętym wrapperze, zdanie przesuwa się na ich tle); tylko pasy nad i pod linią tekstu.
+   Każda pulsuje skalą .4 ↔ 1.8 we własnym tempie (--bubble-dur) i fazie (ujemne --bubble-delay: od razu w ruchu, bez synchronizacji).
+   Animowany jest img, nie <picture> (transform nie gryzie się z pozycją wrappera); reduced motion: rozmiary bazowe, bez ruchu. */
 .pms-intro__bubbles { position: absolute; inset: 0; pointer-events: none; }
 .pms-intro__bubble { position: absolute; display: block; width: 16px; }
-.pms-intro__bubble img { display: block; width: 100%; height: auto; }
-.pms-intro__bubble:nth-child(1) { left: 7%; top: 14%; width: 20px; }
-.pms-intro__bubble:nth-child(2) { left: 24%; top: 24%; width: 14px; }
-.pms-intro__bubble:nth-child(3) { left: 43%; top: 10%; }
-.pms-intro__bubble:nth-child(4) { left: 66%; top: 20%; width: 22px; }
-.pms-intro__bubble:nth-child(5) { left: 88%; top: 12%; }
-.pms-intro__bubble:nth-child(6) { left: 12%; top: 80%; }
-.pms-intro__bubble:nth-child(7) { left: 34%; top: 88%; width: 18px; }
-.pms-intro__bubble:nth-child(8) { left: 55%; top: 76%; width: 12px; }
-.pms-intro__bubble:nth-child(9) { left: 76%; top: 86%; width: 20px; }
-.pms-intro__bubble:nth-child(10) { left: 93%; top: 74%; width: 14px; }
+.pms-intro__bubble img { display: block; width: 100%; height: auto; animation: pms-bubble var(--bubble-dur, 5s) ease-in-out var(--bubble-delay, 0s) infinite alternate; }
+.pms-intro__bubble:nth-child(1) { left: 7%; top: 14%; width: 34px; --bubble-dur: 5.2s; --bubble-delay: -1.3s; }
+.pms-intro__bubble:nth-child(2) { left: 24%; top: 24%; width: 12px; --bubble-dur: 3.4s; --bubble-delay: -2.9s; }
+.pms-intro__bubble:nth-child(3) { left: 43%; top: 10%; width: 22px; --bubble-dur: 6.8s; --bubble-delay: -.6s; }
+.pms-intro__bubble:nth-child(4) { left: 66%; top: 20%; width: 48px; --bubble-dur: 7.6s; --bubble-delay: -4.1s; }
+.pms-intro__bubble:nth-child(5) { left: 88%; top: 12%; width: 9px; --bubble-dur: 4.1s; --bubble-delay: -3.3s; }
+.pms-intro__bubble:nth-child(6) { left: 12%; top: 80%; width: 42px; --bubble-dur: 6.1s; --bubble-delay: -2.2s; }
+.pms-intro__bubble:nth-child(7) { left: 34%; top: 88%; width: 15px; --bubble-dur: 3.8s; --bubble-delay: -.2s; }
+.pms-intro__bubble:nth-child(8) { left: 55%; top: 76%; width: 8px; --bubble-dur: 4.7s; --bubble-delay: -4.4s; }
+.pms-intro__bubble:nth-child(9) { left: 76%; top: 86%; width: 28px; --bubble-dur: 5.9s; --bubble-delay: -3.7s; }
+.pms-intro__bubble:nth-child(10) { left: 93%; top: 74%; width: 19px; --bubble-dur: 4.4s; --bubble-delay: -1.8s; }
+@keyframes pms-bubble { from { transform: scale(.4); } to { transform: scale(1.8); } }
+@media (prefers-reduced-motion: reduce) { .pms-intro__bubble img { animation: none; } }
+/* przycisk pauzy baniek (WCAG 2.2.2, main.js → initBubblesPause); bez JS i przy ograniczonym ruchu bańki stoją, więc przycisk ukryty */
+.pms-intro__bubbles.is-paused img { animation-play-state: paused; }
+.pms-intro__pause { position: absolute; right: var(--gutter); bottom: 16px; min-height: 44px; padding: 10px 18px; font-size: 13px; background: #fff; }
+html:not(.js) .pms-intro__pause { display: none; }
+html:not(.js) .pms-intro__bubble img { animation: none; }
+@media (prefers-reduced-motion: no-preference) { .js .pms-intro__pin { padding-bottom: 76px; } }
+@media (prefers-reduced-motion: reduce) { .pms-intro__pause { display: none; } }
 .pms-intro__title { font: 600 clamp(33px, 5.8vw, 80px)/1 var(--font-head); letter-spacing: -.04em; color: var(--color-ink); text-wrap: balance; }
 .pms-intro__accent { color: var(--color-purple); }
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
@@ -967,16 +1000,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .js:not(.blog-ready) .blog-article:not(:target) { display: none; }
 .js:not(.blog-ready) .blog-list:has(~ .blog-articles .blog-article:target) { display: none; }
 
-/* Kategorie: biały tekst na akcencie (różowy przyciemniony do #c8124f — kontrast ≥ 4.5:1) */
 .blog-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
-.blog-cat {
-  font: 700 10px/1.4 var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: #fff;
-  padding: 5px 11px; border-radius: var(--radius-pill);
-}
-.blog-cat--pink { background: #c8124f; }
-.blog-cat--purple { background: #8b2c9c; }
-.blog-cat--blue { background: #1d46e0; }
-.blog-cat--violet { background: #5a2fb0; }
 .blog-date { font: 500 12px var(--font-body); color: var(--color-text-muted); }
 .blog-more { font: 600 13px/1.4 var(--font-body); margin-top: 24px; }
 .blog-more--pink { color: #c8124f; }
@@ -1042,7 +1066,6 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 }
 .blog-back:hover, .blog-back:focus-visible { color: var(--color-ink); border-color: var(--color-ink); transform: translateX(-3px); }
 .blog-meta--article { gap: 6px 11px; margin-top: 30px; }
-.blog-meta--article .blog-cat { padding: 5px 12px; }
 .blog-meta--article .blog-date { font-size: 13px; }
 .blog-article__title { font: 600 clamp(32px, 5.2vw, 46px)/1.08 var(--font-head); letter-spacing: -.025em; margin-top: 18px; }
 .blog-article__title:focus { outline: none; }
@@ -1169,10 +1192,10 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 .pod-hero__actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; }
 
 /* Edycja 1 */
-.pod-edition { position: relative; padding: 56px 0 74px; background: rgba(18,18,22,.7); }
+.pod-edition { position: relative; padding: 56px 0 74px; }
 .pod-edition__title { font: 600 clamp(26px, 3.4vw, 30px)/1.2 var(--font-head); letter-spacing: -.02em; }
 .pod-edition__year { color: var(--pod-text-3); font-weight: 500; }
-.pod-edition__team { font: 400 15px/1.6 var(--font-body); color: var(--pod-text-3); margin: 12px 0 26px; }
+.pod-edition__team { font: 400 15px/1.6 var(--font-body); color: var(--pod-text-2); margin: 12px 0 26px; }
 
 .pod-episodes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
 @media (max-width: 960px) { .pod-episodes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -1251,10 +1274,11 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
    Tylko modyfikator — okno odcinka Podcastu (.pod-modal bez modyfikatora) zostaje bez zmian. */
 .pod-modal--speaker { color: var(--color-ink); overflow: hidden; }
 .pod-modal--speaker .pod-modal__panel {
-  display: flex; flex-direction: column; max-width: 720px; max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px);
+  display: flex; flex-direction: column; max-width: min(850px, 90vw); max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px);
   background: var(--color-surface); border: 0; box-shadow: 0 40px 90px -30px rgba(0,0,0,.6);
 }
 .pod-modal--speaker .pod-modal__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.pod-modal--speaker .pod-modal__body:focus-visible { outline-offset: -3px; }
 .pod-modal--speaker .pod-modal__close { background: var(--color-surface); color: var(--color-ink); border: 1.5px solid var(--color-ink); }
 .pod-modal--speaker .pod-modal__close:hover { background: var(--color-bg); }
 .speaker-modal__media { display: block; margin: -28px -32px 26px; }

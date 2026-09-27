@@ -218,7 +218,8 @@
       onUpdate: positionArrow,
       scrollTrigger: {
         trigger: list, start: from,
-        end: function () { return Math.min(window.ScrollTrigger.maxScroll(window), Math.max(from() + 250, listTop() - window.innerHeight * 0.3)); },
+        // zakres rysowania ×1/1.18 („18% szybciej”), start bez zmian
+        end: function () { var e = Math.min(window.ScrollTrigger.maxScroll(window), Math.max(from() + 250, listTop() - window.innerHeight * 0.3)); return from() + (e - from()) / 1.18; },
         scrub: 0.5, invalidateOnRefresh: true,
         onRefresh: function () { len = draw(); positionArrow(); }
       }
