@@ -452,8 +452,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 /* ---------- 10c. Kontakt ---------- */
 .container--flush { max-width: none; }
 .contact-hero { padding: 64px 0 30px; }
-.contact-hero__title { font: 600 clamp(40px, 7vw, 92px)/.98 var(--font-head); letter-spacing: -.03em; max-width: 14ch; }
-.contact-hero__title em { font-style: italic; color: var(--color-pink); }
+.contact-hero__title { font: 600 clamp(40px, 7vw, 92px)/.98 var(--font-head); letter-spacing: -.03em; max-width: none; }
+.contact-hero__title em { font-style: italic; color: var(--color-pink); display: block; }
 .contact { padding: 40px 0 90px; }
 .contact__grid { display: grid; grid-template-columns: .85fr 1.15fr; gap: 64px; align-items: start; }
 .contact__info { display: flex; flex-direction: column; gap: 34px; padding-top: 8px; }
@@ -489,6 +489,16 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 @media (max-width: 960px) {
   .contact__grid { grid-template-columns: minmax(0, 1fr); gap: 48px; }
   .contact-hero { padding-top: 40px; }
+}
+/* Kontakt, zdanie „Masz pomysł na współpracę?”: 641–1361 px — czcionka lekko zmniejszona względem 7vw (maks. ok. 7%,
+   przy 961 px, gdzie gutter przeskakuje z 32 na 56px), żeby czarne zdanie zmieściło się w jednej linii; dzielnik 13.6 =
+   szerokość zdania przy foncie 1px (ok. 13.58, zmierzone w Chromium) + ok. 1,75% zapasu na różnice renderowania fontu
+   między przeglądarkami (stałe w całym przedziale — sprawdzone pomiarem). var(--gutter) sam przełącza się z 32px na
+   56px na granicy 960/961px (patrz reguły :root wyżej w pliku), więc jedna formuła obsługuje cały przedział.
+   Od ok. 1362 px kontener rośnie szybciej niż wymagana szerokość zdania przy foncie z clamp() — wtedy font bez zmian (92px).
+   Poniżej 641 px zdanie nadal łamie się na 2 linie (przy foncie >= 28px 1 linia nie mieści się na wąskich ekranach). */
+@media (min-width: 641px) and (max-width: 1361px) {
+  .contact-hero__title { font-size: min(7vw, calc((100vw - var(--gutter) * 2) / 13.6)); }
 }
 @media (max-width: 640px) { .contact-form__row { grid-template-columns: minmax(0, 1fr); } .contact { padding-bottom: 60px; } }
 
@@ -654,6 +664,38 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .pms-block { padding-top: 52px; }
 .pms-block--tight { padding-top: 48px; }
 .pms-about--pms-gap { padding-bottom: 29px; }
+/* „Co to PM Session?”: bańki od dołu intro do końca drugiego akapitu (dekoracja, aria-hidden), rzadziej niż w intro, coraz rzadsze i mniejsze w dół.
+   Kontener siedzi w .prose (jego dół = koniec akapitu), sięga w górę o odstęp nad sekcją (--pms-about-top = padding-top sekcji)
+   i w lewo do krawędzi okna (--pms-bleed = lewy margines od krawędzi okna do tekstu). Bańki leżą tylko w pasie nad nagłówkiem
+   i na bocznych marginesach, nigdy na literach, także przy skali 1.8 w pulsie: środek bańki w --x marginesu, szerokość --w
+   (najwyżej .4 marginesu). Pod tekstem (z-index: -1 w izolowanym .prose). Puls jak w intro (1–2 cykle, ≤ 4,8 s), ale dopiero
+   po wejściu w widok: klasę .is-live dodaje v2.js (≥ 961 px, bez reduced motion); bez niej bańki stoją. ≤ 640 px: 6 z 11. */
+.pms-about { --pms-bleed: max(var(--gutter), (100vw - var(--container)) / 2); --pms-about-top: 64px; }
+.pms-about .prose { position: relative; isolation: isolate; }
+.pms-about__bubbles { position: absolute; z-index: -1; top: calc(-1 * var(--pms-about-top)); bottom: 0; left: calc(-1 * var(--pms-bleed)); width: calc(100vw - 20px); pointer-events: none; }
+.pms-about__bubble { position: absolute; display: block; width: var(--w); }
+.pms-about__bubble img { display: block; width: 100%; height: auto; }
+@media (prefers-reduced-motion: no-preference) {
+  .pms-about__bubbles.is-live .pms-about__bubble img { animation: pms-bubble var(--bubble-dur, 2.4s) ease-in-out var(--bubble-delay, 0s) var(--bubble-n, 2) var(--bubble-dir, normal) both; }
+}
+/* pas nad nagłówkiem (nad lewą kolumną): środek na .45 wysokości pasa */
+.pms-about__bubble:nth-child(-n+3) { top: calc(var(--pms-about-top) * .45 - var(--w) * .453); }
+.pms-about__bubble:nth-child(1) { --w: min(16px, calc(var(--pms-about-top) * .38)); left: 14%; --bubble-dur: 2.2s; --bubble-n: 2; --bubble-delay: .2s; }
+.pms-about__bubble:nth-child(2) { --w: min(10px, calc(var(--pms-about-top) * .38)); left: 30%; --bubble-dur: 1.5s; --bubble-n: 3; --bubble-dir: reverse; }
+.pms-about__bubble:nth-child(3) { --w: min(13px, calc(var(--pms-about-top) * .38)); left: 44%; --bubble-dur: 4.2s; --bubble-n: 1; --bubble-delay: .4s; }
+/* lewy margines */
+.pms-about__bubble:nth-child(n+4):nth-child(-n+7) { left: calc(var(--pms-bleed) * var(--x) - var(--w) / 2); }
+.pms-about__bubble:nth-child(4) { --w: min(40px, calc(var(--pms-bleed) * .4)); --x: .5; top: 10%; --bubble-dur: 4.4s; --bubble-n: 1; --bubble-delay: .1s; }
+.pms-about__bubble:nth-child(5) { --w: min(18px, calc(var(--pms-bleed) * .3)); --x: .3; top: 30%; --bubble-dur: 2.3s; --bubble-n: 2; --bubble-dir: reverse; }
+.pms-about__bubble:nth-child(6) { --w: min(14px, calc(var(--pms-bleed) * .3)); --x: .62; top: 56%; --bubble-dur: 4s; --bubble-n: 1; --bubble-delay: .6s; --bubble-dir: reverse; }
+.pms-about__bubble:nth-child(7) { --w: min(9px, calc(var(--pms-bleed) * .25)); --x: .5; top: 84%; --bubble-dur: 2.1s; --bubble-n: 2; --bubble-delay: .3s; }
+/* prawy margines (od prawej krawędzi okna; kontener kończy się 20 px przed nią) */
+.pms-about__bubble:nth-child(n+8) { left: calc(100% + 20px - var(--pms-bleed) * (1 - var(--x)) - var(--w) / 2); }
+.pms-about__bubble:nth-child(8) { --w: min(34px, calc(var(--pms-bleed) * .4)); --x: .5; top: 4%; --bubble-dur: 4.6s; --bubble-n: 1; --bubble-dir: reverse; }
+.pms-about__bubble:nth-child(9) { --w: min(20px, calc(var(--pms-bleed) * .35)); --x: .35; top: 20%; --bubble-dur: 2.2s; --bubble-n: 2; --bubble-delay: .2s; }
+.pms-about__bubble:nth-child(10) { --w: min(12px, calc(var(--pms-bleed) * .25)); --x: .7; top: 44%; --bubble-dur: 4.3s; --bubble-n: 1; --bubble-delay: .3s; --bubble-dir: reverse; }
+.pms-about__bubble:nth-child(11) { --w: min(8px, calc(var(--pms-bleed) * .3)); --x: .4; top: 76%; --bubble-dur: 1.5s; --bubble-n: 3; --bubble-delay: .1s; }
+@media (max-width: 640px) { .pms-about__bubble:nth-child(3), .pms-about__bubble:nth-child(5), .pms-about__bubble:nth-child(7), .pms-about__bubble:nth-child(9), .pms-about__bubble:nth-child(11) { display: none; } }
 .pms-block--pms-gap { padding-top: 26px; }
 /* ostatnia sekcja przed stopką: dolny odstęp jak między sekcjami (29 + 26 px + margines <dl> 1em = 72 px przy 1440, 71 px przy 375) */
 .pms-block--pms-gap:last-child { padding-bottom: calc(55px + 1em); }
@@ -762,30 +804,27 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 }
 .pms-intro__inner { position: relative; width: 100%; }
 /* bańki mydlane w tle zdania (stoją w przypiętym wrapperze, zdanie przesuwa się na ich tle); tylko pasy nad i pod linią tekstu.
-   Każda pulsuje skalą .4 ↔ 1.8 we własnym tempie (--bubble-dur) i fazie (ujemne --bubble-delay: od razu w ruchu, bez synchronizacji).
-   Animowany jest img, nie <picture> (transform nie gryzie się z pozycją wrappera); reduced motion: rozmiary bazowe, bez ruchu. */
+   Ruch sam się kończy (WCAG 2.2.2 bez przycisku pauzy): każda bańka robi 1–3 pełne cykle pulsu 1 → 1.8 → .4 → 1 we własnym tempie
+   (--bubble-dur × --bubble-n, start po --bubble-delay, część w odwrotnej kolejności), razem najwyżej 4,8 s od wczytania strony
+   (to pierwszy ekran, więc widać go od razu), i zatrzymuje się w rozmiarze bazowym. Bez JS i przy reduced motion: bez ruchu.
+   Animowany jest img, nie <picture> (transform nie gryzie się z pozycją wrappera). */
 .pms-intro__bubbles { position: absolute; inset: 0; pointer-events: none; }
 .pms-intro__bubble { position: absolute; display: block; width: 16px; }
-.pms-intro__bubble img { display: block; width: 100%; height: auto; animation: pms-bubble var(--bubble-dur, 5s) ease-in-out var(--bubble-delay, 0s) infinite alternate; }
-.pms-intro__bubble:nth-child(1) { left: 7%; top: 14%; width: 34px; --bubble-dur: 5.2s; --bubble-delay: -1.3s; }
-.pms-intro__bubble:nth-child(2) { left: 24%; top: 24%; width: 12px; --bubble-dur: 3.4s; --bubble-delay: -2.9s; }
-.pms-intro__bubble:nth-child(3) { left: 43%; top: 10%; width: 22px; --bubble-dur: 6.8s; --bubble-delay: -.6s; }
-.pms-intro__bubble:nth-child(4) { left: 66%; top: 20%; width: 48px; --bubble-dur: 7.6s; --bubble-delay: -4.1s; }
-.pms-intro__bubble:nth-child(5) { left: 88%; top: 12%; width: 9px; --bubble-dur: 4.1s; --bubble-delay: -3.3s; }
-.pms-intro__bubble:nth-child(6) { left: 12%; top: 80%; width: 42px; --bubble-dur: 6.1s; --bubble-delay: -2.2s; }
-.pms-intro__bubble:nth-child(7) { left: 34%; top: 88%; width: 15px; --bubble-dur: 3.8s; --bubble-delay: -.2s; }
-.pms-intro__bubble:nth-child(8) { left: 55%; top: 76%; width: 8px; --bubble-dur: 4.7s; --bubble-delay: -4.4s; }
-.pms-intro__bubble:nth-child(9) { left: 76%; top: 86%; width: 28px; --bubble-dur: 5.9s; --bubble-delay: -3.7s; }
-.pms-intro__bubble:nth-child(10) { left: 93%; top: 74%; width: 19px; --bubble-dur: 4.4s; --bubble-delay: -1.8s; }
-@keyframes pms-bubble { from { transform: scale(.4); } to { transform: scale(1.8); } }
-@media (prefers-reduced-motion: reduce) { .pms-intro__bubble img { animation: none; } }
-/* przycisk pauzy baniek (WCAG 2.2.2, main.js → initBubblesPause); bez JS i przy ograniczonym ruchu bańki stoją, więc przycisk ukryty */
-.pms-intro__bubbles.is-paused img { animation-play-state: paused; }
-.pms-intro__pause { position: absolute; right: var(--gutter); bottom: 16px; min-height: 44px; padding: 10px 18px; font-size: 13px; background: #fff; }
-html:not(.js) .pms-intro__pause { display: none; }
-html:not(.js) .pms-intro__bubble img { animation: none; }
-@media (prefers-reduced-motion: no-preference) { .js .pms-intro__pin { padding-bottom: 76px; } }
-@media (prefers-reduced-motion: reduce) { .pms-intro__pause { display: none; } }
+.pms-intro__bubble img { display: block; width: 100%; height: auto; }
+@media (prefers-reduced-motion: no-preference) {
+  .js .pms-intro__bubble img { animation: pms-bubble var(--bubble-dur, 2.4s) ease-in-out var(--bubble-delay, 0s) var(--bubble-n, 2) var(--bubble-dir, normal) both; }
+}
+.pms-intro__bubble:nth-child(1) { left: 7%; top: 14%; width: 34px; --bubble-dur: 4.2s; --bubble-n: 1; --bubble-delay: .3s; }
+.pms-intro__bubble:nth-child(2) { left: 24%; top: 24%; width: 12px; --bubble-dur: 2.3s; --bubble-n: 2; --bubble-delay: 0s; }
+.pms-intro__bubble:nth-child(3) { left: 43%; top: 10%; width: 22px; --bubble-dur: 4.6s; --bubble-n: 1; --bubble-delay: .1s; --bubble-dir: reverse; }
+.pms-intro__bubble:nth-child(4) { left: 66%; top: 20%; width: 48px; --bubble-dur: 4.4s; --bubble-n: 1; --bubble-delay: .2s; }
+.pms-intro__bubble:nth-child(5) { left: 88%; top: 12%; width: 9px; --bubble-dur: 2.2s; --bubble-n: 2; --bubble-delay: .3s; --bubble-dir: reverse; }
+.pms-intro__bubble:nth-child(6) { left: 12%; top: 80%; width: 42px; --bubble-dur: 4s; --bubble-n: 1; --bubble-delay: .5s; --bubble-dir: reverse; }
+.pms-intro__bubble:nth-child(7) { left: 34%; top: 88%; width: 15px; --bubble-dur: 2.1s; --bubble-n: 2; --bubble-delay: .4s; }
+.pms-intro__bubble:nth-child(8) { left: 55%; top: 76%; width: 8px; --bubble-dur: 1.5s; --bubble-n: 3; --bubble-delay: .1s; --bubble-dir: reverse; }
+.pms-intro__bubble:nth-child(9) { left: 76%; top: 86%; width: 28px; --bubble-dur: 4.3s; --bubble-n: 1; --bubble-delay: .4s; }
+.pms-intro__bubble:nth-child(10) { left: 93%; top: 74%; width: 19px; --bubble-dur: 2.4s; --bubble-n: 2; --bubble-delay: 0s; --bubble-dir: reverse; }
+@keyframes pms-bubble { 0%, 100% { transform: scale(1); } 33% { transform: scale(1.8); } 67% { transform: scale(.4); } }
 .pms-intro__title { font: 600 clamp(33px, 5.8vw, 80px)/1 var(--font-head); letter-spacing: -.04em; color: var(--color-ink); text-wrap: balance; }
 .pms-intro__accent { color: var(--color-purple); }
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
@@ -793,11 +832,27 @@ html:not(.js) .pms-intro__bubble img { animation: none; }
 }
 .pms-intro + .pms-about { padding-top: 64px; }
 @media (max-width: 640px) { .pms-intro__pin { padding: 40px 0; } }
-/* napis „PROJECT MANAGEMENT SESSION” nad zdaniem: sam obrys liter, dekoracja (aria-hidden); bez wsparcia text-stroke — blade wypełnienie */
-.pms-intro__outline { font: 600 clamp(22px, 4.4vw, 56px)/1.1 var(--font-head); letter-spacing: .02em; color: rgba(20, 20, 20, .35); opacity: .3; margin-bottom: clamp(24px, 3vw, 36px); user-select: none; pointer-events: none; }
-@supports (-webkit-text-stroke: 1px black) {
-  .pms-intro__outline { color: transparent; -webkit-text-stroke: 1.5px var(--color-ink); }
-  @media (max-width: 640px) { .pms-intro__outline { -webkit-text-stroke-width: 1px; } }
+/* napis „PROJECT MANAGEMENT SESSION” nad zdaniem: dekoracja (aria-hidden) z liter jak ze szkła („liquid glass”).
+   Zawsze jedna linia, wyśrodkowana; rozmiar liczony z szerokości kontenera (napis ma ok. 15,95 em szerokości, dzielnik 16,4 zostawia zapas),
+   więc od 375 px mieści się między marginesami kontenera bez przewijania w poziomie (maks. 70 px = szerokość kontenera; przy przewijaniu poziomym ≥ 961 px rozmiar w v2.css).
+   Warstwy: 1) bez background-clip: text — półprzezroczysty grafit; 2) szkło z gradientów: jasny połysk u góry, przejrzysty środek
+   (widać tło i bańki), tęczowe zabarwienie w kolorach marki jak brzeg bańki, cienka ciemniejsza krawędź (text-stroke) i cień, żeby litery
+   odcinały się od jasnego tła; 3) od 641 px filtr SVG #pms-glass (pm-session.html): lekkie „płynne” falowanie + refleks światła na krawędziach. */
+.pms-intro__outline { width: fit-content; max-width: none; margin: 0 auto clamp(24px, 3vw, 36px); font: 600 min(5.6vw, calc((100vw - 2 * var(--gutter)) / 16.4), 70px)/1.15 var(--font-head); letter-spacing: .02em; white-space: nowrap; color: rgba(20, 20, 20, .3); user-select: none; pointer-events: none; }
+.pms-intro__defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .pms-intro__outline {
+    color: transparent;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, .6) 34%, rgba(255, 255, 255, .08) 50%, rgba(255, 255, 255, .22) 74%, rgba(255, 255, 255, .85) 100%),
+      linear-gradient(100deg, rgba(229, 24, 94, .42), rgba(139, 44, 156, .34) 50%, rgba(29, 70, 224, .42));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-stroke: 1px rgba(20, 20, 20, .42);
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, .9)) drop-shadow(0 4px 10px rgba(20, 20, 20, .16));
+  }
+  @media (min-width: 641px) {
+    .pms-intro__outline { filter: url(#pms-glass) drop-shadow(0 1px 0 rgba(255, 255, 255, .9)) drop-shadow(0 6px 14px rgba(20, 20, 20, .16)); }
+  }
 }
 
 /* ---------- 10. Dołącz ---------- */
@@ -820,7 +875,6 @@ html:not(.js) .pms-intro__bubble img { animation: none; }
 }
 .join-page-hero__inner { position: relative; }
 .join-page-hero__title { font: 600 clamp(42px, 7vw, 72px)/.98 var(--font-head); color: #fff; letter-spacing: -.03em; max-width: 16ch; }
-.join-page-hero__lead { font: 400 var(--fs-lead)/1.6 var(--font-body); color: rgba(255,255,255,.7); max-width: 560px; margin-top: 24px; }
 
 /* Treść: sekcje + proces + karta formularza */
 .join-page-main { padding: 60px 0 90px; }
@@ -882,7 +936,6 @@ html:not(.js) .pms-intro__bubble img { animation: none; }
   box-shadow: var(--shadow-feature); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px;
 }
 .join-page-form__title { font: 600 24px/1.2 var(--font-head); letter-spacing: 0; }
-.join-page-form__text { font: 400 14.5px/1.6 var(--font-body); color: var(--color-text-muted); max-width: 320px; }
 .join-page-form__btn { font-size: 15px; padding: 14px 30px; white-space: nowrap; }
 .join-page-form__btn:hover, .join-page-form__btn:focus-visible { background: var(--color-pink-text); color: #fff; }
 
@@ -1259,7 +1312,7 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 .pod-ep__btn::after { content: ""; position: absolute; inset: 0; z-index: 2; border-radius: inherit; }
 .pod-ep__btn:focus-visible { outline: none; }
 .pod-ep__hosts { font: 400 13px/1.55 var(--font-body); color: var(--pod-text-3); margin-top: 10px; }
-.pod-ep__more { font: 600 13px/1.4 var(--font-body); margin-top: auto; padding-top: 16px; align-self: flex-start; color: var(--pod-pink-text); }
+.pod-ep__more { font: 600 13px/1.4 var(--font-body); margin-top: auto; padding-top: 16px; align-self: flex-start; color: var(--color-spotify); }
 
 /* Modal odcinka (natywny <dialog>) */
 @keyframes pmgmodal { from { opacity: 0; transform: translateY(20px) scale(.98); } to { opacity: 1; transform: none; } }

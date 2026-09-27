@@ -40,36 +40,54 @@
     return lenis;
   }
 
-  /* ---------- PM Session: zdanie kolorowane słowo po słowie (sekcja przypięta) ---------- */
+  /* ---------- PM Session: akapity kolorowane słowo po słowie (oba akapity „Co to PM Session?”, jedna sekwencja) ---------- */
   function initPmsWords() {
     var section = document.querySelector('.pms-about');
-    var p = section && section.querySelector('.pms-about__text');
-    if (!p) return;
-    var text = p.textContent.trim();
-    p.textContent = '';
-    var sr = document.createElement('span');
-    sr.className = 'visually-hidden';
-    sr.textContent = text;
-    var vis = document.createElement('span');
-    vis.setAttribute('aria-hidden', 'true');
-    text.split(/\s+/).forEach(function (w, i) {
-      var s = document.createElement('span');
-      s.className = 'v2-word';
-      s.textContent = w;
-      vis.appendChild(s);
-      vis.appendChild(document.createTextNode(' '));
+    var paras = section ? Array.prototype.slice.call(section.querySelectorAll('.pms-about__text')) : [];
+    if (!paras.length) return;
+    var words = [];
+    // każdy akapit: pełny tekst dla czytnika ekranu (visually-hidden) + słowa w spanach tylko wizualnie (aria-hidden)
+    paras.forEach(function (p) {
+      var text = p.textContent.trim();
+      p.textContent = '';
+      var sr = document.createElement('span');
+      sr.className = 'visually-hidden';
+      sr.textContent = text;
+      var vis = document.createElement('span');
+      vis.setAttribute('aria-hidden', 'true');
+      text.split(/\s+/).forEach(function (w) {
+        var s = document.createElement('span');
+        s.className = 'v2-word';
+        s.textContent = w;
+        vis.appendChild(s);
+        vis.appendChild(document.createTextNode(' '));
+        words.push(s);
+      });
+      p.appendChild(sr);
+      p.appendChild(vis);
     });
-    p.appendChild(sr);
-    p.appendChild(vis);
     section.classList.add('v2-words-ready');
-    var words = vis.querySelectorAll('.v2-word');
     // 17.09 — audyt: pin+scrub dawał ok. 1100px pustego przewijania i kontrast .28 ponizej progu
     // WCAG (wymog dostepnosci uczelni publicznej z CLAUDE.md). Zwykly, niepiniowany scroll-linked
     // stagger: krotszy dystans, bez blokowania scrolla, start koloru na tle spelniajacym kontrast.
+    // Dwa akapity kolejno: od wejścia pierwszego (góra na 75% okna) do chwili, gdy dół drugiego jest w połowie okna.
     window.gsap.to(words, {
       color: '#141414', stagger: 0.06, ease: 'none',
-      scrollTrigger: { trigger: section, start: 'top 75%', end: 'top 30%', scrub: 0.6 }
+      scrollTrigger: { trigger: paras[0], start: 'top 75%', endTrigger: paras[paras.length - 1], end: 'bottom 50%', scrub: 0.6 }
     });
+  }
+
+  /* ---------- PM Session „Co to PM Session?”: bańki pulsują raz, po wejściu w widok ----------
+     Puls (CSS, .is-live) trwa najwyżej 4,8 s i kończy się w rozmiarze bazowym (WCAG 2.2.2). Nie wymaga GSAP. */
+  function initPmsBubbles() {
+    var box = document.querySelector('.pms-about__bubbles');
+    if (!box || !('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function (entries) {
+      if (!entries[entries.length - 1].isIntersecting) return;
+      box.classList.add('is-live');
+      io.disconnect();
+    });
+    io.observe(box);
   }
 
   /* ---------- PM Session „Czym jest”: zdanie jedzie poziomo, napędzane pionowym przewijaniem ---------- */
@@ -352,6 +370,7 @@
   }
 
   var start = function () {
+    initPmsBubbles();
     loadLibs(0, function (failed) {
       if (failed || !window.gsap || !window.ScrollTrigger || !window.Lenis) {
         document.documentElement.classList.remove('v2-enhanced');
