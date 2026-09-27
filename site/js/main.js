@@ -35,6 +35,10 @@
     if (!nav) return;
     var themeSwitch = nav.hasAttribute('data-nav-theme-switch') ? $(nav.getAttribute('data-nav-theme-switch')) : null;
 
+    // Chowanie headera: w dół poza jego wysokością chowa (transform), w górę (próg 8 px, bez drgania) pokazuje.
+    // Wymuszone pokazanie (menu/podmenu otwarte, fokus w nav, otwarty dialog) robi CSS (.site-nav.is-hidden…).
+    var lastY = window.scrollY || document.documentElement.scrollTop || 0;
+    var lastH = nav.offsetHeight, shift = 0;
     var onScroll = function () {
       var y = window.scrollY || document.documentElement.scrollTop || 0;
       nav.classList.toggle('is-scrolled', y > 24);
@@ -43,6 +47,16 @@
         var bottom = themeSwitch.getBoundingClientRect().bottom;
         nav.classList.toggle('site-nav--dark', bottom > nav.offsetHeight);
       }
+      // header zmniejsza się (is-scrolled), a przeglądarka przesuwa przewinięcie w górę o tę różnicę (scroll anchoring,
+      // w tym samym albo następnym zdarzeniu) — taki ruch w górę, najwyżej o zmianę wysokości, to nie ruch użytkownika
+      var h = nav.offsetHeight, hChanged = h !== lastH;
+      shift += h - lastH; lastH = h;
+      var delta = y - lastY;
+      if (shift < 0 && delta < 0) { var c = Math.max(delta, shift); shift -= c; lastY += c; delta -= c; }
+      if (!hChanged) shift = 0;
+      if (y <= h) { nav.classList.remove('is-hidden'); lastY = y; }
+      else if (delta > 8) { nav.classList.add('is-hidden'); lastY = y; }
+      else if (delta < -8) { nav.classList.remove('is-hidden'); lastY = y; }
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
@@ -669,6 +683,8 @@
     initContactForm();
     initReportBug();
     initGrass();
+    // pusty listener na touchstart włącza stany :active w Safari na iOS
+    document.addEventListener('touchstart', function () {}, { passive: true });
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
@@ -721,12 +737,12 @@
       wrap.innerHTML = posts.map(function (p) {
         var id = 'wpis-' + esc(p.slug);
         return '<article id="' + id + '" class="blog-article" aria-labelledby="' + id + '-title">' +
-          '<a class="blog-back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wszystkie aktualności</a>' + meta(p, ' blog-meta--article') +
+          meta(p, ' blog-meta--article') +
           '<h1 class="blog-article__title" id="' + id + '-title" tabindex="-1">' + esc(p.tytul) + '</h1>' +
           '<p class="blog-article__lead">' + esc(p.zajawka) + '</p>' + img(p, 'blog-article__img', true) +
-          '<div class="blog-article__body">' + body(p.tresc) + '</div><div class="blog-article__foot">' +
-          (p.autor ? '<p class="blog-article__author">Autor: <b>' + esc(p.autor) + '</b></p>' : '<span></span>') +
-          '<a class="btn btn--dark blog-article__back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wróć do listy</a></div></article>';
+          '<div class="blog-article__body">' + body(p.tresc) + '</div>' +
+          (p.autor ? '<div class="blog-article__foot"><p class="blog-article__author">Autor: <b>' + esc(p.autor) + '</b></p></div>' : '') +
+          '</article>';
       }).join('');
     }
 
@@ -742,16 +758,22 @@
       };
 
       var current = null;
+      var crumbList = $('[data-breadcrumb-list]');
+      var crumbArticle = $$('[data-breadcrumb-article]');
+      var crumbCurrent = $('[data-breadcrumb-current]');
       var show = function (target, moveFocus) {
         var art = target === 'list' ? null : target;
         list.hidden = !!art;
         wrap.hidden = !art;
         articles.forEach(function (a) { a.hidden = a !== art; });
+        if (crumbList) crumbList.hidden = !!art;
+        crumbArticle.forEach(function (li) { li.hidden = !art; });
         var changed = current !== target;
         current = target;
         if (art) {
           var h1 = $('.blog-article__title', art);
           document.title = h1.textContent + ' — Aktualności — Project Management Group';
+          if (crumbCurrent) crumbCurrent.textContent = h1.textContent;
           window.scrollTo(0, 0);
           if (moveFocus) h1.focus({ preventScroll: true });
         } else {

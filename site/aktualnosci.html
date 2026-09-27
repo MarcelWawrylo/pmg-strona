@@ -54,11 +54,16 @@
   </header>
 
   <main id="main" tabindex="-1">
-    <div class="container home-back"><a class="btn btn--outline home-back__link" href="index.html"><span aria-hidden="true">←</span> Powrót do strony głównej</a></div>
+    <nav class="breadcrumb" aria-label="Ścieżka nawigacji" data-breadcrumb><div class="container"><ol>
+      <li><a href="index.html">Strona główna</a></li>
+      <li data-breadcrumb-list aria-current="page">Aktualności</li>
+      <li data-breadcrumb-article hidden><a href="#aktualnosci" data-blog-back>Aktualności</a></li>
+      <li data-breadcrumb-article hidden aria-current="page" data-breadcrumb-current></li>
+    </ol></div></nav>
     <div class="blog-list blog-view" id="aktualnosci" data-blog-list>
       <section class="blog-hero" aria-labelledby="blog-title">
         <div class="container">
-          <h1 class="blog-hero__title" id="blog-title" tabindex="-1">Co w trawie piszczy</h1>
+          <h1 class="blog-hero__title" id="blog-title" tabindex="-1">Co w trawie piszczy?</h1>
           <p class="lead blog-hero__lead">Przeczytaj co nowego wydarzyło się w naszym kole</p>
         </div>
       </section>
@@ -105,7 +110,6 @@
 
     <div class="blog-articles" data-blog-articles>
       <article id="wpis-stary-zarzad" class="blog-article" aria-labelledby="wpis-stary-zarzad-title">
-        <a class="blog-back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wszystkie aktualności</a>
         <div class="blog-meta blog-meta--article"><span class="blog-date">data do ustalenia</span></div>
         <h1 class="blog-article__title" id="wpis-stary-zarzad-title" tabindex="-1">Dziękujemy zarządowi kadencji 2025/2026</h1>
         <p class="blog-article__lead">Pragniemy z dumą przypomnieć i jednocześnie złożyć serdeczne podziękowania zarządowi naszego koła z kadencji 2025/2026, który z ogromnym zaangażowaniem oraz profesjonalizmem prowadził naszą organizację do kolejnych sukcesów.</p>
@@ -116,11 +120,9 @@
         </div>
         <div class="blog-article__foot">
           <p class="blog-article__author">Autor: <b>Sekcja Marketingu</b></p>
-          <a class="btn btn--dark blog-article__back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wróć do listy</a>
         </div>
       </article>
       <article id="wpis-nowy-zarzad" class="blog-article" aria-labelledby="wpis-nowy-zarzad-title">
-        <a class="blog-back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wszystkie aktualności</a>
         <div class="blog-meta blog-meta--article"><span class="blog-date">data do ustalenia</span></div>
         <h1 class="blog-article__title" id="wpis-nowy-zarzad-title" tabindex="-1">Poznaj nowy zarząd PMG, kadencja 2026/2027</h1>
         <p class="blog-article__lead">Z ogromną radością i nową energią do działania prezentujemy nasz nowy zarząd Koła Naukowego Project Management Group na kadencję 2026/2027!</p>
@@ -131,11 +133,9 @@
         </div>
         <div class="blog-article__foot">
           <p class="blog-article__author">Autor: <b>Sekcja Marketingu</b></p>
-          <a class="btn btn--dark blog-article__back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wróć do listy</a>
         </div>
       </article>
       <article id="wpis-das" class="blog-article" aria-labelledby="wpis-das-title">
-        <a class="blog-back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wszystkie aktualności</a>
         <div class="blog-meta blog-meta--article"><span class="blog-date">data do ustalenia</span></div>
         <h1 class="blog-article__title" id="wpis-das-title" tabindex="-1">DAS 2026: tak prezentowaliśmy PMG</h1>
         <p class="blog-article__lead">12 marca 2026 roku, jako Koło Naukowe Project Management Group, mieliśmy przyjemność wziąć udział w Dniu Aktywności Studenckiej - DAS, gdzie jak co semestr z dumą prezentowaliśmy naszą działalność.</p>
@@ -147,7 +147,6 @@
         </div>
         <div class="blog-article__foot">
           <p class="blog-article__author">Autor: <b>Sekcja Marketingu</b></p>
-          <a class="btn btn--dark blog-article__back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wróć do listy</a>
         </div>
       </article>
     </div>

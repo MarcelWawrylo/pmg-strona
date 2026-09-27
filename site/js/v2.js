@@ -242,20 +242,18 @@
      - Sekcje, które są już nad oknem (hash, odświeżenie w połowie strony, skok na dół), pokazują się od razu.
      [data-reveal] z main.js w tych sekcjach jest wyłączony w v2.css, żeby nic nie animowało się dwa razy. */
   function initCaseReveal() {
-    var sections = Array.prototype.slice.call(document.querySelectorAll('main[data-case-reveal] > .case-section'));
+    var sections = Array.prototype.slice.call(document.querySelectorAll('main[data-case-reveal] > .case-section:not(.section--gallery)'));
     if (!sections.length) return;
     var gsap = window.gsap;
     var Y = 72, DURATION = 1, GAP = 0.22, START = 0.85; // START: górna krawędź sekcji na 85% wysokości okna
 
-    // elementy do lekkiego przesunięcia w czasie wewnątrz sekcji (nagłówek → treść; w galerii każde zdjęcie osobno)
+    // elementy do lekkiego przesunięcia w czasie wewnątrz sekcji (nagłówek → treść; sekcja galerii bez animacji)
     var itemsOf = function (section) {
       var box = section.firstElementChild;
       if (!box) return [];
       // .measure > .result > h2, p… — schodź przez pojedyncze opakowania, ale nie do liścia (Solvro: .measure > p)
       while (box.children.length === 1 && box.firstElementChild.children.length) box = box.firstElementChild;
-      return Array.prototype.slice.call(box.children).reduce(function (acc, el) {
-        return acc.concat(el.classList.contains('gallery') ? Array.prototype.slice.call(el.children) : [el]);
-      }, []);
+      return Array.prototype.slice.call(box.children);
     };
 
     gsap.matchMedia().add('(min-width: 961px) and (prefers-reduced-motion: no-preference)', function () {
