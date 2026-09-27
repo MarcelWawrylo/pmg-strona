@@ -346,6 +346,12 @@
     window.ScrollTrigger.refresh();
     lenis.scrollTo(el, { offset: headerOffset(), immediate: true });
     window.ScrollTrigger.refresh();
+    // po przewinięciu nav kurczy się do pigułki (niższej o ok. 30 px) — gdy skończy przejście,
+    // przelicz odstęp z jej nową wysokością, żeby cel stał tuż pod headerem, a nie ~50 px niżej
+    setTimeout(function () {
+      lenis.scrollTo(el, { offset: headerOffset(), immediate: true });
+      window.ScrollTrigger.refresh();
+    }, 500);
   }
   function scrollToHashWhenReady(lenis) {
     if (!location.hash) return;
