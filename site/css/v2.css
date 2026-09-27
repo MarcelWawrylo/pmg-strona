@@ -30,6 +30,8 @@ html.lenis, html.lenis body { height: auto; }
   }
   .v2 .site-nav.is-scrolled .site-nav__logo img { height: 44px; width: 44px; }
   .v2 .site-nav--dark.is-scrolled .site-nav__inner { background: rgba(12,12,16,.8); box-shadow: 0 14px 34px -14px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.08); }
+  /* Dołącz: pasek nad pigułką czarny jak hero pod nim (wyżej outer .site-nav jest przezroczysty) */
+  body.join-page-body .site-nav--dark.is-scrolled { background-color: var(--color-ink); }
 }
 
 /* ---------- Przejścia między podstronami (View Transitions, bez biblioteki) ---------- */
