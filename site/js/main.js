@@ -721,12 +721,12 @@
       wrap.innerHTML = posts.map(function (p) {
         var id = 'wpis-' + esc(p.slug);
         return '<article id="' + id + '" class="blog-article" aria-labelledby="' + id + '-title">' +
-          '<a class="blog-back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wszystkie aktualności</a>' + meta(p, ' blog-meta--article') +
+          meta(p, ' blog-meta--article') +
           '<h1 class="blog-article__title" id="' + id + '-title" tabindex="-1">' + esc(p.tytul) + '</h1>' +
           '<p class="blog-article__lead">' + esc(p.zajawka) + '</p>' + img(p, 'blog-article__img', true) +
-          '<div class="blog-article__body">' + body(p.tresc) + '</div><div class="blog-article__foot">' +
-          (p.autor ? '<p class="blog-article__author">Autor: <b>' + esc(p.autor) + '</b></p>' : '<span></span>') +
-          '<a class="btn btn--dark blog-article__back" href="#aktualnosci" data-blog-back><span aria-hidden="true">←</span> Wróć do listy</a></div></article>';
+          '<div class="blog-article__body">' + body(p.tresc) + '</div>' +
+          (p.autor ? '<div class="blog-article__foot"><p class="blog-article__author">Autor: <b>' + esc(p.autor) + '</b></p></div>' : '') +
+          '</article>';
       }).join('');
     }
 
@@ -742,16 +742,22 @@
       };
 
       var current = null;
+      var crumbList = $('[data-breadcrumb-list]');
+      var crumbArticle = $$('[data-breadcrumb-article]');
+      var crumbCurrent = $('[data-breadcrumb-current]');
       var show = function (target, moveFocus) {
         var art = target === 'list' ? null : target;
         list.hidden = !!art;
         wrap.hidden = !art;
         articles.forEach(function (a) { a.hidden = a !== art; });
+        if (crumbList) crumbList.hidden = !!art;
+        crumbArticle.forEach(function (li) { li.hidden = !art; });
         var changed = current !== target;
         current = target;
         if (art) {
           var h1 = $('.blog-article__title', art);
           document.title = h1.textContent + ' — Aktualności — Project Management Group';
+          if (crumbCurrent) crumbCurrent.textContent = h1.textContent;
           window.scrollTo(0, 0);
           if (moveFocus) h1.focus({ preventScroll: true });
         } else {
