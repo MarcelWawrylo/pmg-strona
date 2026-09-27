@@ -653,7 +653,7 @@
           (p.zdjecie ? '<img src="' + esc(PMG.root + p.zdjecie) + '" alt="' + (alt ? esc(p.zdjecie_alt) : '') + '">' : '[ zdjęcie 16:9 ]') + '</div>';
       };
       var meta = function (p, cls) {
-        return '<div class="blog-meta' + (cls || '') + '"><span class="blog-cat blog-cat--' + esc(p.kolor) + '">' + esc(p.kategoria) + '</span>' +
+        return '<div class="blog-meta' + (cls || '') + '">' +
           '<span class="blog-date"><time datetime="' + esc(p.data) + '">' + esc(fmt(p.data)) + '</time></span></div>';
       };
       var body = function (t) {
