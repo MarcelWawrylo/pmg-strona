@@ -169,8 +169,6 @@ button { font: inherit; }
   display: inline-block; font: 700 11px var(--font-body); letter-spacing: .04em; text-transform: uppercase;
   padding: 4px 10px; border-radius: var(--radius-pill); color: var(--color-warn); background: var(--color-warn-bg);
 }
-.back-link { display: inline-flex; align-items: center; gap: 8px; font: 600 13.5px var(--font-body); color: var(--color-blue); text-decoration: none; }
-.back-link:hover { text-decoration: underline; }
 
 /* ---------- 6. Nawigacja ---------- */
 .site-nav {
@@ -297,6 +295,28 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   .site-nav__sublink { font-size: 16px; padding: 11px 12px; white-space: normal; }
 }
 
+/* ---------- 6b. Ścieżka nawigacji (breadcrumb) ---------- */
+/* Bez własnego odstępu w poziomie: zawsze albo owinięta w .container (odstęp z gutter),
+   albo (na ciemnym hero Dołącz) zagnieżdżona wprost w istniejącym .container sekcji. */
+.breadcrumb { padding: 20px 0 14px; }
+.breadcrumb ol { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; list-style: none; margin: 0; padding: 0; }
+.breadcrumb li { display: flex; align-items: center; font: 500 13.5px var(--font-body); color: var(--color-text-muted); }
+.breadcrumb li + li::before { content: "→"; margin: 0 8px; color: rgba(20,20,20,.4); }
+@supports (content: "a" / "b") {
+  .breadcrumb li + li::before { content: "→" / ""; }
+}
+.breadcrumb a { color: inherit; text-decoration: none; }
+.breadcrumb a:hover, .breadcrumb a:focus-visible { color: var(--color-ink); text-decoration: underline; }
+.breadcrumb li[aria-current="page"] { font-weight: 700; color: var(--color-ink); }
+/* Wariant jasny — ciemne hero (Dołącz, Podcast) */
+.breadcrumb--light li { color: rgba(245,245,245,.72); }
+.breadcrumb--light li + li::before { color: rgba(245,245,245,.4); }
+.breadcrumb--light a:hover, .breadcrumb--light a:focus-visible { color: #fff; }
+.breadcrumb--light li[aria-current="page"] { color: #fff; }
+.breadcrumb--light :focus-visible { outline-color: #fff; }
+/* Dołącz: ścieżka jest zagnieżdżona w hero, które już ma własny padding-top */
+.join-page-hero__inner .breadcrumb { padding-top: 0; }
+
 /* ---------- 7. Stopka ---------- */
 .site-footer { background: var(--color-ink); color: rgba(255,255,255,.66); margin-top: auto; padding: 44px 0; }
 .site-footer__top { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
@@ -383,10 +403,6 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .case-section #h-narzedzia { margin-bottom: 18px; }
 .case-section__title--gallery { margin-bottom: 24px !important; }
 .section--gallery { padding-bottom: 70px; }
-.case-back--top { padding-top: 28px; }
-.case-back--bottom { padding-top: 0; padding-bottom: 46px; }
-/* po białej galerii: pas z linkiem też biały, od krawędzi do krawędzi (bez prześwitu tła body) */
-.bg-surface + .case-back--bottom { background: var(--color-surface); box-shadow: 0 0 0 100vmax var(--color-surface); clip-path: inset(-8px -100vmax 0); }
 .status--progress { color: var(--color-blue); background: rgba(29,70,224,.1); border-color: rgba(29,70,224,.3); }
 .case-hero__logo-box { background: var(--color-ink); display: flex; align-items: center; justify-content: center; padding: 6%; }
 .case-hero__logo-box picture { max-width: 52%; }
@@ -562,8 +578,6 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .section-head__link:hover { text-decoration: underline; }
 .section-head__link:focus-visible { text-decoration: underline; }
 
-.home-back { padding-top: 28px; }
-.home-back__link { font-size: 13px; padding: 10px 20px; }
 .home-h2 { font: 600 32px var(--font-head); letter-spacing: -.02em; }
 .home-h2--lg { font-size: clamp(28px, 3.6vw, 36px); margin: 8px 0 30px; }
 .news-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
@@ -1155,12 +1169,6 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 /* Artykuł */
 .blog-article { max-width: calc(780px + 2 * var(--gutter)); margin: 0 auto; padding: 40px var(--gutter) 80px; }
 html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
-.blog-back {
-  display: inline-flex; align-items: center; gap: 8px; font: 600 13px var(--font-body); color: var(--color-ink); text-decoration: none;
-  border: 1.5px solid rgba(20,20,20,.2); padding: 9px 18px; border-radius: var(--radius-pill);
-  transition: border-color .25s ease, transform .25s ease;
-}
-.blog-back:hover, .blog-back:focus-visible { color: var(--color-ink); border-color: var(--color-ink); transform: translateX(-3px); }
 .blog-meta--article { gap: 6px 11px; margin-top: 30px; }
 .blog-meta--article .blog-date { font-size: 13px; }
 .blog-article__title { font: 600 clamp(32px, 5.2vw, 46px)/1.08 var(--font-head); letter-spacing: -.025em; margin-top: 18px; }
@@ -1177,7 +1185,6 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 }
 .blog-article__author { font: 500 14px var(--font-body); color: var(--color-text-muted); }
 .blog-article__author b { color: var(--color-ink); }
-.blog-article__back { font-size: 13px; padding: 12px 24px; }
 
 @media (max-width: 960px) {
   .blog-featured { grid-template-columns: minmax(0, 1fr); }
