@@ -330,6 +330,44 @@
     });
   }
 
+  /* ---------- Płynne przewijanie do kotwic na tej samej stronie ---------- */
+  /* Wyklucza skip-link (#main) i hashe Aktualności (#aktualnosci, #wpis-...), bo tam main.js
+     sam obsługuje hashchange (routing lista/artykuł) — patrz initAktualnosci niżej.
+     ≥ 961 px z aktywnym Lenis (v2.js): window.PMG.smoothScrollTo, ten sam offset co scrollToHash.
+     W pozostałych przypadkach: natywny scrollIntoView + html { scroll-padding-top } z CSS. */
+  function initAnchorScroll() {
+    var EXCLUDE = /^#(main|aktualnosci|wpis-)/;
+    document.addEventListener('click', function (e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a) return;
+      var hash = a.getAttribute('href');
+      if (!hash || hash === '#' || EXCLUDE.test(hash)) return;
+      var target;
+      try { target = document.querySelector(hash); } catch (err) { return; }
+      if (!target) return;
+      e.preventDefault();
+      if (decodeURIComponent(location.hash) !== hash) history.pushState(null, '', hash);
+      var focused = false;
+      var focusTarget = function () {
+        if (focused) return;
+        focused = true;
+        if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+        target.focus({ preventScroll: true });
+      };
+      if (reduceMotion.matches) {
+        target.scrollIntoView();
+        focusTarget();
+      } else if (window.PMG.smoothScrollTo) {
+        window.PMG.smoothScrollTo(target, focusTarget);
+      } else {
+        target.scrollIntoView({ behavior: 'smooth' });
+        window.addEventListener('scrollend', focusTarget, { once: true });
+        setTimeout(focusTarget, 900); // zabezpieczenie na przeglądarki bez zdarzenia scrollend
+      }
+    });
+  }
+
   /* ---------- Odsłanianie przy scrollu ---------- */
   function initReveal() {
     var items = $$('[data-reveal]');
@@ -632,6 +670,7 @@
     initNav();
     initSubnav();
     initToTop();
+    initAnchorScroll();
     initReveal();
     initLightbox();
     initContactForm();

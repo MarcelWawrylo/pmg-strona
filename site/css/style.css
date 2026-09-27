@@ -505,21 +505,28 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .home-hero__lead { font: 400 19px/1.6 var(--font-body); color: var(--color-text-muted); max-width: 100%; contain: inline-size; margin-top: 28px; }
 .home-hero__actions { display: flex; gap: 26px; align-items: center; margin-top: 34px; flex-wrap: wrap; }
 
-@keyframes pmgwave { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
-@keyframes pmgdraw { to { stroke-dashoffset: 0; } }
-.hero-logo { width: 300px; height: 300px; position: relative; flex: none; }
+/* logo PMG: słupki wyrastają kolejno z własnego środka, ramka się rysuje, litery P→M→G; potem „oddech” w pętli */
+@keyframes pmgdraw { from { stroke-dashoffset: 1044; } }
+@keyframes pmgbarrise { from { scale: 1 .15; opacity: 0; } }
+@keyframes pmgletter { from { opacity: 0; transform: translateY(5px); } }
+/* origin przesunięty przez translateY: dy = (f - .5) * (1 - s); fazy dobrane tak, by słupki nie zrównywały wysokości ani dołów i zachowały kolejność gór */
+@keyframes pmgbreathe { 50% { transform: translateY(var(--dy)) scaleY(var(--s)); } }
+.hero-logo { width: 300px; height: 300px; position: relative; flex: none; --pmg-out: cubic-bezier(.23, 1, .32, 1); --pmg-sine: cubic-bezier(.37, 0, .63, 1); }
 .hero-logo__frame { position: absolute; inset: 0; width: 300px; height: 300px; overflow: visible; }
-.hero-logo__frame path { stroke-dasharray: 1044; stroke-dashoffset: 1044; animation: pmgdraw 3.2s ease 2s forwards; }
-/* litery P M G w przerwie prawej krawędzi ramki — pojawiają się po narysowaniu ramki */
-.hero-logo__letters { font: 700 24px var(--font-head); fill: #3a2fb0; opacity: 0; animation: blogfade .6s ease 5s forwards; }
-.hero-logo__bars { position: absolute; left: 35px; top: 47px; height: 190px; display: flex; align-items: flex-end; gap: 12px; }
-.hero-logo__bar { width: 26px; border-radius: 14px; transform-origin: bottom; animation: pmgwave 2.4s ease-in-out infinite; }
-.hero-logo__bar--1 { height: 44%; background: linear-gradient(180deg, #e5185e, #8b2c9c); }
-.hero-logo__bar--2 { height: 64%; background: linear-gradient(180deg, #e5185e, #8b2c9c); animation-delay: .3s; }
-.hero-logo__bar--3 { height: 82%; background: linear-gradient(180deg, #c21a6f, #5a2fb0); animation-delay: .525s; }
-.hero-logo__bar--4 { height: 100%; width: 29px; background: linear-gradient(180deg, #1d46e0, #3a2fb0); animation-delay: .75s; }
-.hero-logo__bar--5 { height: 88%; background: linear-gradient(180deg, #1d46e0, #3a2fb0); animation-delay: .975s; }
-.hero-logo__bar--6 { height: 66%; background: linear-gradient(180deg, #1d46e0, #5a2fb0); animation-delay: 1.2s; }
+.hero-logo__frame path { stroke-dasharray: 1044; animation: pmgdraw 4.8s var(--pmg-sine) .2s both; }
+/* litery P M G w przerwie prawej krawędzi ramki — pojawiają się, gdy linia ramki dochodzi do przerwy */
+.hero-logo__letter { font: 700 24px var(--font-head); fill: #3a2fb0; animation: pmgletter .9s var(--pmg-sine) 4.7s both; }
+.hero-logo__letter:nth-of-type(2) { animation-delay: 5.05s; }
+.hero-logo__letter:nth-of-type(3) { animation-delay: 5.4s; }
+/* geometria jak w materialy/logotypy/Logo PMG.png (% obszaru słupków) */
+.hero-logo__bars { position: absolute; left: 62px; top: 47px; width: 174px; height: 190px; }
+.hero-logo__bar { position: absolute; width: 12.3%; border-radius: 8.5px; animation: pmgbarrise .56s var(--pmg-out) var(--rise) both, pmgbreathe 5.6s var(--pmg-sine) var(--loop) infinite; }
+.hero-logo__bar--1 { left: 0; top: 28.6%; height: 52.9%; border-radius: 11px 0 0 11px; --rise: .1s; --loop: 1.4s; --s: .62; --dy: -8.74%; background: linear-gradient(180deg, #e5185e, #8b2c9c); }
+.hero-logo__bar--2 { left: 17.6%; top: 23.7%; height: 62%; --rise: .18s; --loop: 1.57s; --s: .66; --dy: -5.44%; background: linear-gradient(180deg, #e5185e, #8b2c9c); }
+.hero-logo__bar--3 { left: 35%; top: 14.5%; height: 79.9%; --rise: .26s; --loop: 1.81s; --s: .67; --dy: -.66%; background: linear-gradient(180deg, #c21a6f, #5a2fb0); }
+.hero-logo__bar--4 { left: 52.7%; top: 4.4%; height: 95.6%; --rise: .34s; --loop: 1.76s; --s: .66; --dy: 3.74%; background: linear-gradient(180deg, #1d46e0, #3a2fb0); }
+.hero-logo__bar--5 { left: 70.3%; top: 0; height: 90.2%; --rise: .42s; --loop: 1.76s; --s: .66; --dy: 2.04%; background: linear-gradient(180deg, #1d46e0, #3a2fb0); }
+.hero-logo__bar--6 { left: 87.7%; top: 11.9%; height: 69.6%; border-radius: 0 11px 11px 0; --rise: .5s; --loop: 1.79s; --s: .66; --dy: -5.44%; background: linear-gradient(180deg, #1d46e0, #5a2fb0); }
 @media (max-width: 960px) { .home-hero__inner { justify-content: flex-start; } }
 @media (max-width: 640px) {
   .home-hero { padding: 44px 0 50px; }
@@ -529,13 +536,13 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   .home-hero__actions .btn { width: 100%; }
   /* mobile: logo mniejsze i statyczne (struktura-strony-PMG.md) */
   .hero-logo { transform: scale(.62); transform-origin: left top; margin: 0 -114px -114px 0; }
-  .hero-logo__bar { animation: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .home-hero__accent { animation: none; }
-  .hero-logo__bar { animation: none; }
-  .hero-logo__frame path { stroke-dashoffset: 0; animation: none; }
-  .hero-logo__letters { opacity: 1; animation: none; }
+}
+/* mobile i reduced motion: statyczne logo w kształcie referencyjnym */
+@media (max-width: 640px), (prefers-reduced-motion: reduce) {
+  .hero-logo__bar, .hero-logo__letter, .hero-logo__frame path { animation: none; }
 }
 
 .home-news { padding: 66px 0; }
@@ -570,7 +577,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 }
 .news-tile__cta { display: block; font: 600 13px/1.4 var(--font-body); color: var(--color-purple); margin-top: 14px; }
 
-.home-projects { padding: 70px 0; scroll-margin-top: 100px; }
+.home-projects { padding: 70px 0; scroll-margin-top: 16px; }
+.home-projects:focus { outline: none; } /* fokus programowy po kliknięciu kotwicy, bez ramki wokół całej sekcji */
 .eyebrow--blue-soft { color: var(--color-blue); letter-spacing: .16em; margin: 0; }
 .project-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 @media (max-width: 960px) { .project-grid { grid-template-columns: minmax(0, 1fr); } }
