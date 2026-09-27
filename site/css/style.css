@@ -453,12 +453,10 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .hub-grid .case-card__media { background: #141414; }
 /* QUBIT i Debate Lab: logo ma białe tło wbudowane w plik — tło kafla białe, żeby się z nim zlewało (Solvro i PWR Racing Team bez zmian) */
 .hub-grid .case-card__media--logo-light { background: #fff; }
-/* QUBIT i Debate Lab: kafelek z jasnym tłem mediów dostaje ciemny body (odwrotność Solvro/PWR Racing Team) — kontrast tytułu na #141414 ok. 18.4:1, streszczenia (biały .7 alpha) ok. 9.3:1, oba >= 4.5:1 */
-.hub-grid .case-card__media--logo-light + .case-card__body { background: #141414; }
+/* QUBIT i Debate Lab: kafelek z jasnym tłem mediów dostaje białe body i ciemny tekst jak Solvro i PWR Racing Team */
+.hub-grid .case-card__media--logo-light + .case-card__body { border-top: 1px solid #141414; }
 .hub-grid .case-card { display: flex; flex-direction: column; }
 .hub-grid .case-card__body { flex: 1 0 auto; }
-.hub-grid .case-card__media--logo-light + .case-card__body .case-card__title { color: #fff; }
-.hub-grid .case-card__media--logo-light + .case-card__body .case-card__summary { color: rgba(255, 255, 255, .7); }
 .case-card__media--logo { display: flex; align-items: center; justify-content: center; padding: 20px; }
 .case-card__media--logo img { width: auto; height: auto; max-width: 70%; max-height: 64px; object-fit: contain; margin: 0 auto; }
 .case-card__media--logo-tall img { max-height: 112px; }
