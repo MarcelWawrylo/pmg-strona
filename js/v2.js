@@ -179,7 +179,9 @@
     path.setAttribute('stroke-linejoin', 'round');
     svg.appendChild(path);
     var arrow = document.createElementNS(NS, 'path');
-    arrow.setAttribute('d', 'M-3 -9 L13 0 L-3 9 Z');
+    // trójkąt grotu, czubek w lokalnym (0,0) — po translate(...) na punkt ścieżki czubek ląduje
+    // dokładnie na tym punkcie (nie przed nim, nie za nim)
+    arrow.setAttribute('d', 'M-16 -9 L0 0 L-16 9 Z');
     arrow.setAttribute('fill', '#1d46e0');
     arrow.style.opacity = '0';
     svg.appendChild(arrow);
@@ -187,11 +189,6 @@
     list.classList.add('v2-path-ready');
 
     var len = 0;
-    // linia jedzie o tyle dalej za ostatnią kropkę, żeby grot nie chował się pod nią, tylko był
-    // wyraźnie widoczny za końcem ścieżki (w tym samym kierunku co ostatni odcinek); wartość rośnie
-    // wraz z promieniem kropki (32px / promień 16 — było 20px / promień 10), żeby zachować ten sam
-    // odstęp grotu za krawędzią kropki
-    var ARROW_EXTEND = 34;
     var draw = function () {
       var lr = list.getBoundingClientRect();
       var pts = Array.prototype.map.call(dots, function (dot) {
@@ -201,7 +198,10 @@
       var last = pts[pts.length - 1], prev = pts[pts.length - 2];
       var dx = last.x - prev.x, dy = last.y - prev.y;
       var dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      pts.push({ x: last.x + (dx / dist) * ARROW_EXTEND, y: last.y + (dy / dist) * ARROW_EXTEND });
+      // ścieżka (i więc grot, który jedzie z jej końcem) zatrzymuje się na krawędzi ostatniej kropki
+      // (środek kropki minus promień w kierunku nadchodzącej linii), nie na jej środku i nie za nią
+      var lastR = dots[dots.length - 1].getBoundingClientRect().width / 2;
+      pts[pts.length - 1] = { x: last.x - (dx / dist) * lastR, y: last.y - (dy / dist) * lastR };
       // odcinki kropka → kropka, w kolejności z DOM (przy poziomym rzędzie wychodzi prosta linia)
       var d = 'M' + pts[0].x + ' ' + pts[0].y;
       for (var i = 1; i < pts.length; i++) d += ' L' + pts[i].x + ' ' + pts[i].y;
