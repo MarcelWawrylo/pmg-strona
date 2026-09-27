@@ -64,7 +64,7 @@ html.lenis, html.lenis body { height: auto; }
 .v2-enhanced .pms-intro.is-scrub .pms-intro__inner { max-width: none; padding: 0; }
 .v2-enhanced .pms-intro.is-scrub .pms-intro__title { font-size: clamp(60px, 7vw, 124px); white-space: nowrap; text-wrap: nowrap; }
 .v2-enhanced .pms-intro:not(.is-scrub) .pms-intro__outline { visibility: hidden; }
-.v2-enhanced .pms-intro.is-scrub .pms-intro__outline { padding-left: 100px; font-size: clamp(40px, 4.4vw, 64px); white-space: nowrap; }
+.v2-enhanced .pms-intro.is-scrub .pms-intro__outline { font-size: clamp(50px, 5.5vw, 80px); }
 /* przycisk pauzy baniek: przypięty ekran startuje pod menu, więc wyżej niż 16 px od dołu, żeby był widoczny od razu */
 .v2-enhanced .pms-intro.is-scrub .pms-intro__pause { bottom: 136px; }
 .pms-intro__line { display: inline-block; white-space: nowrap; will-change: transform; }

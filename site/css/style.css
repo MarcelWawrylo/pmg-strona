@@ -803,11 +803,27 @@ html:not(.js) .pms-intro__bubble img { animation: none; }
 }
 .pms-intro + .pms-about { padding-top: 64px; }
 @media (max-width: 640px) { .pms-intro__pin { padding: 40px 0; } }
-/* napis „PROJECT MANAGEMENT SESSION” nad zdaniem: sam obrys liter, dekoracja (aria-hidden); bez wsparcia text-stroke — blade wypełnienie */
-.pms-intro__outline { font: 600 clamp(22px, 4.4vw, 56px)/1.1 var(--font-head); letter-spacing: .02em; color: rgba(20, 20, 20, .35); opacity: .3; margin-bottom: clamp(24px, 3vw, 36px); user-select: none; pointer-events: none; }
-@supports (-webkit-text-stroke: 1px black) {
-  .pms-intro__outline { color: transparent; -webkit-text-stroke: 1.5px var(--color-ink); }
-  @media (max-width: 640px) { .pms-intro__outline { -webkit-text-stroke-width: 1px; } }
+/* napis „PROJECT MANAGEMENT SESSION” nad zdaniem: dekoracja (aria-hidden) z liter jak ze szkła („liquid glass”).
+   Zawsze jedna linia, wyśrodkowana; rozmiar liczony z szerokości kontenera (napis ma ok. 15,95 em szerokości, dzielnik 16,4 zostawia zapas),
+   więc od 375 px mieści się między marginesami kontenera bez przewijania w poziomie (maks. 70 px = szerokość kontenera; przy przewijaniu poziomym ≥ 961 px rozmiar w v2.css).
+   Warstwy: 1) bez background-clip: text — półprzezroczysty grafit; 2) szkło z gradientów: jasny połysk u góry, przejrzysty środek
+   (widać tło i bańki), tęczowe zabarwienie w kolorach marki jak brzeg bańki, cienka ciemniejsza krawędź (text-stroke) i cień, żeby litery
+   odcinały się od jasnego tła; 3) od 641 px filtr SVG #pms-glass (pm-session.html): lekkie „płynne” falowanie + refleks światła na krawędziach. */
+.pms-intro__outline { width: fit-content; max-width: none; margin: 0 auto clamp(24px, 3vw, 36px); font: 600 min(5.6vw, calc((100vw - 2 * var(--gutter)) / 16.4), 70px)/1.15 var(--font-head); letter-spacing: .02em; white-space: nowrap; color: rgba(20, 20, 20, .3); user-select: none; pointer-events: none; }
+.pms-intro__defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .pms-intro__outline {
+    color: transparent;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, .6) 34%, rgba(255, 255, 255, .08) 50%, rgba(255, 255, 255, .22) 74%, rgba(255, 255, 255, .85) 100%),
+      linear-gradient(100deg, rgba(229, 24, 94, .42), rgba(139, 44, 156, .34) 50%, rgba(29, 70, 224, .42));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-stroke: 1px rgba(20, 20, 20, .42);
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, .9)) drop-shadow(0 4px 10px rgba(20, 20, 20, .16));
+  }
+  @media (min-width: 641px) {
+    .pms-intro__outline { filter: url(#pms-glass) drop-shadow(0 1px 0 rgba(255, 255, 255, .9)) drop-shadow(0 6px 14px rgba(20, 20, 20, .16)); }
+  }
 }
 
 /* ---------- 10. Dołącz ---------- */
