@@ -664,6 +664,38 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .pms-block { padding-top: 52px; }
 .pms-block--tight { padding-top: 48px; }
 .pms-about--pms-gap { padding-bottom: 29px; }
+/* „Co to PM Session?”: bańki od dołu intro do końca drugiego akapitu (dekoracja, aria-hidden), rzadziej niż w intro, coraz rzadsze i mniejsze w dół.
+   Kontener siedzi w .prose (jego dół = koniec akapitu), sięga w górę o odstęp nad sekcją (--pms-about-top = padding-top sekcji)
+   i w lewo do krawędzi okna (--pms-bleed = lewy margines od krawędzi okna do tekstu). Bańki leżą tylko w pasie nad nagłówkiem
+   i na bocznych marginesach, nigdy na literach, także przy skali 1.8 w pulsie: środek bańki w --x marginesu, szerokość --w
+   (najwyżej .4 marginesu). Pod tekstem (z-index: -1 w izolowanym .prose). Puls jak w intro (1–2 cykle, ≤ 4,8 s), ale dopiero
+   po wejściu w widok: klasę .is-live dodaje v2.js (≥ 961 px, bez reduced motion); bez niej bańki stoją. ≤ 640 px: 6 z 11. */
+.pms-about { --pms-bleed: max(var(--gutter), (100vw - var(--container)) / 2); --pms-about-top: 64px; }
+.pms-about .prose { position: relative; isolation: isolate; }
+.pms-about__bubbles { position: absolute; z-index: -1; top: calc(-1 * var(--pms-about-top)); bottom: 0; left: calc(-1 * var(--pms-bleed)); width: calc(100vw - 20px); pointer-events: none; }
+.pms-about__bubble { position: absolute; display: block; width: var(--w); }
+.pms-about__bubble img { display: block; width: 100%; height: auto; }
+@media (prefers-reduced-motion: no-preference) {
+  .pms-about__bubbles.is-live .pms-about__bubble img { animation: pms-bubble var(--bubble-dur, 2.4s) ease-in-out var(--bubble-delay, 0s) var(--bubble-n, 2) var(--bubble-dir, normal) both; }
+}
+/* pas nad nagłówkiem (nad lewą kolumną): środek na .45 wysokości pasa */
+.pms-about__bubble:nth-child(-n+3) { top: calc(var(--pms-about-top) * .45 - var(--w) * .453); }
+.pms-about__bubble:nth-child(1) { --w: min(16px, calc(var(--pms-about-top) * .38)); left: 14%; --bubble-dur: 2.2s; --bubble-n: 2; --bubble-delay: .2s; }
+.pms-about__bubble:nth-child(2) { --w: min(10px, calc(var(--pms-about-top) * .38)); left: 30%; --bubble-dur: 1.5s; --bubble-n: 3; --bubble-dir: reverse; }
+.pms-about__bubble:nth-child(3) { --w: min(13px, calc(var(--pms-about-top) * .38)); left: 44%; --bubble-dur: 4.2s; --bubble-n: 1; --bubble-delay: .4s; }
+/* lewy margines */
+.pms-about__bubble:nth-child(n+4):nth-child(-n+7) { left: calc(var(--pms-bleed) * var(--x) - var(--w) / 2); }
+.pms-about__bubble:nth-child(4) { --w: min(40px, calc(var(--pms-bleed) * .4)); --x: .5; top: 10%; --bubble-dur: 4.4s; --bubble-n: 1; --bubble-delay: .1s; }
+.pms-about__bubble:nth-child(5) { --w: min(18px, calc(var(--pms-bleed) * .3)); --x: .3; top: 30%; --bubble-dur: 2.3s; --bubble-n: 2; --bubble-dir: reverse; }
+.pms-about__bubble:nth-child(6) { --w: min(14px, calc(var(--pms-bleed) * .3)); --x: .62; top: 56%; --bubble-dur: 4s; --bubble-n: 1; --bubble-delay: .6s; --bubble-dir: reverse; }
+.pms-about__bubble:nth-child(7) { --w: min(9px, calc(var(--pms-bleed) * .25)); --x: .5; top: 84%; --bubble-dur: 2.1s; --bubble-n: 2; --bubble-delay: .3s; }
+/* prawy margines (od prawej krawędzi okna; kontener kończy się 20 px przed nią) */
+.pms-about__bubble:nth-child(n+8) { left: calc(100% + 20px - var(--pms-bleed) * (1 - var(--x)) - var(--w) / 2); }
+.pms-about__bubble:nth-child(8) { --w: min(34px, calc(var(--pms-bleed) * .4)); --x: .5; top: 4%; --bubble-dur: 4.6s; --bubble-n: 1; --bubble-dir: reverse; }
+.pms-about__bubble:nth-child(9) { --w: min(20px, calc(var(--pms-bleed) * .35)); --x: .35; top: 20%; --bubble-dur: 2.2s; --bubble-n: 2; --bubble-delay: .2s; }
+.pms-about__bubble:nth-child(10) { --w: min(12px, calc(var(--pms-bleed) * .25)); --x: .7; top: 44%; --bubble-dur: 4.3s; --bubble-n: 1; --bubble-delay: .3s; --bubble-dir: reverse; }
+.pms-about__bubble:nth-child(11) { --w: min(8px, calc(var(--pms-bleed) * .3)); --x: .4; top: 76%; --bubble-dur: 1.5s; --bubble-n: 3; --bubble-delay: .1s; }
+@media (max-width: 640px) { .pms-about__bubble:nth-child(3), .pms-about__bubble:nth-child(5), .pms-about__bubble:nth-child(7), .pms-about__bubble:nth-child(9), .pms-about__bubble:nth-child(11) { display: none; } }
 .pms-block--pms-gap { padding-top: 26px; }
 /* ostatnia sekcja przed stopką: dolny odstęp jak między sekcjami (29 + 26 px + margines <dl> 1em = 72 px przy 1440, 71 px przy 375) */
 .pms-block--pms-gap:last-child { padding-bottom: calc(55px + 1em); }
