@@ -328,15 +328,18 @@
      wystarczy: po starcie Lenis, gdy adres ma hash, dosuwamy do celu z offsetem o wysokość headera.
      Czekamy na wczytanie fontów i obrazów — inaczej wysokości elementów (a więc i pozycja celu) jeszcze
      „skaczą”. */
+  function headerOffset() {
+    var nav = document.querySelector('.site-nav');
+    var headerHeight = nav ? nav.getBoundingClientRect().height : 96;
+    return -(headerHeight + 16);
+  }
   function scrollToHash(lenis) {
     if (!location.hash) return;
     var el;
     try { el = document.querySelector(location.hash); } catch (e) { return; }
     if (!el) return;
-    var nav = document.querySelector('.site-nav');
-    var headerHeight = nav ? nav.getBoundingClientRect().height : 96;
     window.ScrollTrigger.refresh();
-    lenis.scrollTo(el, { offset: -(headerHeight + 16), immediate: true });
+    lenis.scrollTo(el, { offset: headerOffset(), immediate: true });
     window.ScrollTrigger.refresh();
   }
   function scrollToHashWhenReady(lenis) {
@@ -356,6 +359,14 @@
       }
       window.gsap.registerPlugin(window.ScrollTrigger);
       var lenis = initScroll();
+      // klik w kotwicę na tej samej stronie (main.js, initAnchorScroll) korzysta z Lenis zamiast
+      // scrollIntoView, żeby nie mieć dwóch mechanizmów przewijania naraz na ≥ 961 px
+      if (window.PMG) {
+        window.PMG.smoothScrollTo = function (el, onComplete) {
+          window.ScrollTrigger.refresh();
+          lenis.scrollTo(el, { offset: headerOffset(), onComplete: onComplete });
+        };
+      }
       initPmsIntro();
       initPmsWords();
       initJoinPath();
