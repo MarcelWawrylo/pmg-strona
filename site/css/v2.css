@@ -15,7 +15,12 @@ html.lenis, html.lenis body { height: auto; }
 .v2 .h1,
 .v2 .pms-banner__title,
 .v2 .hub-banner__title { font-size: clamp(36px, 6vw, 72px); line-height: .98; letter-spacing: -.035em; }
-.v2 .hub-banner__logo { height: clamp(60px, 10vw, 120px); }
+.v2 .hub-banner__brand { width: clamp(150px, 25vw, 300px); height: clamp(150px, 25vw, 300px); }
+.v2 .hub-banner__logo { width: clamp(150px, 25vw, 300px); height: clamp(150px, 25vw, 300px); }
+@media (min-width: 641px) {
+  .hub-banner__title { white-space: nowrap; }
+  .v2 .hub-banner__title { font-size: clamp(28px, 4.8vw, 62px); }
+}
 .v2 .contact-hero__title { line-height: .92; letter-spacing: -.04em; }
 .v2 .home-h2, .v2 .pms-h2 { letter-spacing: -.03em; }
 
