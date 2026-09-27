@@ -385,6 +385,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .section--gallery { padding-bottom: 70px; }
 .case-back--top { padding-top: 28px; }
 .case-back--bottom { padding-top: 0; padding-bottom: 46px; }
+/* po białej galerii: pas z linkiem też biały, od krawędzi do krawędzi (bez prześwitu tła body) */
+.bg-surface + .case-back--bottom { background: var(--color-surface); box-shadow: 0 0 0 100vmax var(--color-surface); clip-path: inset(-8px -100vmax 0); }
 .status--progress { color: var(--color-blue); background: rgba(29,70,224,.1); border-color: rgba(29,70,224,.3); }
 .case-hero__logo-box { background: var(--color-ink); display: flex; align-items: center; justify-content: center; padding: 6%; }
 .case-hero__logo-box picture { max-width: 52%; }
