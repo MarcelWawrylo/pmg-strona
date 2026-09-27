@@ -510,8 +510,9 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .home-hero__accent {
   font-style: italic; background: var(--gradient-brand);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
-  padding-right: .12em; margin-right: -.12em; /* miejsce na pochyloną kropkę (background-clip:text przycina do pola inline) */
+  padding-right: .12em; margin-right: -.12em; /* miejsce na pochyloną ostatnią literę (background-clip:text przycina do pola inline) */
 }
+.home-hero__nowrap { white-space: nowrap; } /* „uczą naprawdę” zawsze w jednej linii */
 .home-hero__lead { font: 400 19px/1.6 var(--font-body); color: var(--color-text-muted); max-width: 100%; contain: inline-size; margin-top: 28px; }
 .home-hero__actions { display: flex; gap: 26px; align-items: center; margin-top: 34px; flex-wrap: wrap; }
 .home-hero__link {
