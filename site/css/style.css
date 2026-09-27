@@ -861,32 +861,21 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .join-page-h2 { font: 600 clamp(26px, 3.2vw, 32px)/1.15 var(--font-head); letter-spacing: -.02em; margin: 0 0 22px; }
 .join-page-col--units .join-page-h2 { margin-bottom: 10px; }
 .join-page-units-intro { font: 400 15px/1.5 var(--font-body); color: var(--color-text-muted); margin: 0 0 22px; }
-
-.join-page-units { display: flex; flex-direction: column; gap: 12px; }
-@media (min-width: 961px) {
-  .join-page-units { grid-template-columns: repeat(2, minmax(0, 1fr)); display: grid; }
+.join-page-units-intro a {
+  color: var(--color-ink); text-decoration: underline; text-underline-offset: 6px;
+  transition: color var(--ease);
 }
-.join-page-unit {
-  display: flex; align-items: center; gap: 16px; text-decoration: none; color: var(--color-ink);
-  background: var(--color-surface); padding: 18px 20px;
+.join-page-units-intro a:hover, .join-page-units-intro a:focus-visible {
+  color: var(--color-pink-text);
 }
-.join-page-unit__icon {
-  width: 44px; height: 44px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-  font: 700 18px var(--font-head); color: #fff;
-}
-.join-page-unit__icon--marketing { background: linear-gradient(135deg, #8b2c9c, #5a2fb0); }
-.join-page-unit__icon--finanse { background: linear-gradient(135deg, #1d46e0, #3a2fb0); }
-.join-page-unit__icon--partnerzy { background: linear-gradient(135deg, #141414, #5a2fb0); }
-.join-page-unit__icon--hr { background: linear-gradient(180deg, #e5185e, #8b2c9c); }
-.join-page-unit__body { min-width: 0; flex: 1; }
-.join-page-unit__title { font: 600 17px/1.3 var(--font-head); letter-spacing: 0; }
-.join-page-unit__text { font: 400 13.5px/1.45 var(--font-body); color: var(--color-text-muted); }
-.join-page-unit__hint { display: block; margin-top: 6px; font: 600 13px/1.3 var(--font-body); color: var(--color-blue); }
-.join-page-unit__arrow { flex: none; font: 600 18px var(--font-head); color: var(--color-text-muted); transition: color var(--ease); }
+.join-page-units-intro span { display: inline-block; transition: transform var(--ease); }
 @media (hover: hover) {
-  .join-page-unit:hover .join-page-unit__arrow { color: var(--color-pink-text); }
+  .join-page-units-intro a:hover span { transform: translateX(4px); }
 }
-.join-page-unit:focus-visible .join-page-unit__arrow { color: var(--color-pink-text); }
+@media (prefers-reduced-motion: reduce) {
+  .join-page-units-intro a:hover span { transform: none; }
+}
+
 
 /* Oś procesu: pionowa ze strzałką w dół, narysowana w całości bez JS/z reduced-motion — prosta linia
    przechodzi przez kroki 1 → 2 → 3 → 4 (na ≥ 961 px z JS v2.js zamienia ją na poziomą, rysowaną
@@ -927,7 +916,6 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 }
 @media (max-width: 640px) {
   .join-page-main { padding: 40px 0 60px; }
-  .join-page-unit { padding: 16px; gap: 14px; }
   .join-page-form { padding: 28px 22px; }
 }
 
@@ -981,7 +969,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   background: linear-gradient(135deg, var(--about-accent), #3a2fb0);
   box-shadow: 0 6px 16px -8px var(--about-accent);
 }
-.about-unit__logo svg, .join-page-unit__icon svg {
+.about-unit__logo svg {
   width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
 }
 .about-unit__name { font: 600 19px/1.2 var(--font-head); letter-spacing: 0; }
@@ -1421,24 +1409,24 @@ body.has-dialog { overflow: hidden; }
 
 /* ---------- 9b. Karta serwisu (wspólna baza — celowo na końcu pliku, żeby wygrała kolejnością) ---------- */
 .case-card, .project-card, .blog-card, .blog-featured, .link-tile, .pod-ep { border-radius: var(--card-radius); }
-.news-tile, .speaker, .join-page-unit { border-radius: var(--card-radius-sm); }
-.case-card, .project-card, .blog-card, .blog-featured, .link-tile, .news-tile, .speaker, .join-page-unit, .join-card {
+.news-tile, .speaker { border-radius: var(--card-radius-sm); }
+.case-card, .project-card, .blog-card, .blog-featured, .link-tile, .news-tile, .speaker, .join-card {
   border: var(--card-border); box-shadow: var(--card-shadow);
   transition: transform var(--card-t), box-shadow var(--card-t), border-color var(--card-t);
 }
 @media (hover: hover) {
   .case-card:hover, .project-card:hover, .blog-card:hover, .blog-featured:hover, .link-tile:hover,
-  .news-tile:hover, .join-page-unit:hover, .pod-ep:hover, .join-card:hover { transform: var(--card-lift); box-shadow: var(--card-shadow-hover); }
+  .news-tile:hover, .pod-ep:hover, .join-card:hover { transform: var(--card-lift); box-shadow: var(--card-shadow-hover); }
   .case-card:hover .case-card__media img, .news-tile:hover .news-tile__img { transform: scale(1.04); }
   .case-card:hover .case-card__media--logo img { transform: none; }
 }
-.case-card:focus-visible, .project-card:focus-visible, .link-tile:focus-visible, .join-page-unit:focus-visible, .join-card:focus-visible,
+.case-card:focus-visible, .project-card:focus-visible, .link-tile:focus-visible, .join-card:focus-visible,
 .blog-card:focus-within, .blog-featured:focus-within, .news-tile:focus-within, .pod-ep:focus-within { transform: var(--card-lift); box-shadow: var(--card-shadow-hover); }
 .case-card:active, .project-card:active, .blog-card:active, .blog-featured:active, .link-tile:active,
-.news-tile:active, .join-page-unit:active, .pod-ep:active, .join-card:active { transform: var(--card-press); transition-duration: .1s; }
+.news-tile:active, .pod-ep:active, .join-card:active { transform: var(--card-press); transition-duration: .1s; }
 @media (hover: hover) { .pod-ep:hover { box-shadow: 0 24px 46px -24px rgba(0,0,0,.6); } }
 .pod-ep:focus-within { box-shadow: 0 24px 46px -24px rgba(0,0,0,.6); }
 @media (prefers-reduced-motion: reduce) {
-  .case-card, .project-card, .blog-card, .blog-featured, .link-tile, .news-tile, .join-page-unit, .pod-ep, .speaker, .join-card,
+  .case-card, .project-card, .blog-card, .blog-featured, .link-tile, .news-tile, .pod-ep, .speaker, .join-card,
   .case-card__media img, .news-tile__img { transform: none !important; }
 }
