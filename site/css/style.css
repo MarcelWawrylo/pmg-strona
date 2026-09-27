@@ -577,7 +577,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 }
 .news-tile__cta { display: block; font: 600 13px/1.4 var(--font-body); color: var(--color-purple); margin-top: 14px; }
 
-.home-projects { padding: 70px 0; scroll-margin-top: 100px; }
+.home-projects { padding: 70px 0; scroll-margin-top: 16px; }
+.home-projects:focus { outline: none; } /* fokus programowy po kliknięciu kotwicy, bez ramki wokół całej sekcji */
 .eyebrow--blue-soft { color: var(--color-blue); letter-spacing: .16em; margin: 0; }
 .project-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 @media (max-width: 960px) { .project-grid { grid-template-columns: minmax(0, 1fr); } }
