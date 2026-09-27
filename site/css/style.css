@@ -410,9 +410,11 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 /* ---------- 10b. Case Koła — hub ---------- */
 .eyebrow--blue { color: var(--color-blue); letter-spacing: .2em; margin: 0; }
 .hub-banner { padding: 66px 0 58px; }
-.hub-banner__brand { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.hub-banner__logo { width: 64px; height: 64px; border-radius: 16px; object-fit: contain; }
-.hub-banner__title { font: 600 clamp(36px, 5.6vw, 56px)/1.05 var(--font-head); letter-spacing: -.02em; margin-top: 16px; }
+.hub-banner__head { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.hub-banner__brand { display: flex; align-items: center; flex-shrink: 0; }
+.hub-banner__logo { width: auto; height: 56px; border-radius: 16px; object-fit: contain; }
+.hub-banner__title { font: 600 clamp(36px, 5.6vw, 56px)/1.05 var(--font-head); letter-spacing: -.02em; margin-top: 0; }
+@media (max-width: 640px) { .hub-banner__head { flex-direction: column; align-items: flex-start; gap: 16px; } }
 .hub-banner__lead { max-width: 760px; margin-top: 16px; text-wrap: pretty; }
 .hub-banner__lead--full { max-width: none; }
 .hub-grid { padding: 20px 0 80px; }
@@ -425,9 +427,19 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .hub-grid .case-card__media { background: #141414; }
 /* QUBIT i Debate Lab: logo ma białe tło wbudowane w plik — tło kafla białe, żeby się z nim zlewało (Solvro i PWR Racing Team bez zmian) */
 .hub-grid .case-card__media--logo-light { background: #fff; }
+/* QUBIT i Debate Lab: kafelek z jasnym tłem mediów dostaje ciemny body (odwrotność Solvro/PWR Racing Team) — kontrast tytułu na #141414 ok. 18.4:1, streszczenia (biały .7 alpha) ok. 9.3:1, oba >= 4.5:1 */
+.hub-grid .case-card__media--logo-light + .case-card__body { background: #141414; }
+.hub-grid .case-card { display: flex; flex-direction: column; }
+.hub-grid .case-card__body { flex: 1 0 auto; }
+.hub-grid .case-card__media--logo-light + .case-card__body .case-card__title { color: #fff; }
+.hub-grid .case-card__media--logo-light + .case-card__body .case-card__summary { color: rgba(255, 255, 255, .7); }
 .case-card__media--logo { display: flex; align-items: center; justify-content: center; padding: 20px; }
 .case-card__media--logo img { width: auto; height: auto; max-width: 70%; max-height: 64px; object-fit: contain; margin: 0 auto; }
-.case-card__media--logo-tall img { max-height: 74px; }
+.case-card__media--logo-tall img { max-height: 112px; }
+/* logotypy w kafelkach: stała wysokość zamiast 70% szerokości pliku (reguła .case-card__media img niżej nadpisuje width/height) */
+.case-card__media--logo:not(.case-card__media--logo-tall) img { height: 45px; max-width: none; }
+.hub-grid .case-card__media--logo-tall picture { display: contents; }
+.hub-grid .case-card__media--logo-tall img { width: auto; height: 100%; max-width: none; }
 .case-card__media__logo-plate { border-radius: 8px; }
 .case-card__media img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform var(--card-t); }
 .case-card__body { padding: 24px; }
