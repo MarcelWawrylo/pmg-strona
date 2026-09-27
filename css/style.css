@@ -430,8 +430,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in;
   border-radius: var(--radius-md); overflow: hidden; aspect-ratio: 16 / 9;
 }
-.gallery__button img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .4s ease; }
-.gallery__button:hover img, .gallery__button:focus-visible img { transform: scale(1.04); }
+.gallery__button img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .gallery__caption { font: 400 13.5px/1.5 var(--font-body); color: var(--color-text-muted); margin-top: 10px; }
 
 /* ---------- 10b. Case Koła — hub ---------- */

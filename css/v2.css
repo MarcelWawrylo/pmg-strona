@@ -91,5 +91,5 @@ html.lenis, html.lenis body { height: auto; }
    ukryta (bez zmiany układu), aż v2.js ją wpuści i oznaczy .is-case-in. */
 main[data-case-reveal] > .case-section [data-reveal] { opacity: 1; transform: none; transition: none; }
 @media (min-width: 961px) and (prefers-reduced-motion: no-preference) {
-  .v2-enhanced main[data-case-reveal] > .case-section:not(.is-case-in) { visibility: hidden; }
+  .v2-enhanced main[data-case-reveal] > .case-section:not(.is-case-in):not(.section--gallery) { visibility: hidden; }
 }
