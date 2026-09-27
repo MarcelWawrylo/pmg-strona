@@ -820,7 +820,6 @@ html:not(.js) .pms-intro__bubble img { animation: none; }
 }
 .join-page-hero__inner { position: relative; }
 .join-page-hero__title { font: 600 clamp(42px, 7vw, 72px)/.98 var(--font-head); color: #fff; letter-spacing: -.03em; max-width: 16ch; }
-.join-page-hero__lead { font: 400 var(--fs-lead)/1.6 var(--font-body); color: rgba(255,255,255,.7); max-width: 560px; margin-top: 24px; }
 
 /* Treść: sekcje + proces + karta formularza */
 .join-page-main { padding: 60px 0 90px; }
@@ -882,7 +881,6 @@ html:not(.js) .pms-intro__bubble img { animation: none; }
   box-shadow: var(--shadow-feature); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px;
 }
 .join-page-form__title { font: 600 24px/1.2 var(--font-head); letter-spacing: 0; }
-.join-page-form__text { font: 400 14.5px/1.6 var(--font-body); color: var(--color-text-muted); max-width: 320px; }
 .join-page-form__btn { font-size: 15px; padding: 14px 30px; white-space: nowrap; }
 .join-page-form__btn:hover, .join-page-form__btn:focus-visible { background: var(--color-pink-text); color: #fff; }
 
@@ -1259,7 +1257,7 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 .pod-ep__btn::after { content: ""; position: absolute; inset: 0; z-index: 2; border-radius: inherit; }
 .pod-ep__btn:focus-visible { outline: none; }
 .pod-ep__hosts { font: 400 13px/1.55 var(--font-body); color: var(--pod-text-3); margin-top: 10px; }
-.pod-ep__more { font: 600 13px/1.4 var(--font-body); margin-top: auto; padding-top: 16px; align-self: flex-start; color: var(--pod-pink-text); }
+.pod-ep__more { font: 600 13px/1.4 var(--font-body); margin-top: auto; padding-top: 16px; align-self: flex-start; color: var(--color-spotify); }
 
 /* Modal odcinka (natywny <dialog>) */
 @keyframes pmgmodal { from { opacity: 0; transform: translateY(20px) scale(.98); } to { opacity: 1; transform: none; } }
