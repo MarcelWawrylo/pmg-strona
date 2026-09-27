@@ -9,6 +9,21 @@
   if (!desktop.matches || reduce.matches) return;
   document.documentElement.classList.add('v2-enhanced');
 
+  /* ---------- Case Koła: animowane logo (czysty CSS w v2.css, niezależnie od GSAP/CDN) ----------
+     .is-anim ustawia sekwencję w klatce początkowej (wstrzymaną przez .is-anim-wait); gdy logo wejdzie
+     w widok, zdejmujemy .is-anim-wait i sekwencja rusza — raz na wczytanie strony. */
+  (function initCaseLogo() {
+    var logo = document.querySelector('.case-logo');
+    if (!logo || !('IntersectionObserver' in window)) return;
+    logo.classList.add('is-anim', 'is-anim-wait');
+    var io = new IntersectionObserver(function (entries) {
+      if (!entries.some(function (e) { return e.isIntersecting; })) return;
+      io.disconnect();
+      logo.classList.remove('is-anim-wait');
+    }, { threshold: 0.3 });
+    io.observe(logo);
+  })();
+
   var LIBS = [
     ['https://cdn.jsdelivr.net/npm/lenis@1.3.4/dist/lenis.min.js', 'sha384-FKTX0CNJ8ngN1oGMBReVu7mvjTJyjFiD5etb1NKnYxc+8eFI2O0KWnksTN+oTFcu'],
     ['https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js', 'sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc'],
@@ -164,7 +179,9 @@
     path.setAttribute('stroke-linejoin', 'round');
     svg.appendChild(path);
     var arrow = document.createElementNS(NS, 'path');
-    arrow.setAttribute('d', 'M-3 -9 L13 0 L-3 9 Z');
+    // trójkąt grotu, czubek w lokalnym (0,0) — po translate(...) na punkt ścieżki czubek ląduje
+    // dokładnie na tym punkcie (nie przed nim, nie za nim)
+    arrow.setAttribute('d', 'M-16 -9 L0 0 L-16 9 Z');
     arrow.setAttribute('fill', '#1d46e0');
     arrow.style.opacity = '0';
     svg.appendChild(arrow);
@@ -172,11 +189,6 @@
     list.classList.add('v2-path-ready');
 
     var len = 0;
-    // linia jedzie o tyle dalej za ostatnią kropkę, żeby grot nie chował się pod nią, tylko był
-    // wyraźnie widoczny za końcem ścieżki (w tym samym kierunku co ostatni odcinek); wartość rośnie
-    // wraz z promieniem kropki (32px / promień 16 — było 20px / promień 10), żeby zachować ten sam
-    // odstęp grotu za krawędzią kropki
-    var ARROW_EXTEND = 34;
     var draw = function () {
       var lr = list.getBoundingClientRect();
       var pts = Array.prototype.map.call(dots, function (dot) {
@@ -186,7 +198,10 @@
       var last = pts[pts.length - 1], prev = pts[pts.length - 2];
       var dx = last.x - prev.x, dy = last.y - prev.y;
       var dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      pts.push({ x: last.x + (dx / dist) * ARROW_EXTEND, y: last.y + (dy / dist) * ARROW_EXTEND });
+      // ścieżka (i więc grot, który jedzie z jej końcem) zatrzymuje się na krawędzi ostatniej kropki
+      // (środek kropki minus promień w kierunku nadchodzącej linii), nie na jej środku i nie za nią
+      var lastR = dots[dots.length - 1].getBoundingClientRect().width / 2;
+      pts[pts.length - 1] = { x: last.x - (dx / dist) * lastR, y: last.y - (dy / dist) * lastR };
       // odcinki kropka → kropka, w kolejności z DOM (przy poziomym rzędzie wychodzi prosta linia)
       var d = 'M' + pts[0].x + ' ' + pts[0].y;
       for (var i = 1; i < pts.length; i++) d += ' L' + pts[i].x + ' ' + pts[i].y;

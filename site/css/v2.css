@@ -15,7 +15,35 @@ html.lenis, html.lenis body { height: auto; }
 .v2 .h1,
 .v2 .pms-banner__title,
 .v2 .hub-banner__title { font-size: clamp(36px, 6vw, 72px); line-height: .98; letter-spacing: -.035em; }
-.v2 .hub-banner__logo { height: clamp(60px, 10vw, 120px); }
+.v2 .hub-banner__brand { width: clamp(150px, 25vw, 300px); height: clamp(150px, 25vw, 300px); }
+.v2 .hub-banner__logo { width: clamp(150px, 25vw, 300px); height: clamp(150px, 25vw, 300px); }
+@media (min-width: 641px) {
+  .hub-banner__title { white-space: nowrap; }
+  .v2 .hub-banner__title { font-size: clamp(28px, 4.8vw, 62px); }
+}
+/* Case Koła: logo w banerze — czysty CSS (bez GSAP), start klasą .is-anim z v2.js (IntersectionObserver, raz na wczytanie).
+   Czasy i easing jak .hero-logo na stronie głównej: ramka rysuje się 4,8 s, potem słupki PMG, litery P→M→G, na końcu
+   mózg i promienie migoczą 4 razy co 0,6 s (1,7 błysku/s, WCAG 2.3.1). Wszystko z fill-mode backwards: po końcu nie zostaje
+   żaden styl animacji, więc logo jest dokładnie statyczne. Bez JS, < 961 px i przy reduced-motion klasy nie ma. */
+@keyframes caselogo-draw { from { stroke-dasharray: 1141; stroke-dashoffset: 1141; } to { stroke-dasharray: 1141; stroke-dashoffset: 0; } }
+@keyframes caselogo-fade { from { opacity: 0; } }
+@keyframes caselogo-letter { from { opacity: 0; transform: translateY(8px); } }
+@keyframes caselogo-glow { 50% { opacity: 1; } }
+@keyframes caselogo-bright { 50% { filter: brightness(1.3) saturate(1.1); } }
+@keyframes caselogo-ray { 50% { stroke: #e5185e; } }
+@media (min-width: 961px) and (prefers-reduced-motion: no-preference) {
+  .case-logo.is-anim { --caselogo-sine: cubic-bezier(.37, 0, .63, 1); }
+  .case-logo.is-anim .case-logo__frame { animation: caselogo-draw 4.8s var(--caselogo-sine) .2s backwards; }
+  .case-logo.is-anim .case-logo__bars { animation: caselogo-fade .3s ease-out 4.4s backwards; }
+  .case-logo.is-anim .case-logo__letter { animation: caselogo-letter .9s var(--caselogo-sine) 4.7s backwards; }
+  .case-logo.is-anim .case-logo__letter:nth-of-type(2) { animation-delay: 5.05s; }
+  .case-logo.is-anim .case-logo__letter:nth-of-type(3) { animation-delay: 5.4s; }
+  .case-logo.is-anim .case-logo__glow { animation: caselogo-glow .6s ease-in-out 6s 4 backwards; }
+  .case-logo.is-anim .case-logo__brain { animation: caselogo-bright .6s ease-in-out 6s 4 backwards; }
+  .case-logo.is-anim .case-logo__ray { animation: caselogo-ray .6s ease-in-out 6.15s 4 backwards; }
+  /* do wejścia logo w widok sekwencja stoi w klatce początkowej */
+  .case-logo.is-anim.is-anim-wait * { animation-play-state: paused; }
+}
 .v2 .contact-hero__title { line-height: .92; letter-spacing: -.04em; }
 .v2 .home-h2, .v2 .pms-h2 { letter-spacing: -.03em; }
 
@@ -73,7 +101,7 @@ html.lenis, html.lenis body { height: auto; }
 .v2-enhanced .join-page-steps { position: relative; }
 .v2-path { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 0; }
 .v2-enhanced .join-page-steps.v2-path-ready::before,
-.v2-enhanced .join-page-steps.v2-path-ready::after { opacity: 0; }
+.v2-enhanced .join-page-steps.v2-path-ready .join-page-steps__item:last-child::after { opacity: 0; }
 .v2-enhanced .join-page-steps > li { position: relative; z-index: 1; }
 @media (min-width: 961px) {
   .v2-enhanced .join-page-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 26px; }
