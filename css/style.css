@@ -452,8 +452,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 /* ---------- 10c. Kontakt ---------- */
 .container--flush { max-width: none; }
 .contact-hero { padding: 64px 0 30px; }
-.contact-hero__title { font: 600 clamp(40px, 7vw, 92px)/.98 var(--font-head); letter-spacing: -.03em; max-width: 14ch; }
-.contact-hero__title em { font-style: italic; color: var(--color-pink); }
+.contact-hero__title { font: 600 clamp(40px, 7vw, 92px)/.98 var(--font-head); letter-spacing: -.03em; max-width: none; }
+.contact-hero__title em { font-style: italic; color: var(--color-pink); display: block; }
 .contact { padding: 40px 0 90px; }
 .contact__grid { display: grid; grid-template-columns: .85fr 1.15fr; gap: 64px; align-items: start; }
 .contact__info { display: flex; flex-direction: column; gap: 34px; padding-top: 8px; }
@@ -489,6 +489,12 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 @media (max-width: 960px) {
   .contact__grid { grid-template-columns: minmax(0, 1fr); gap: 48px; }
   .contact-hero { padding-top: 40px; }
+}
+/* Kontakt, zdanie „Masz pomysł na współpracę?”: 641–960 px — czcionka zmniejszona względem 7vw tylko w tym przedziale,
+   żeby czarne zdanie zmieściło się w jednej linii (min. ok. 41 px, zawsze >= 28 px); poniżej 640 px i od 961 px w górę
+   bez zmian (patrz raport zadania: przy pełnej szerokości i bez zmniejszania fontu od 961 px zdanie się nie mieści). */
+@media (min-width: 641px) and (max-width: 960px) {
+  .contact-hero__title { font-size: min(7vw, calc((100vw - 64px) / 14)); }
 }
 @media (max-width: 640px) { .contact-form__row { grid-template-columns: minmax(0, 1fr); } .contact { padding-bottom: 60px; } }
 
