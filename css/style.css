@@ -1190,7 +1190,7 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 .pod-btn--ghost:hover { color: #fff; background: rgba(255,255,255,.18); }
 
 /* Hero */
-.pod-hero { position: relative; padding: 70px 0 60px; }
+.pod-hero { position: relative; padding: 70px 0 32px; }
 .pod-eyebrow {
   font: 600 12px var(--font-body); letter-spacing: .2em; text-transform: uppercase; margin: 0;
   background: var(--pod-gradient-text); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
@@ -1201,7 +1201,7 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 .pod-hero__actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; }
 
 /* Edycja 1 */
-.pod-edition { position: relative; padding: 56px 0 74px; }
+.pod-edition { position: relative; padding: 28px 0 74px; }
 .pod-edition__title { font: 600 clamp(26px, 3.4vw, 30px)/1.2 var(--font-head); letter-spacing: -.02em; }
 .pod-edition__year { color: var(--pod-text-3); font-weight: 500; }
 .pod-edition__team { font: 400 15px/1.6 var(--font-body); color: var(--pod-text-2); margin: 12px 0 26px; }
@@ -1269,8 +1269,8 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 .pod-modal__guest-bio { font: 400 14px/1.65 var(--font-body); color: var(--pod-text-desc); margin-top: 8px; text-wrap: pretty; }
 
 @media (max-width: 640px) {
-  .pod-hero { padding: 48px 0 44px; }
-  .pod-edition { padding: 44px 0 56px; }
+  .pod-hero { padding: 48px 0 24px; }
+  .pod-edition { padding: 22px 0 56px; }
   .pod-modal { padding: 12px; }
   .pod-modal__head::after { display: none; }
   .pod-modal__img { aspect-ratio: 4 / 3; max-height: none; }
