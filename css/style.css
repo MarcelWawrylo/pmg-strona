@@ -911,20 +911,27 @@ html:not(.js) .pms-intro__bubble img { animation: none; }
 .about-h2 { font: 600 clamp(26px, 3.4vw, 32px)/1.15 var(--font-head); letter-spacing: -.02em; }
 
 /* Struktura koła */
-.about-structure { padding: 64px 0; }
+.about-structure { padding: 64px 0; position: relative; isolation: isolate; overflow: hidden; }
 .about-structure .about-h2 { margin-bottom: 30px; }
+#struktura {
+  background: radial-gradient(circle, rgba(20, 20, 20, .06) 0 1px, transparent 1.5px) 0 0 / 20px 20px, var(--color-bg);
+}
+#struktura::before {
+  content: ""; position: absolute; z-index: -1; top: -180px; right: -160px; width: 620px; height: 420px; border-radius: 50%;
+  background: var(--gradient-brand); filter: blur(90px); opacity: .08; pointer-events: none;
+}
 .about-board { display: flex; flex-direction: column; align-items: center; }
 .about-board__list { display: flex; flex-direction: column; gap: 14px; align-items: stretch; max-width: 100%; }
 .about-board__card {
   min-width: min(280px, 100%); display: flex; align-items: center; justify-content: space-between; gap: 18px;
-  /* struktura koła jest jednolita — tło w kolorze --color-blue, biały tekst ≥ 4.5:1 */
-  background: var(--color-blue); border-radius: var(--radius-md); padding: 16px 22px;
-  box-shadow: 0 14px 30px -14px rgba(20, 20, 20, .5);
+  /* zarząd: karta w szarości #525252 z nicią gradientu marki u góry, biały tekst ≥ 4.5:1 (nazwisko 7,8:1, rola 4,8:1) */
+  background: var(--gradient-brand) 0 0 / 100% 3px no-repeat, #525252; border-radius: var(--radius-md); padding: 16px 22px;
+  box-shadow: 0 12px 28px -16px rgba(20, 20, 20, .45);
 }
 .about-board__who { min-width: 0; }
-.about-board__role { display: block; font: 600 10px var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: #fff; }
+.about-board__role { display: block; font: 600 10px var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: rgba(255, 255, 255, .7); }
 .about-board__name { display: block; font: 600 19px var(--font-head); color: #fff; margin-top: 2px; }
-.about-board__line { width: 2px; height: 26px; background: rgba(29, 70, 224, .3); }
+.about-board__line { width: 2px; height: 26px; background: rgba(20, 20, 20, .2); }
 
 /* globalny html { scroll-padding-top: 96px } już liczy odstęp na przyklejony header */
 .about-units { padding: 8px 0 72px; }
@@ -947,32 +954,47 @@ html:not(.js) .pms-intro__bubble img { animation: none; }
 .about-unit__name { font: 600 19px/1.2 var(--font-head); letter-spacing: 0; }
 .about-unit__desc { grid-column: 1 / -1; font: 400 14px/1.55 var(--font-body); color: var(--color-text-muted); margin-top: 16px; }
 
-.about-sections { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: start; }
-/* Kolory sekcji: tylko kafelki "Nasze sekcje" (.about-units__list) — Struktura koła (.about-sections) jest jednolita w --color-blue, patrz reguła .about-sections .about-sec niżej */
+.about-sections { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: start; container-type: inline-size; --cols: 4; }
+/* Kolory --about-accent/--about-label/--about-tint: tylko kafelki "Nasze sekcje" (.about-units__list). Struktura koła (.about-sections) ma stałe neutralne kolory — patrz .about-sec niżej — i nie używa tych zmiennych. */
 .about-units__list .about-sec--pink   { --about-accent: #e5185e; --about-label: var(--color-pink-text); --about-tint: rgba(229, 24, 94, .07); }
 .about-units__list .about-sec--purple { --about-accent: #8b2c9c; --about-label: #8b2c9c; --about-tint: rgba(139, 44, 156, .07); }
 .about-units__list .about-sec--blue   { --about-accent: #1d46e0; --about-label: #1d46e0; --about-tint: rgba(29, 70, 224, .07); }
 .about-units__list .about-sec--violet { --about-accent: #6a2fb8; --about-label: #6a2fb8; --about-tint: rgba(106, 47, 184, .07); }
-.about-sections .about-sec { --about-accent: var(--color-blue); --about-label: var(--color-blue); --about-tint: rgba(29, 70, 224, .07); }
+.about-sec:nth-child(4n+2) { --col: 1; }
+.about-sec:nth-child(4n+3) { --col: 2; }
+.about-sec:nth-child(4n+4) { --col: 3; }
 .about-sec {
-  background: var(--color-bg); border: 1px solid var(--color-border); border-top: 4px solid var(--about-accent);
+  /* lewa krawędź karty w siatce: kolumna × (szerokość karty + odstęp 16 px) */
+  --seg-x: calc(var(--col, 0) * (100cqw + 16px) / var(--cols));
+  border: 1px solid var(--color-border); border-top: 3px solid transparent;
   border-radius: var(--radius-md); overflow: hidden;
+  background: var(--gradient-brand) 0 0 / 100% 3px no-repeat border-box; /* bez cqw: pełny gradient w każdej karcie */
+  background-color: #fff;
+  background-size: 100cqw 3px;
+  background-position: calc(-1 * var(--seg-x)) 0;
 }
 .about-sec__head { padding: 18px 18px 4px; }
-.about-sec__name { font: 600 17px/1.15 var(--font-head); letter-spacing: 0; color: var(--about-accent); }
+.about-sec__name { font: 600 17px/1.15 var(--font-head); letter-spacing: 0; color: var(--color-ink); }
 .about-sec__count { font: 500 12.5px var(--font-body); color: var(--color-text-muted); margin-top: 6px; }
 .about-sec__body { padding: 12px 16px 18px; }
-.about-coord { background: var(--about-tint); border: 1px solid var(--about-accent); border-radius: 12px; padding: 12px 13px; margin-bottom: 10px; }
-.about-coord__label { font: 600 10px var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--about-label); }
+.about-coord { background: rgba(20, 20, 20, .035); border: 1px solid transparent; border-radius: 12px; padding: 12px 13px; margin-bottom: 10px; }
+.about-coord__label { font: 600 10px var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--color-text-muted); }
+/* 31 px = ramka karty 1 + padding body 16 + ramka koordynatora 1 + jego padding 13 */
+.about-coord__label::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 7px; vertical-align: 1px;
+  background: var(--gradient-brand) 0 0 / 100% 100% no-repeat;
+  background-size: 100cqw 100%;
+  background-position: calc(-1 * (var(--seg-x) + 31px)) 0;
+}
 .about-coord__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
 .about-coord__name { font: 600 15px/1.3 var(--font-head); color: var(--color-ink); min-width: 0; }
 .about-sec__members { display: flex; flex-direction: column; gap: 7px; }
 .about-member {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  background: #fff; border: 1px solid rgba(0, 0, 0, .06); border-radius: var(--radius-sm); padding: 9px 11px;
+  background: #fff; border: 1px solid rgba(20, 20, 20, .08); border-radius: var(--radius-sm); padding: 9px 11px;
   transition: background .2s ease, border-color .2s ease;
 }
-.about-member:hover, .about-member:focus-within { border-color: var(--about-accent); }
+.about-member:hover, .about-member:focus-within { border-color: rgba(20, 20, 20, .25); }
 .about-member__name { font: 500 13.5px/1.35 var(--font-body); color: var(--color-ink); min-width: 0; }
 
 /* Ikony e-mail: na desktopie pojawiają się po najechaniu; przy focusie i na dotyku zawsze widoczne */
@@ -997,6 +1019,17 @@ html:not(.js) .pms-intro__bubble img { animation: none; }
   .about-sections, .about-units__list { grid-template-columns: minmax(0, 1fr); }
   .about-units { padding-bottom: 48px; }
   .about-board__list { width: 100%; }
+}
+
+/* Struktura koła — dopasowanie liczby kolumn siatki gradientu do rzeczywistej liczby kolumn grid (4/2/1) */
+@media (max-width: 1240px) {
+  .about-sections { --cols: 2; }
+  .about-sec:nth-child(2n+1) { --col: 0; }
+  .about-sec:nth-child(2n) { --col: 1; }
+}
+@media (max-width: 640px) {
+  .about-sections { --cols: 1; }
+  .about-sec:nth-child(n) { --col: 0; }
 }
 
 /* ---------- 10. Aktualności ---------- */
