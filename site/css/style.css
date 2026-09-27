@@ -490,11 +490,15 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   .contact__grid { grid-template-columns: minmax(0, 1fr); gap: 48px; }
   .contact-hero { padding-top: 40px; }
 }
-/* Kontakt, zdanie „Masz pomysł na współpracę?”: 641–960 px — czcionka zmniejszona względem 7vw tylko w tym przedziale,
-   żeby czarne zdanie zmieściło się w jednej linii (min. ok. 41 px, zawsze >= 28 px); poniżej 640 px i od 961 px w górę
-   bez zmian (patrz raport zadania: przy pełnej szerokości i bez zmniejszania fontu od 961 px zdanie się nie mieści). */
-@media (min-width: 641px) and (max-width: 960px) {
-  .contact-hero__title { font-size: min(7vw, calc((100vw - 64px) / 14)); }
+/* Kontakt, zdanie „Masz pomysł na współpracę?”: 641–1361 px — czcionka lekko zmniejszona względem 7vw (maks. ok. 7%,
+   przy 961 px, gdzie gutter przeskakuje z 32 na 56px), żeby czarne zdanie zmieściło się w jednej linii; dzielnik 13.6 =
+   szerokość zdania przy foncie 1px (ok. 13.58, zmierzone w Chromium) + ok. 1,75% zapasu na różnice renderowania fontu
+   między przeglądarkami (stałe w całym przedziale — sprawdzone pomiarem). var(--gutter) sam przełącza się z 32px na
+   56px na granicy 960/961px (patrz reguły :root wyżej w pliku), więc jedna formuła obsługuje cały przedział.
+   Od ok. 1362 px kontener rośnie szybciej niż wymagana szerokość zdania przy foncie z clamp() — wtedy font bez zmian (92px).
+   Poniżej 641 px zdanie nadal łamie się na 2 linie (przy foncie >= 28px 1 linia nie mieści się na wąskich ekranach). */
+@media (min-width: 641px) and (max-width: 1361px) {
+  .contact-hero__title { font-size: min(7vw, calc((100vw - var(--gutter) * 2) / 13.6)); }
 }
 @media (max-width: 640px) { .contact-form__row { grid-template-columns: minmax(0, 1fr); } .contact { padding-bottom: 60px; } }
 
