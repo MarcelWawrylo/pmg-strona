@@ -683,6 +683,8 @@
     initContactForm();
     initReportBug();
     initGrass();
+    // pusty listener na touchstart włącza stany :active w Safari na iOS
+    document.addEventListener('touchstart', function () {}, { passive: true });
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
