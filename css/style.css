@@ -667,34 +667,30 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 /* „Co to PM Session?”: bańki od dołu intro do końca drugiego akapitu (dekoracja, aria-hidden), rzadziej niż w intro, coraz rzadsze i mniejsze w dół.
    Kontener siedzi w .prose (jego dół = koniec akapitu), sięga w górę o odstęp nad sekcją (--pms-about-top = padding-top sekcji)
    i w lewo do krawędzi okna (--pms-bleed = lewy margines od krawędzi okna do tekstu). Bańki leżą tylko w pasie nad nagłówkiem
-   i na bocznych marginesach, nigdy na literach, także przy skali 1.8 w pulsie: środek bańki w --x marginesu, szerokość --w
-   (najwyżej .4 marginesu). Pod tekstem (z-index: -1 w izolowanym .prose). Puls jak w intro (1–2 cykle, ≤ 4,8 s), ale dopiero
-   po wejściu w widok: klasę .is-live dodaje v2.js (≥ 961 px, bez reduced motion); bez niej bańki stoją. ≤ 640 px: 6 z 11. */
+   i na bocznych marginesach, nigdy na literach: środek bańki w --x marginesu, szerokość --w (najwyżej .4 marginesu).
+   Pod tekstem (z-index: -1 w izolowanym .prose). Statyczne (bez animacji). ≤ 640 px: 6 z 11. */
 .pms-about { --pms-bleed: max(var(--gutter), (100vw - var(--container)) / 2); --pms-about-top: 64px; }
 .pms-about .prose { position: relative; isolation: isolate; }
 .pms-about__bubbles { position: absolute; z-index: -1; top: calc(-1 * var(--pms-about-top)); bottom: 0; left: calc(-1 * var(--pms-bleed)); width: calc(100vw - 20px); pointer-events: none; }
 .pms-about__bubble { position: absolute; display: block; width: var(--w); }
 .pms-about__bubble img { display: block; width: 100%; height: auto; }
-@media (prefers-reduced-motion: no-preference) {
-  .pms-about__bubbles.is-live .pms-about__bubble img { animation: pms-bubble var(--bubble-dur, 2.4s) ease-in-out var(--bubble-delay, 0s) var(--bubble-n, 2) var(--bubble-dir, normal) both; }
-}
 /* pas nad nagłówkiem (nad lewą kolumną): środek na .45 wysokości pasa */
 .pms-about__bubble:nth-child(-n+3) { top: calc(var(--pms-about-top) * .45 - var(--w) * .453); }
-.pms-about__bubble:nth-child(1) { --w: min(16px, calc(var(--pms-about-top) * .38)); left: 14%; --bubble-dur: 2.2s; --bubble-n: 2; --bubble-delay: .2s; }
-.pms-about__bubble:nth-child(2) { --w: min(10px, calc(var(--pms-about-top) * .38)); left: 30%; --bubble-dur: 1.5s; --bubble-n: 3; --bubble-dir: reverse; }
-.pms-about__bubble:nth-child(3) { --w: min(13px, calc(var(--pms-about-top) * .38)); left: 44%; --bubble-dur: 4.2s; --bubble-n: 1; --bubble-delay: .4s; }
+.pms-about__bubble:nth-child(1) { --w: min(16px, calc(var(--pms-about-top) * .38)); left: 14%; }
+.pms-about__bubble:nth-child(2) { --w: min(10px, calc(var(--pms-about-top) * .38)); left: 30%; }
+.pms-about__bubble:nth-child(3) { --w: min(13px, calc(var(--pms-about-top) * .38)); left: 44%; }
 /* lewy margines */
 .pms-about__bubble:nth-child(n+4):nth-child(-n+7) { left: calc(var(--pms-bleed) * var(--x) - var(--w) / 2); }
-.pms-about__bubble:nth-child(4) { --w: min(40px, calc(var(--pms-bleed) * .4)); --x: .5; top: 10%; --bubble-dur: 4.4s; --bubble-n: 1; --bubble-delay: .1s; }
-.pms-about__bubble:nth-child(5) { --w: min(18px, calc(var(--pms-bleed) * .3)); --x: .3; top: 30%; --bubble-dur: 2.3s; --bubble-n: 2; --bubble-dir: reverse; }
-.pms-about__bubble:nth-child(6) { --w: min(14px, calc(var(--pms-bleed) * .3)); --x: .62; top: 56%; --bubble-dur: 4s; --bubble-n: 1; --bubble-delay: .6s; --bubble-dir: reverse; }
-.pms-about__bubble:nth-child(7) { --w: min(9px, calc(var(--pms-bleed) * .25)); --x: .5; top: 84%; --bubble-dur: 2.1s; --bubble-n: 2; --bubble-delay: .3s; }
+.pms-about__bubble:nth-child(4) { --w: min(40px, calc(var(--pms-bleed) * .4)); --x: .5; top: 10%; }
+.pms-about__bubble:nth-child(5) { --w: min(18px, calc(var(--pms-bleed) * .3)); --x: .3; top: 30%; }
+.pms-about__bubble:nth-child(6) { --w: min(14px, calc(var(--pms-bleed) * .3)); --x: .62; top: 56%; }
+.pms-about__bubble:nth-child(7) { --w: min(9px, calc(var(--pms-bleed) * .25)); --x: .5; top: 84%; }
 /* prawy margines (od prawej krawędzi okna; kontener kończy się 20 px przed nią) */
 .pms-about__bubble:nth-child(n+8) { left: calc(100% + 20px - var(--pms-bleed) * (1 - var(--x)) - var(--w) / 2); }
-.pms-about__bubble:nth-child(8) { --w: min(34px, calc(var(--pms-bleed) * .4)); --x: .5; top: 4%; --bubble-dur: 4.6s; --bubble-n: 1; --bubble-dir: reverse; }
-.pms-about__bubble:nth-child(9) { --w: min(20px, calc(var(--pms-bleed) * .35)); --x: .35; top: 20%; --bubble-dur: 2.2s; --bubble-n: 2; --bubble-delay: .2s; }
-.pms-about__bubble:nth-child(10) { --w: min(12px, calc(var(--pms-bleed) * .25)); --x: .7; top: 44%; --bubble-dur: 4.3s; --bubble-n: 1; --bubble-delay: .3s; --bubble-dir: reverse; }
-.pms-about__bubble:nth-child(11) { --w: min(8px, calc(var(--pms-bleed) * .3)); --x: .4; top: 76%; --bubble-dur: 1.5s; --bubble-n: 3; --bubble-delay: .1s; }
+.pms-about__bubble:nth-child(8) { --w: min(34px, calc(var(--pms-bleed) * .4)); --x: .5; top: 4%; }
+.pms-about__bubble:nth-child(9) { --w: min(20px, calc(var(--pms-bleed) * .35)); --x: .35; top: 20%; }
+.pms-about__bubble:nth-child(10) { --w: min(12px, calc(var(--pms-bleed) * .25)); --x: .7; top: 44%; }
+.pms-about__bubble:nth-child(11) { --w: min(8px, calc(var(--pms-bleed) * .3)); --x: .4; top: 76%; }
 @media (max-width: 640px) { .pms-about__bubble:nth-child(3), .pms-about__bubble:nth-child(5), .pms-about__bubble:nth-child(7), .pms-about__bubble:nth-child(9), .pms-about__bubble:nth-child(11) { display: none; } }
 .pms-block--pms-gap { padding-top: 26px; }
 /* ostatnia sekcja przed stopką: dolny odstęp jak między sekcjami (29 + 26 px + margines <dl> 1em = 72 px przy 1440, 71 px przy 375) */
@@ -804,27 +800,20 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 }
 .pms-intro__inner { position: relative; width: 100%; }
 /* bańki mydlane w tle zdania (stoją w przypiętym wrapperze, zdanie przesuwa się na ich tle); tylko pasy nad i pod linią tekstu.
-   Ruch sam się kończy (WCAG 2.2.2 bez przycisku pauzy): każda bańka robi 1–3 pełne cykle pulsu 1 → 1.8 → .4 → 1 we własnym tempie
-   (--bubble-dur × --bubble-n, start po --bubble-delay, część w odwrotnej kolejności), razem najwyżej 4,8 s od wczytania strony
-   (to pierwszy ekran, więc widać go od razu), i zatrzymuje się w rozmiarze bazowym. Bez JS i przy reduced motion: bez ruchu.
-   Animowany jest img, nie <picture> (transform nie gryzie się z pozycją wrappera). */
+   Statyczne (bez animacji), w rozmiarze bazowym. Animowany byłby img, nie <picture> (transform nie gryzie się z pozycją wrappera). */
 .pms-intro__bubbles { position: absolute; inset: 0; pointer-events: none; }
 .pms-intro__bubble { position: absolute; display: block; width: 16px; }
 .pms-intro__bubble img { display: block; width: 100%; height: auto; }
-@media (prefers-reduced-motion: no-preference) {
-  .js .pms-intro__bubble img { animation: pms-bubble var(--bubble-dur, 2.4s) ease-in-out var(--bubble-delay, 0s) var(--bubble-n, 2) var(--bubble-dir, normal) both; }
-}
-.pms-intro__bubble:nth-child(1) { left: 7%; top: 14%; width: 34px; --bubble-dur: 4.2s; --bubble-n: 1; --bubble-delay: .3s; }
-.pms-intro__bubble:nth-child(2) { left: 24%; top: 24%; width: 12px; --bubble-dur: 2.3s; --bubble-n: 2; --bubble-delay: 0s; }
-.pms-intro__bubble:nth-child(3) { left: 43%; top: 10%; width: 22px; --bubble-dur: 4.6s; --bubble-n: 1; --bubble-delay: .1s; --bubble-dir: reverse; }
-.pms-intro__bubble:nth-child(4) { left: 66%; top: 20%; width: 48px; --bubble-dur: 4.4s; --bubble-n: 1; --bubble-delay: .2s; }
-.pms-intro__bubble:nth-child(5) { left: 88%; top: 12%; width: 9px; --bubble-dur: 2.2s; --bubble-n: 2; --bubble-delay: .3s; --bubble-dir: reverse; }
-.pms-intro__bubble:nth-child(6) { left: 12%; top: 80%; width: 42px; --bubble-dur: 4s; --bubble-n: 1; --bubble-delay: .5s; --bubble-dir: reverse; }
-.pms-intro__bubble:nth-child(7) { left: 34%; top: 88%; width: 15px; --bubble-dur: 2.1s; --bubble-n: 2; --bubble-delay: .4s; }
-.pms-intro__bubble:nth-child(8) { left: 55%; top: 76%; width: 8px; --bubble-dur: 1.5s; --bubble-n: 3; --bubble-delay: .1s; --bubble-dir: reverse; }
-.pms-intro__bubble:nth-child(9) { left: 76%; top: 86%; width: 28px; --bubble-dur: 4.3s; --bubble-n: 1; --bubble-delay: .4s; }
-.pms-intro__bubble:nth-child(10) { left: 93%; top: 74%; width: 19px; --bubble-dur: 2.4s; --bubble-n: 2; --bubble-delay: 0s; --bubble-dir: reverse; }
-@keyframes pms-bubble { 0%, 100% { transform: scale(1); } 33% { transform: scale(1.8); } 67% { transform: scale(.4); } }
+.pms-intro__bubble:nth-child(1) { left: 7%; top: 14%; width: 34px; }
+.pms-intro__bubble:nth-child(2) { left: 24%; top: 24%; width: 12px; }
+.pms-intro__bubble:nth-child(3) { left: 43%; top: 10%; width: 22px; }
+.pms-intro__bubble:nth-child(4) { left: 66%; top: 20%; width: 48px; }
+.pms-intro__bubble:nth-child(5) { left: 88%; top: 12%; width: 9px; }
+.pms-intro__bubble:nth-child(6) { left: 12%; top: 80%; width: 42px; }
+.pms-intro__bubble:nth-child(7) { left: 34%; top: 88%; width: 15px; }
+.pms-intro__bubble:nth-child(8) { left: 55%; top: 76%; width: 8px; }
+.pms-intro__bubble:nth-child(9) { left: 76%; top: 86%; width: 28px; }
+.pms-intro__bubble:nth-child(10) { left: 93%; top: 74%; width: 19px; }
 .pms-intro__title { font: 600 clamp(33px, 5.8vw, 80px)/1 var(--font-head); letter-spacing: -.04em; color: var(--color-ink); text-wrap: balance; }
 .pms-intro__accent { color: var(--color-purple); }
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
@@ -832,28 +821,6 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 }
 .pms-intro + .pms-about { padding-top: 64px; }
 @media (max-width: 640px) { .pms-intro__pin { padding: 40px 0; } }
-/* napis „PROJECT MANAGEMENT SESSION” nad zdaniem: dekoracja (aria-hidden) z liter jak ze szkła („liquid glass”).
-   Zawsze jedna linia, wyśrodkowana; rozmiar liczony z szerokości kontenera (napis ma ok. 15,95 em szerokości, dzielnik 16,4 zostawia zapas),
-   więc od 375 px mieści się między marginesami kontenera bez przewijania w poziomie (maks. 70 px = szerokość kontenera; przy przewijaniu poziomym ≥ 961 px rozmiar w v2.css).
-   Warstwy: 1) bez background-clip: text — półprzezroczysty grafit; 2) szkło z gradientów: jasny połysk u góry, przejrzysty środek
-   (widać tło i bańki), tęczowe zabarwienie w kolorach marki jak brzeg bańki, cienka ciemniejsza krawędź (text-stroke) i cień, żeby litery
-   odcinały się od jasnego tła; 3) od 641 px filtr SVG #pms-glass (pm-session.html): lekkie „płynne” falowanie + refleks światła na krawędziach. */
-.pms-intro__outline { width: fit-content; max-width: none; margin: 0 auto clamp(24px, 3vw, 36px); font: 600 min(5.6vw, calc((100vw - 2 * var(--gutter)) / 16.4), 70px)/1.15 var(--font-head); letter-spacing: .02em; white-space: nowrap; color: rgba(20, 20, 20, .3); user-select: none; pointer-events: none; }
-.pms-intro__defs { position: absolute; width: 0; height: 0; overflow: hidden; }
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  .pms-intro__outline {
-    color: transparent;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, .6) 34%, rgba(255, 255, 255, .08) 50%, rgba(255, 255, 255, .22) 74%, rgba(255, 255, 255, .85) 100%),
-      linear-gradient(100deg, rgba(229, 24, 94, .42), rgba(139, 44, 156, .34) 50%, rgba(29, 70, 224, .42));
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-stroke: 1px rgba(20, 20, 20, .42);
-    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, .9)) drop-shadow(0 4px 10px rgba(20, 20, 20, .16));
-  }
-  @media (min-width: 641px) {
-    .pms-intro__outline { filter: url(#pms-glass) drop-shadow(0 1px 0 rgba(255, 255, 255, .9)) drop-shadow(0 6px 14px rgba(20, 20, 20, .16)); }
-  }
-}
 
 /* ---------- 10. Dołącz ---------- */
 /* ---------- Dołącz (tymczasowy plik — do scalenia ze style.css) ---------- */
