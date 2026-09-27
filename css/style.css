@@ -455,7 +455,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .contact-hero__title { font: 600 clamp(40px, 7vw, 92px)/.98 var(--font-head); letter-spacing: -.03em; max-width: none; }
 .contact-hero__title em { font-style: italic; color: var(--color-pink); display: block; }
 .contact { padding: 40px 0 90px; }
-.contact__grid { display: grid; grid-template-columns: .85fr 1.15fr; gap: 64px; align-items: start; }
+.contact__grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 64px; align-items: start; }
 .contact__info { display: flex; flex-direction: column; gap: 34px; padding-top: 8px; }
 .contact__label { font: 600 11px var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: var(--color-text-muted); margin: 0 0 10px; }
 .contact__mail { font: 500 17px var(--font-head); color: var(--color-ink); text-decoration: none; border-bottom: 1px solid rgba(20,20,20,.25); padding-bottom: 2px; }
