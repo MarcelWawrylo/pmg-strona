@@ -1181,10 +1181,10 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
 .pod-hero__actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; }
 
 /* Edycja 1 */
-.pod-edition { position: relative; padding: 56px 0 74px; background: rgba(18,18,22,.7); }
+.pod-edition { position: relative; padding: 56px 0 74px; }
 .pod-edition__title { font: 600 clamp(26px, 3.4vw, 30px)/1.2 var(--font-head); letter-spacing: -.02em; }
 .pod-edition__year { color: var(--pod-text-3); font-weight: 500; }
-.pod-edition__team { font: 400 15px/1.6 var(--font-body); color: var(--pod-text-3); margin: 12px 0 26px; }
+.pod-edition__team { font: 400 15px/1.6 var(--font-body); color: var(--pod-text-2); margin: 12px 0 26px; }
 
 .pod-episodes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
 @media (max-width: 960px) { .pod-episodes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
