@@ -9,6 +9,21 @@
   if (!desktop.matches || reduce.matches) return;
   document.documentElement.classList.add('v2-enhanced');
 
+  /* ---------- Case Koła: animowane logo (czysty CSS w v2.css, niezależnie od GSAP/CDN) ----------
+     .is-anim ustawia sekwencję w klatce początkowej (wstrzymaną przez .is-anim-wait); gdy logo wejdzie
+     w widok, zdejmujemy .is-anim-wait i sekwencja rusza — raz na wczytanie strony. */
+  (function initCaseLogo() {
+    var logo = document.querySelector('.case-logo');
+    if (!logo || !('IntersectionObserver' in window)) return;
+    logo.classList.add('is-anim', 'is-anim-wait');
+    var io = new IntersectionObserver(function (entries) {
+      if (!entries.some(function (e) { return e.isIntersecting; })) return;
+      io.disconnect();
+      logo.classList.remove('is-anim-wait');
+    }, { threshold: 0.3 });
+    io.observe(logo);
+  })();
+
   var LIBS = [
     ['https://cdn.jsdelivr.net/npm/lenis@1.3.4/dist/lenis.min.js', 'sha384-FKTX0CNJ8ngN1oGMBReVu7mvjTJyjFiD5etb1NKnYxc+8eFI2O0KWnksTN+oTFcu'],
     ['https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js', 'sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc'],
