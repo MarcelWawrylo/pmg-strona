@@ -313,17 +313,6 @@
     });
   }
 
-  /* ---------- PM Session: pauza pulsujących baniek w pierwszym ekranie (WCAG 2.2.2) ---------- */
-  // etykieta mówi, co zrobi kliknięcie (wzorzec pauzy karuzeli z WAI-ARIA APG, bez aria-pressed)
-  function initBubblesPause() {
-    var btn = $('[data-bubbles-pause]');
-    var bubbles = $('.pms-intro__bubbles');
-    if (!btn || !bubbles) return;
-    btn.addEventListener('click', function () {
-      btn.textContent = bubbles.classList.toggle('is-paused') ? 'Wznów animację' : 'Zatrzymaj animację';
-    });
-  }
-
   /* ---------- Przycisk „Wróć na górę” ---------- */
   function initToTop() {
     $$('[data-totop]').forEach(function (b) {
@@ -671,7 +660,6 @@
     initSettings();
     initTeam();
     initPmSession();
-    initBubblesPause();
     initNav();
     initSubnav();
     initToTop();
