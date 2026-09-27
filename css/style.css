@@ -174,7 +174,7 @@ button { font: inherit; }
 .site-nav {
   position: sticky; top: 0; z-index: 50;
   background-color: var(--color-bg);
-  transition: box-shadow var(--ease), background-color var(--ease), color var(--ease);
+  transition: box-shadow var(--ease), background-color var(--ease), color var(--ease), transform var(--ease);
 }
 .site-nav__inner {
   display: flex; align-items: center; gap: 22px;
@@ -213,13 +213,13 @@ button { font: inherit; }
 .site-nav__toggle[aria-expanded="true"] .site-nav__toggle-bars::before { transform: translateY(6px) rotate(45deg); }
 .site-nav__toggle[aria-expanded="true"] .site-nav__toggle-bars::after { transform: translateY(-6px) rotate(-45deg); }
 
-.site-nav.is-scrolled { box-shadow: var(--shadow-nav); background-color: rgba(247,246,243,.88); -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px); }
+.site-nav.is-scrolled { box-shadow: var(--shadow-nav); background-color: rgba(247,246,243,1); -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px); }
 .site-nav.is-scrolled .site-nav__inner { padding-top: 10px; padding-bottom: 10px; }
 .site-nav.is-scrolled .site-nav__logo img { height: 54px; width: 54px; }
 
 /* Wariant ciemny (Podcast; Dołącz nad hero) */
 .site-nav--dark { background-color: #0a0a0c; color: #f5f5f5; }
-.site-nav--dark.is-scrolled { background-color: rgba(10,10,12,.85); }
+.site-nav--dark.is-scrolled { background-color: rgba(10,10,12,1); }
 .site-nav--dark .site-nav__logo img { filter: brightness(0) invert(1); }
 .site-nav--dark .site-nav__link { color: rgba(245,245,245,.72); }
 .site-nav--dark .site-nav__link:hover { color: #fff; border-bottom-color: rgba(255,255,255,.3); }
@@ -229,6 +229,15 @@ button { font: inherit; }
 .site-nav--dark .site-nav__cta[aria-current="page"] { background: #fff; color: var(--color-ink); }
 .site-nav--dark .site-nav__toggle { color: #fff; }
 .site-nav--dark :focus-visible { outline-color: #fff; }
+/* chowanie przy scrollu w dół (klasa z main.js initNav); zawsze widoczny przy otwartym menu/podmenu, fokusie w nav i otwartym oknie;
+   przy prefers-reduced-motion bez przejścia (globalna reguła transition-duration niżej) */
+.site-nav.is-hidden { transform: translateY(calc(-100% - 48px)); } /* 48 px zapasu: cień pigułki nie zostaje przy górnej krawędzi */
+.site-nav.is-hidden.is-open,
+body.has-dialog .site-nav.is-hidden { transform: none; }
+/* :has osobno: przeglądarka bez :has odrzuciłaby całą listę selektorów; fokus tylko z klawiatury (po kliknięciu myszą header się chowa) */
+.site-nav.is-hidden:has(.is-open),
+.site-nav.is-hidden:has(:focus-visible),
+body:has(dialog[open]) .site-nav.is-hidden { transform: none; }
 
 /* Listy rozwijane (PM Session, Case Koła): link + osobny przycisk ze strzałką; stan .is-open ustawia main.js */
 .site-nav__item { position: relative; display: flex; align-items: center; gap: 2px; }
@@ -874,7 +883,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 
 /* Nav nad hero: ten sam odcień co hero (makieta: #141414) */
 .join-page-body .site-nav--dark { background-color: var(--color-ink); }
-.join-page-body .site-nav--dark.is-scrolled { background-color: rgba(20,20,20,.9); }
+.join-page-body .site-nav--dark.is-scrolled { background-color: rgba(20,20,20,1); }
 
 /* Hero */
 .join-page-hero { position: relative; overflow: hidden; background: var(--color-ink); padding: 80px 0 70px; }
