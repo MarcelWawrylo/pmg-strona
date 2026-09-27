@@ -52,7 +52,7 @@ html.lenis, html.lenis body { height: auto; }
 .v2 a[href="case-kola-pwr-racing-team.html"] .case-card__media, .v2 a[href="case-kola-debatelab.html"] .case-card__media, .v2 a[href="case-kola-qubit.html"] .case-card__media { view-transition-name: none; }
 
 /* ---------- PM Session: zdanie kolorowane słowo po słowie ---------- */
-.v2-enhanced .pms-about { padding-top: 40px; }
+.v2-enhanced .pms-about { padding-top: 40px; --pms-about-top: 40px; }
 .v2-enhanced .pms-about.v2-words-ready .pms-about__text { color: var(--color-ink); }
 .v2-word { color: var(--color-text-muted); transition: color .15s linear; }
 
