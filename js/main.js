@@ -240,7 +240,8 @@
         ? '<p class="pod-modal__links"><a class="chip-link" href="' + esc(p.linkedin) + '" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — ' + name + ' (otwiera się w nowej karcie)</span></a></p>'
         : '';
       return '<template id="spk-' + (i + 1) + '"><h2 class="pod-modal__title" id="speaker-modal-title">' + name + '</h2>' + note +
-        '<p class="pod-modal__num">' + esc(p.temat) + '</p><p class="pod-modal__desc">' + esc(p.bio) + '</p>' + links + '</template>';
+        (p.bio ? '<h3 class="speaker-modal__label">O prelegencie</h3><p class="pod-modal__desc">' + esc(p.bio) + '</p>' : '') +
+        '<h3 class="pod-modal__num">' + esc(p.temat) + '</h3>' + links + '</template>';
     };
 
     var scheduleRow = function (items) {
@@ -278,7 +279,7 @@
       if (pillEl) pillEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + ed.miejsce;
       var dateTimeEl = $('.pms-banner__date time');
       if (dateTimeEl) {
-        dateTimeEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+        dateTimeEl.textContent = fmtDate(ed.data);
         dateTimeEl.setAttribute('datetime', ed.data);
       }
       var themeEl = $('.pms-banner__theme');
