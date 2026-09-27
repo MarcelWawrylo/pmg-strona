@@ -77,19 +77,6 @@
     });
   }
 
-  /* ---------- PM Session „Co to PM Session?”: bańki pulsują raz, po wejściu w widok ----------
-     Puls (CSS, .is-live) trwa najwyżej 4,8 s i kończy się w rozmiarze bazowym (WCAG 2.2.2). Nie wymaga GSAP. */
-  function initPmsBubbles() {
-    var box = document.querySelector('.pms-about__bubbles');
-    if (!box || !('IntersectionObserver' in window)) return;
-    var io = new IntersectionObserver(function (entries) {
-      if (!entries[entries.length - 1].isIntersecting) return;
-      box.classList.add('is-live');
-      io.disconnect();
-    });
-    io.observe(box);
-  }
-
   /* ---------- PM Session „Czym jest”: zdanie jedzie poziomo, napędzane pionowym przewijaniem ---------- */
   // Sekcja ma 4× wysokość okna, wrapper w środku jest przypięty przez position: sticky (v2.css).
   // Zdanie to pierwszy ekran strony, więc wejście słów i tła gra od razu po otwarciu (a nie na początku scrubu),
@@ -359,6 +346,12 @@
     window.ScrollTrigger.refresh();
     lenis.scrollTo(el, { offset: headerOffset(), immediate: true });
     window.ScrollTrigger.refresh();
+    // po przewinięciu nav kurczy się do pigułki (niższej o ok. 30 px) — gdy skończy przejście,
+    // przelicz odstęp z jej nową wysokością, żeby cel stał tuż pod headerem, a nie ~50 px niżej
+    setTimeout(function () {
+      lenis.scrollTo(el, { offset: headerOffset(), immediate: true });
+      window.ScrollTrigger.refresh();
+    }, 500);
   }
   function scrollToHashWhenReady(lenis) {
     if (!location.hash) return;
@@ -370,7 +363,6 @@
   }
 
   var start = function () {
-    initPmsBubbles();
     loadLibs(0, function (failed) {
       if (failed || !window.gsap || !window.ScrollTrigger || !window.Lenis) {
         document.documentElement.classList.remove('v2-enhanced');
