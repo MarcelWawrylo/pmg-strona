@@ -613,6 +613,9 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .pms-banner__lead { max-width: 720px; margin-top: 16px; text-wrap: pretty; }
 .pms-banner__lead--full { max-width: none; }
 .pms-banner__date { font: 500 15px var(--font-body); color: var(--color-text-muted); margin-top: 8px; }
+[data-page="pm-session-xiv"] .pms-banner__head { align-items: baseline; }
+[data-page="pm-session-xiv"] .pms-banner__theme { font: italic 700 var(--fs-lead) var(--font-head); }
+[data-page="pm-session-xiv"] .pms-banner__date { font: 500 clamp(24px, 3.9vw, 47px) var(--font-body); white-space: nowrap; margin-top: 0; }
 .pms-about { padding: 0 0 58px; }
 .pms-about__grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 34px; align-items: center; }
 @media (max-width: 960px) { .pms-about__grid { grid-template-columns: minmax(0, 1fr); } }
@@ -654,9 +657,14 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .speaker.is-open { transform: translateY(-6px); box-shadow: var(--shadow-card); }
 .speaker__name::after { content: "▾" / ""; display: inline-block; margin-left: 6px; color: var(--color-text-muted); transition: transform var(--ease); }
 .speaker.is-open .speaker__name::after { transform: rotate(180deg); }
-[data-page="pm-session-xiv"] .speakers { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
-[data-page="pm-session-xiv"] .speaker { padding: 10px; }
-[data-page="pm-session-xiv"] .speaker__name { display: block; margin-top: 10px; font-size: 16px; }
+[data-page="pm-session-xiv"] .speakers { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 20px; }
+[data-page="pm-session-xiv"] .speaker { padding: 16px; }
+[data-page="pm-session-xiv"] .speaker__name { display: block; margin-top: 12px; font-size: 18px; }
+@media (max-width: 640px) {
+  [data-page="pm-session-xiv"] .speakers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  [data-page="pm-session-xiv"] .speaker { padding: 10px; }
+  [data-page="pm-session-xiv"] .speaker__name { margin-top: 10px; font-size: 16px; }
+}
 [data-page="pm-session-xiv"] .speaker__name::after { content: none; }
 /* PM Session XIV: karty równej wysokości w wierszu, niezależnie od długości nazwiska */
 [data-page="pm-session-xiv"] .speakers { align-items: stretch; }
@@ -1241,10 +1249,11 @@ html:not(.js) .blog-article { border-top: 1px solid rgba(20,20,20,.12); }
    Tylko modyfikator — okno odcinka Podcastu (.pod-modal bez modyfikatora) zostaje bez zmian. */
 .pod-modal--speaker { color: var(--color-ink); overflow: hidden; }
 .pod-modal--speaker .pod-modal__panel {
-  display: flex; flex-direction: column; max-width: 720px; max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px);
+  display: flex; flex-direction: column; max-width: min(850px, 90vw); max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px);
   background: var(--color-surface); border: 0; box-shadow: 0 40px 90px -30px rgba(0,0,0,.6);
 }
 .pod-modal--speaker .pod-modal__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.pod-modal--speaker .pod-modal__body:focus-visible { outline-offset: -3px; }
 .pod-modal--speaker .pod-modal__close { background: var(--color-surface); color: var(--color-ink); border: 1.5px solid var(--color-ink); }
 .pod-modal--speaker .pod-modal__close:hover { background: var(--color-bg); }
 .speaker-modal__media { display: block; margin: -28px -32px 26px; }
