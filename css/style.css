@@ -350,6 +350,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   font: 400 12px/1.6 var(--font-body); color: rgba(255,255,255,.62);
 }
 .site-footer__credits { text-align: right; }
+.site-footer__credits a { color: inherit; text-decoration: none; }
+.site-footer__credits a:hover, .site-footer__credits a:focus-visible { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
 .site-footer__switch { color: rgba(255,255,255,.85); margin-left: 10px; text-decoration: underline; text-underline-offset: 3px; }
 .site-footer__switch:hover { color: #fff; }
 .site-footer__totop { display: flex; justify-content: center; margin-top: 24px; }
@@ -540,9 +542,10 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .home-hero__actions { display: flex; gap: 26px; align-items: center; margin-top: 34px; flex-wrap: wrap; }
 .home-hero__link {
   display: inline-flex; align-items: center; gap: 6px;
-  font: 700 15px var(--font-body); color: var(--color-ink); text-decoration: underline; text-underline-offset: 3px;
+  font: 700 15px var(--font-body); color: var(--color-ink); text-decoration: none;
 }
-.home-hero__link-arrow { display: inline-block; transition: transform var(--ease); }
+.home-hero__link-arrow { display: inline-block; transition: transform var(--ease); text-decoration: none; }
+.home-hero__link:hover, .home-hero__link:focus-visible { color: var(--color-ink); text-decoration: underline; text-underline-offset: 3px; }
 .home-hero__link:hover .home-hero__link-arrow, .home-hero__link:focus-visible .home-hero__link-arrow { transform: translateX(3px); }
 
 /* logo PMG: słupki wyrastają kolejno z własnego środka, ramka się rysuje, litery P→M→G; potem „oddech” w pętli */
