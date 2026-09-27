@@ -449,6 +449,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .hub-grid { padding: 20px 0 80px; }
 .hub-grid__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
 @media (max-width: 640px) { .hub-grid__list { grid-template-columns: minmax(0, 1fr); } .hub-banner { padding: 40px 0 40px; } }
+@media (min-width: 961px) { .hub-grid__list { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .case-card { display: block; height: 100%; overflow: hidden; color: inherit; text-decoration: none; }
 .case-card:hover { color: inherit; }
 .case-card__media { position: relative; aspect-ratio: 16 / 9; overflow: hidden; }
@@ -464,7 +465,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .case-card__media--logo img { width: auto; height: auto; max-width: 70%; max-height: 64px; object-fit: contain; margin: 0 auto; }
 .case-card__media--logo-tall img { max-height: 112px; }
 /* logotypy w kafelkach: stała wysokość zamiast 70% szerokości pliku (reguła .case-card__media img niżej nadpisuje width/height) */
-.case-card__media--logo:not(.case-card__media--logo-tall) img { height: 45px; max-width: none; }
+.case-card__media--logo:not(.case-card__media--logo-tall) img { height: 45px; max-width: none; object-fit: contain; }
 .hub-grid .case-card__media--logo-tall picture { display: contents; }
 .hub-grid .case-card__media--logo-tall img { width: auto; height: 100%; max-width: none; }
 .case-card__media__logo-plate { border-radius: 8px; }
