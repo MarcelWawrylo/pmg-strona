@@ -236,12 +236,12 @@
     var speakerTemplate = function (p, i) {
       var name = esc(p.imie_nazwisko);
       var note = p.notatka ? '<p class="speaker__note">' + esc(p.notatka) + '</p>' : '';
-      var links = (p.linkedin && p.linkedin.indexOf('https://') === 0)
-        ? '<p class="pod-modal__links"><a class="chip-link" href="' + esc(p.linkedin) + '" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — ' + name + ' (otwiera się w nowej karcie)</span></a></p>'
+      var linkedin = (p.linkedin && p.linkedin.indexOf('https://') === 0)
+        ? '<a class="chip-link speaker-modal__linkedin" href="' + esc(p.linkedin) + '" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — ' + name + ' (otwiera się w nowej karcie)</span></a>'
         : '';
-      return '<template id="spk-' + (i + 1) + '"><h2 class="pod-modal__title" id="speaker-modal-title">' + name + '</h2>' + note +
+      return '<template id="spk-' + (i + 1) + '"><div class="speaker-modal__head"><h2 class="pod-modal__title" id="speaker-modal-title">' + name + '</h2>' + linkedin + '</div>' + note +
         (p.bio ? '<h3 class="speaker-modal__label">O prelegencie</h3><p class="pod-modal__desc">' + esc(p.bio) + '</p>' : '') +
-        '<h3 class="pod-modal__num">' + esc(p.temat) + '</h3>' + links + '</template>';
+        '<h3 class="pod-modal__num">' + esc(p.temat) + '</h3></template>';
     };
 
     var scheduleRow = function (items) {
@@ -283,7 +283,12 @@
         dateTimeEl.setAttribute('datetime', ed.data);
       }
       var themeEl = $('.pms-banner__theme');
-      if (themeEl) themeEl.textContent = ed.temat;
+      if (themeEl) {
+        themeEl.textContent = 'Temat: ';
+        var themeEm = document.createElement('em');
+        themeEm.textContent = ed.temat;
+        themeEl.appendChild(themeEm);
+      }
       document.title = document.title.replace(/PM Session \S+/, 'PM Session ' + ed.numer);
 
       if (speakersList && data.prelegenci && data.prelegenci.length) {
@@ -898,8 +903,8 @@
             iframe.loading = 'lazy';
             player.appendChild(iframe);
           }
-          dialog.scrollTop = 0;
           open(btn);
+          dialog.scrollTop = 0;
         });
       });
     }
@@ -917,8 +922,8 @@
         if (!tpl) return;
         speakerContent.textContent = '';
         speakerContent.appendChild(tpl.content.cloneNode(true));
-        speakerDialog.scrollTop = 0;
         openSpeaker(btn);
+        speakerContent.scrollTop = 0;
       });
     }
   }
