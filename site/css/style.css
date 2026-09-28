@@ -460,7 +460,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 /* QUBIT i Debate Lab: kafelek z jasnym tłem mediów dostaje białe body i ciemny tekst jak Solvro i PWR Racing Team */
 .hub-grid .case-card__media--logo-light + .case-card__body { border-top: 1px solid #141414; }
 .hub-grid .case-card { display: flex; flex-direction: column; }
-.hub-grid .case-card__body { flex: 1 0 auto; }
+.hub-grid .case-card__body { flex: 1 0 auto; display: flex; flex-direction: column; } /* link „Dowiedz się więcej” na dole karty */
 .case-card__media--logo { display: flex; align-items: center; justify-content: center; padding: 20px; }
 .case-card__media--logo img { width: auto; height: auto; max-width: 70%; max-height: 64px; object-fit: contain; margin: 0 auto; }
 .case-card__media--logo-tall img { max-height: 112px; }
@@ -471,8 +471,12 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .case-card__media__logo-plate { border-radius: 8px; }
 .case-card__media img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .case-card__body { padding: 24px; background: var(--color-surface); }
-.case-card__title { font: 600 26px var(--font-head); letter-spacing: -.01em; margin-top: 12px; }
-.case-card__summary { font: 400 14.5px/1.6 var(--font-body); color: var(--color-text-muted); margin-top: 8px; }
+.case-card__title { font: 600 26px var(--font-head); letter-spacing: -.01em; margin-top: 12px; text-align: center; }
+.case-card__edition { font: 400 14.5px/1.6 var(--font-body); color: var(--color-text-muted); margin-top: 8px; text-align: center; }
+.case-card__more { display: block; margin-top: auto; padding-top: 14px; font: 600 14px var(--font-body); color: var(--color-ink); text-align: center; }
+.case-card__more-arrow { display: inline-block; transition: transform var(--hover-t); }
+@media (hover: hover) { .case-card:hover .case-card__more-arrow { transform: translateX(3px); } }
+.case-card:focus-visible .case-card__more-arrow { transform: translateX(3px); }
 .case-card:focus-visible { outline-offset: 4px; }
 
 /* ---------- 10c. Kontakt ---------- */
