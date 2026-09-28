@@ -549,9 +549,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   display: inline-flex; align-items: center; gap: 6px;
   font: 700 15px var(--font-body); color: var(--color-ink); text-decoration: none;
 }
-.home-hero__link-arrow { display: inline-block; transition: transform var(--ease); text-decoration: none; }
-.home-hero__link:hover, .home-hero__link:focus-visible { color: var(--color-ink); text-decoration: underline; text-underline-offset: 3px; }
-.home-hero__link:hover .home-hero__link-arrow, .home-hero__link:focus-visible .home-hero__link-arrow { transform: translateX(3px); }
+/* podkreślenie tłem na całym linku: ciągłe pod tekstem, odstępem i strzałką */
+.home-hero__link:hover, .home-hero__link:focus-visible { color: var(--color-purple); background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat; }
 
 /* logo PMG: słupki wyrastają kolejno z własnego środka, ramka się rysuje, litery P→M→G; potem „oddech” w pętli */
 @keyframes pmgdraw { from { stroke-dashoffset: 1044; } }
@@ -595,8 +594,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .home-news { padding: 66px 0; }
 .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
 .section-head__link { font: 600 14px var(--font-body); color: var(--color-ink); text-decoration: none; }
-.section-head__link:hover { text-decoration: underline; }
-.section-head__link:focus-visible { text-decoration: underline; }
+.section-head__link:hover { text-decoration: underline; color: var(--color-purple); }
+.section-head__link:focus-visible { text-decoration: underline; color: var(--color-purple); }
 
 .home-h2 { font: 600 32px var(--font-head); letter-spacing: -.02em; }
 .home-h2--lg { font-size: clamp(28px, 3.6vw, 36px); margin: 8px 0 30px; }
