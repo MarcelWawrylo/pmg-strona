@@ -918,23 +918,17 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .join-page-steps__text { font: 400 13.5px/1.55 var(--font-body); color: var(--color-text-muted); margin-top: 5px; }
 
 /* Karta formularza: na całą szerokość kontenera. Wewnątrz dwie części — .join-page-form__main (tytuł,
-   przycisk) i .join-page-form__side (pomoc, link do sekcji) — jedna pod drugą w tej kolejności do 960px,
-   obok siebie (dwie kolumny) od 961px. */
+   przycisk) i .join-page-form__side (pomoc, link do sekcji) — jedna pod drugą, wyśrodkowane, rozdzielone
+   cienką linią, na wszystkich szerokościach. */
 .join-page-form {
   background: var(--color-surface); border: 1px solid rgba(20,20,20,.1); border-radius: 22px; padding: 34px;
   box-shadow: var(--shadow-feature); display: flex; flex-direction: column; gap: 24px;
 }
-.join-page-form__main { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
+.join-page-form__main { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
 .join-page-form__title { font: 600 24px/1.2 var(--font-head); letter-spacing: 0; }
 .join-page-form__btn { font-size: 15px; padding: 14px 30px; white-space: nowrap; }
 .join-page-form__btn:hover, .join-page-form__btn:focus-visible { background: var(--color-pink-text); color: #fff; }
-.join-page-form__side { display: flex; flex-direction: column; gap: 14px; }
-
-@media (min-width: 961px) {
-  .join-page-form { flex-direction: row; align-items: center; gap: 48px; }
-  .join-page-form__main { flex: 0 1 auto; }
-  .join-page-form__side { flex: 1 1 0; max-width: 380px; }
-}
+.join-page-form__side { display: flex; flex-direction: column; gap: 14px; text-align: center; padding-top: 24px; border-top: 1px solid var(--color-border); }
 
 @media (max-width: 960px) {
   .join-page-hero { padding: 56px 0 52px; }
