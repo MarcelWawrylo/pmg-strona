@@ -215,12 +215,17 @@
     };
     len = draw();
     path.style.strokeDashoffset = len;
+    var state = { p: 0 }; // postęp 0→1 tweenowany przez GSAP, niezależny od długości ścieżki (resize zmienia len)
 
-    // grot na aktualnym końcu narysowanego odcinka: pozycja i kąt liczone z getPointAtLength
+    // grot na aktualnym końcu narysowanego odcinka: pozycja i kąt liczone z getPointAtLength.
+    // Widoczna linia kończy się ARROW_TRIM px przed czubkiem, pod grotem (16 px długości): inaczej jej zaokrąglona
+    // końcówka (promień 3 px przy stroke-width 6) wystaje przed ostry czubek i wygląda jak kwadratowa.
+    var ARROW_TRIM = 13;
     var positionArrow = function () {
       if (!len) { arrow.style.opacity = '0'; return; }
-      var offset = parseFloat(path.style.strokeDashoffset) || 0;
+      var offset = len * (1 - state.p);
       var drawn = Math.max(0, Math.min(len, len - offset));
+      path.style.strokeDashoffset = len - Math.max(0, drawn - ARROW_TRIM);
       if (drawn <= 0.5) { arrow.style.opacity = '0'; return; }
       var p = path.getPointAtLength(drawn);
       var back = path.getPointAtLength(Math.max(0, drawn - 1));
@@ -233,8 +238,8 @@
     // strona jest krótka: cała linia rysuje się na ok. 300 px przewijania, od 0 i nie dalej niż koniec strony
     var listTop = function () { return list.getBoundingClientRect().top + window.scrollY; };
     var from = function () { return Math.max(0, listTop() - window.innerHeight * 0.8); };
-    window.gsap.to(path, {
-      strokeDashoffset: 0, ease: 'none',
+    window.gsap.to(state, {
+      p: 1, ease: 'none',
       onUpdate: positionArrow,
       scrollTrigger: {
         trigger: list, start: from,
