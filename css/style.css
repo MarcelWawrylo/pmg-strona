@@ -642,7 +642,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 @media (max-width: 960px) { .home-join__grid { grid-template-columns: minmax(0, 1fr); } }
 .join-card {
   /* start gradientu przyciemniony (#c8124f), aby biały tekst miał kontrast ≥ 4.5:1 */
-  background: linear-gradient(120deg, #c8124f, #8b2c9c 55%, #1d46e0); border-radius: 24px; padding: 44px;
+  background: linear-gradient(120deg, #c8124f, #8b2c9c 55%, #1d46e0) border-box; border-radius: 24px; padding: 44px; /* border-box: gradient pod obwódką, bez paska z drugiego końca gradientu przy krawędzi */
   display: flex; flex-direction: column; justify-content: center; color: #fff; text-decoration: none;
 }
 .join-card__title {
