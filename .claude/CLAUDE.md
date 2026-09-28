@@ -23,14 +23,13 @@ GitHub Pages publikuje się z gałęzi `gh-pages` poleceniem `git subtree push -
 - Zwykły HTML + CSS + vanilla JS w katalogu `site/`. Bez frameworka, bez npm, bez kroku budowania. Do repo trafia tylko `site/`, `README.md`, `.gitignore` i ten plik (biała lista w `.gitignore`).
 - Podgląd lokalny: w katalogu `site/` uruchom `python -m http.server 8000` i otwórz http://localhost:8000
 - **Jedna wersja strony** (od 26.09.2026): `site/*.html` + `site/css/style.css` i `site/js/main.js` (podstawa) + `site/css/v2.css` i `site/js/v2.js` („płynne” animacje, Lenis + GSAP z CDN, tylko ≥ 961 px i bez `prefers-reduced-motion`). Klasy `v2`, `v2-page`, `v2-enhanced` w HTML/CSS zostały z dawnej wersji 2, nie usuwaj ich. Koncepcja animacji: `site/KONCEPCJA-v2.md`.
-- **v3** (`site/v3/pm-session.html`): robocza wersja jednej zakładki, nie jest podlinkowana w menu.
 - Backend PHP (tylko serwer PWr): `site/api/` (formularz kontaktowy, Aktualności, ustawienia), `site/panel/` (panel administracyjny z logowaniem). `site/api/config.php` z hasłami **nigdy** nie trafia do repo.
 - Tokeny wyglądu są w `:root` w `site/css/style.css`: kolory marki `--color-pink #e5185e`, `--color-purple #8b2c9c`, `--color-blue #1d46e0`, `--color-ink #141414`, tło `--color-bg #F7F6F3`. Fonty: Space Grotesk (nagłówki), Manrope (tekst). Punkty łamania: 640 / 960 / 1240 px.
 
 ## Pułapki, na które łatwo wpaść
 
-1. **Menu i stopka są skopiowane w każdym pliku HTML.** Zmiana w stopce = ta sama zmiana we wszystkich plikach `site/*.html` i w `site/v3/pm-session.html` (sprawdź: `grep -l site-footer__brand -r site --include=*.html`).
-2. **Ścieżki:** podstrony używają `img/...`, v3 `../img/...`, a `404.html` ścieżek bezwzględnych `/img/...` (bo 404 wyświetla się pod dowolnym adresem).
+1. **Menu i stopka są skopiowane w każdym pliku HTML.** Zmiana w stopce = ta sama zmiana we wszystkich plikach `site/*.html` (sprawdź: `grep -l site-footer__brand -r site --include=*.html`).
+2. **Ścieżki:** podstrony używają `img/...`, a `404.html` ścieżek bezwzględnych `/img/...` (bo 404 wyświetla się pod dowolnym adresem).
 3. **Stopka jest ciemna (`#141414`), a CSS zamienia każdy obrazek w `.site-footer__brand` na biały kształt** (`filter: brightness(0) invert(1)`). Cudze logo (np. uczelni) wrzucone w ten blok zostanie przebarwione. Dla logotypów z księgą znaku trzeba użyć ich oficjalnej wersji na ciemne tło i nie stosować filtra.
 4. **Atrybuty `data-set="..."`** (np. e-mail, linki social w stopce) wypełnia panel przez `main.js`. Nie usuwaj ich i nie zmieniaj ich wartości.
 5. **Równoległe gałęzie.** Przed startem zrób `git fetch origin` i sprawdź `git branch -r`. Jeśli jakaś gałąź ma niescalone commity w tych samych plikach HTML (np. w stopce), nie zaczynaj pracy na starej bazie, tylko zapytaj, od której gałęzi wyjść.
@@ -59,7 +58,7 @@ GitHub Pages publikuje się z gałęzi `gh-pages` poleceniem `git subtree push -
 
 - 16.09: v1, 12 podstron z makiety; v2 „płynna” + przełącznik wersji w stopce.
 - 17.09: audyt v1/v2, naprawa logo na stronie głównej, fala podcastu, PM Session (przypinanie sekcji, kontrast).
-- 23.09: Aktualności (3 wpisy od Marketingu) + panel PHP/MariaDB; formularz kontaktowy przez PHP (fallback `mailto`); decyzje: Facebook + LinkedIn, 4 etapy rekrutacji + kontakt HR, liczby PM Session bez zaokrągleń; link do formularza rekrutacyjnego Google; robocza v3 zakładki PM Session.
+- 23.09: Aktualności (3 wpisy od Marketingu) + panel PHP/MariaDB; formularz kontaktowy przez PHP (fallback `mailto`); decyzje: Facebook + LinkedIn, 4 etapy rekrutacji + kontakt HR, liczby PM Session bez zaokrągleń; link do formularza rekrutacyjnego Google; robocza v3 zakładki PM Session (usunięta 28.09).
 - 24.09: TikTok @pmgroup_ w stopce. To jest wersja opublikowana obecnie na GitHub Pages.
 - 25–26.09, scalone do `main` 26.09: `cms-panel` (panel: konta, role, dziennik zmian, ustawienia strony, członkowie, PM Session; strony prawne: polityka prywatności, deklaracja dostępności, 404, `.htaccess`, `robots.txt`) oraz `noc-ui` (zawiera `cms-panel` + nowy wygląd panelu i poprawki UI strony: Dołącz, CTA w hero, kafelki Aktualności, Case Koła).
 - 26.09 (Marcel): PR #6 — ostatni commit z `noc-ui` (logo PMG w hero, „Nasze sekcje” w O nas, linia procesu w Dołącz) scalony do `main`; odblokowało to publikację z `main`.
