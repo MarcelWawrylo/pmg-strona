@@ -987,8 +987,9 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-board__list { display: flex; flex-direction: column; gap: 14px; align-items: stretch; max-width: 100%; }
 .about-board__card {
   min-width: min(280px, 100%); display: flex; align-items: center; justify-content: space-between; gap: 18px;
-  /* zarząd: karta w szarości #525252 z nicią gradientu marki u góry, biały tekst ≥ 4.5:1 (nazwisko 7,8:1, rola 4,8:1) */
-  background: var(--gradient-brand) 0 0 / 100% 3px no-repeat, #525252; border-radius: var(--radius-md); padding: 16px 22px;
+  /* zarząd: karta w szarości #525252 z nicią gradientu marki u góry, biały tekst ≥ 4.5:1 (nazwisko 7,8:1, rola 4,8:1);
+     nić = wycinek jednego gradientu na szerokość strony (100vw, środek obrazu na środku karty = środku strony) */
+  background: var(--gradient-brand) 50% 0 / 100vw 3px no-repeat, #525252; border-radius: var(--radius-md); padding: 16px 22px;
   box-shadow: 0 12px 28px -16px rgba(20, 20, 20, .45);
 }
 .about-board__who { min-width: 0; }
@@ -1027,13 +1028,14 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-sec:nth-child(4n+3) { --col: 2; }
 .about-sec:nth-child(4n+4) { --col: 3; }
 .about-sec {
-  /* lewa krawędź karty w siatce: kolumna × (szerokość karty + odstęp 16 px) */
-  --seg-x: calc(var(--col, 0) * (100cqw + 16px) / var(--cols));
+  /* lewa krawędź karty na stronie: margines siatki ((100vw − szerokość siatki) / 2) + kolumna × (szerokość karty + odstęp 16 px);
+     nić karty i kropka koordynatora to wycinki jednego gradientu 100vw, więc kolor zależy od położenia na stronie */
+  --seg-x: calc((100vw - 100cqw) / 2 + var(--col, 0) * (100cqw + 16px) / var(--cols));
   border: 1px solid var(--color-border); border-top: 3px solid transparent;
   border-radius: var(--radius-md); overflow: hidden;
-  background: var(--gradient-brand) 0 0 / 100% 3px no-repeat border-box; /* bez cqw: pełny gradient w każdej karcie */
+  background: var(--gradient-brand) 0 0 / 100% 3px no-repeat border-box; /* rozmiar i położenie niżej: względem strony */
   background-color: #fff;
-  background-size: 100cqw 3px;
+  background-size: 100vw 3px;
   background-position: calc(-1 * var(--seg-x)) 0;
 }
 .about-sec__head { padding: 18px 18px 4px; }
@@ -1046,7 +1048,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-coord__label::before {
   content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 7px; vertical-align: 1px;
   background: var(--gradient-brand) 0 0 / 100% 100% no-repeat;
-  background-size: 100cqw 100%;
+  background-size: 100vw 100%;
   background-position: calc(-1 * (var(--seg-x) + 31px)) 0;
 }
 .about-coord__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
