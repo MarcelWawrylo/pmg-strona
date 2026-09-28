@@ -255,7 +255,7 @@ body:has(dialog[open]) .site-nav.is-hidden { transform: none; }
 .site-nav__subtoggle[aria-expanded="true"] svg { transform: rotate(180deg); }
 .site-nav__sub {
   list-style: none; margin: 0; padding: 8px; position: absolute; top: calc(100% + 10px); left: -14px; z-index: 60;
-  min-width: 230px; background: #fff; border-radius: 14px;
+  width: max-content; background: #fff; border-radius: 14px;
   box-shadow: 0 18px 40px -16px rgba(20,20,40,.35), 0 0 0 1px rgba(20,20,20,.06);
 }
 .site-nav__sub::before { content: ""; position: absolute; left: 0; right: 0; top: -12px; height: 12px; } /* mostek dla myszy */
@@ -460,7 +460,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 /* QUBIT i Debate Lab: kafelek z jasnym tłem mediów dostaje białe body i ciemny tekst jak Solvro i PWR Racing Team */
 .hub-grid .case-card__media--logo-light + .case-card__body { border-top: 1px solid #141414; }
 .hub-grid .case-card { display: flex; flex-direction: column; }
-.hub-grid .case-card__body { flex: 1 0 auto; }
+.hub-grid .case-card__body { flex: 1 0 auto; display: flex; flex-direction: column; } /* link „Dowiedz się więcej” na dole karty */
 .case-card__media--logo { display: flex; align-items: center; justify-content: center; padding: 20px; }
 .case-card__media--logo img { width: auto; height: auto; max-width: 70%; max-height: 64px; object-fit: contain; margin: 0 auto; }
 .case-card__media--logo-tall img { max-height: 112px; }
@@ -471,8 +471,12 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .case-card__media__logo-plate { border-radius: 8px; }
 .case-card__media img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .case-card__body { padding: 24px; background: var(--color-surface); }
-.case-card__title { font: 600 26px var(--font-head); letter-spacing: -.01em; margin-top: 12px; }
-.case-card__summary { font: 400 14.5px/1.6 var(--font-body); color: var(--color-text-muted); margin-top: 8px; }
+.case-card__title { font: 600 26px var(--font-head); letter-spacing: -.01em; margin-top: 12px; text-align: center; }
+.case-card__edition { font: 400 14.5px/1.6 var(--font-body); color: var(--color-text-muted); margin-top: 8px; text-align: center; }
+.case-card__more { display: block; margin-top: auto; padding-top: 14px; font: 600 14px var(--font-body); color: var(--color-ink); text-align: center; }
+.case-card__more-arrow { display: inline-block; transition: transform var(--hover-t); }
+@media (hover: hover) { .case-card:hover .case-card__more-arrow { transform: translateX(3px); } }
+.case-card:focus-visible .case-card__more-arrow { transform: translateX(3px); }
 .case-card:focus-visible { outline-offset: 4px; }
 
 /* ---------- 10c. Kontakt ---------- */
@@ -545,9 +549,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   display: inline-flex; align-items: center; gap: 6px;
   font: 700 15px var(--font-body); color: var(--color-ink); text-decoration: none;
 }
-.home-hero__link-arrow { display: inline-block; transition: transform var(--ease); text-decoration: none; }
-.home-hero__link:hover, .home-hero__link:focus-visible { color: var(--color-ink); text-decoration: underline; text-underline-offset: 3px; }
-.home-hero__link:hover .home-hero__link-arrow, .home-hero__link:focus-visible .home-hero__link-arrow { transform: translateX(3px); }
+/* podkreślenie tłem na całym linku: ciągłe pod tekstem, odstępem i strzałką */
+.home-hero__link:hover, .home-hero__link:focus-visible { color: var(--color-purple); background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat; }
 
 /* logo PMG: słupki wyrastają kolejno z własnego środka, ramka się rysuje, litery P→M→G; potem „oddech” w pętli */
 @keyframes pmgdraw { from { stroke-dashoffset: 1044; } }
@@ -591,8 +594,8 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .home-news { padding: 66px 0; }
 .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
 .section-head__link { font: 600 14px var(--font-body); color: var(--color-ink); text-decoration: none; }
-.section-head__link:hover { text-decoration: underline; }
-.section-head__link:focus-visible { text-decoration: underline; }
+.section-head__link:hover { text-decoration: underline; color: var(--color-purple); }
+.section-head__link:focus-visible { text-decoration: underline; color: var(--color-purple); }
 
 .home-h2 { font: 600 32px var(--font-head); letter-spacing: -.02em; }
 .home-h2--lg { font-size: clamp(28px, 3.6vw, 36px); margin: 8px 0 30px; }
@@ -918,23 +921,17 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .join-page-steps__text { font: 400 13.5px/1.55 var(--font-body); color: var(--color-text-muted); margin-top: 5px; }
 
 /* Karta formularza: na całą szerokość kontenera. Wewnątrz dwie części — .join-page-form__main (tytuł,
-   przycisk) i .join-page-form__side (pomoc, link do sekcji) — jedna pod drugą w tej kolejności do 960px,
-   obok siebie (dwie kolumny) od 961px. */
+   przycisk) i .join-page-form__side (pomoc, link do sekcji) — jedna pod drugą, wyśrodkowane, rozdzielone
+   cienką linią, na wszystkich szerokościach. */
 .join-page-form {
   background: var(--color-surface); border: 1px solid rgba(20,20,20,.1); border-radius: 22px; padding: 34px;
   box-shadow: var(--shadow-feature); display: flex; flex-direction: column; gap: 24px;
 }
-.join-page-form__main { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
+.join-page-form__main { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
 .join-page-form__title { font: 600 24px/1.2 var(--font-head); letter-spacing: 0; }
 .join-page-form__btn { font-size: 15px; padding: 14px 30px; white-space: nowrap; }
 .join-page-form__btn:hover, .join-page-form__btn:focus-visible { background: var(--color-pink-text); color: #fff; }
-.join-page-form__side { display: flex; flex-direction: column; gap: 14px; }
-
-@media (min-width: 961px) {
-  .join-page-form { flex-direction: row; align-items: center; gap: 48px; }
-  .join-page-form__main { flex: 0 1 auto; }
-  .join-page-form__side { flex: 1 1 0; max-width: 380px; }
-}
+.join-page-form__side { display: flex; flex-direction: column; gap: 14px; text-align: center; padding-top: 24px; border-top: 1px solid var(--color-border); }
 
 @media (max-width: 960px) {
   .join-page-hero { padding: 56px 0 52px; }
@@ -971,24 +968,27 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
    lżejsza wersja 800w dla wąskich ekranów przez srcset/sizes. Zasłania kropkowane tło i poświatę wyżej —
    to nie problem, obie są niewidoczne pod nieprzezroczystym zdjęciem. */
 .about-structure__bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
-.about-structure__bg img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.about-structure__bg img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
 /* Przejście zdjęcia w kolor tła sekcji (= tło .about-units i <body>, var(--color-bg) #F7F6F3) na górnych
-   ~30% wysokości sekcji, żeby nie było twardej krawędzi; dalej stała półprzezroczysta warstwa w tym samym
-   kolorze — czytelność nagłówka i tekstu poza kartami przy zachowanej rozpoznawalności zdjęcia. */
+   ~30% wysokości sekcji i lustrzanie na dolnych ~30%, żeby nie było twardej krawędzi; pomiędzy stała półprzezroczysta
+   warstwa w tym samym kolorze — czytelność nagłówka i tekstu poza kartami przy zachowanej rozpoznawalności zdjęcia. */
 #struktura::after {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background: linear-gradient(180deg,
     rgba(247, 246, 243, 1) 0%,
     rgba(247, 246, 243, .78) 14%,
     rgba(247, 246, 243, .42) 30%,
-    rgba(247, 246, 243, .42) 100%);
+    rgba(247, 246, 243, .42) 70%,
+    rgba(247, 246, 243, .78) 86%,
+    rgba(247, 246, 243, 1) 100%);
 }
 .about-board { display: flex; flex-direction: column; align-items: center; }
 .about-board__list { display: flex; flex-direction: column; gap: 14px; align-items: stretch; max-width: 100%; }
 .about-board__card {
   min-width: min(280px, 100%); display: flex; align-items: center; justify-content: space-between; gap: 18px;
-  /* zarząd: karta w szarości #525252 z nicią gradientu marki u góry, biały tekst ≥ 4.5:1 (nazwisko 7,8:1, rola 4,8:1) */
-  background: var(--gradient-brand) 0 0 / 100% 3px no-repeat, #525252; border-radius: var(--radius-md); padding: 16px 22px;
+  /* zarząd: karta w szarości #525252 z nicią gradientu marki u góry, biały tekst ≥ 4.5:1 (nazwisko 7,8:1, rola 4,8:1);
+     nić = wycinek jednego gradientu na szerokość strony (100vw, środek obrazu na środku karty = środku strony) */
+  background: var(--gradient-brand) 50% 0 / 100vw 3px no-repeat, #525252; border-radius: var(--radius-md); padding: 16px 22px;
   box-shadow: 0 12px 28px -16px rgba(20, 20, 20, .45);
 }
 .about-board__who { min-width: 0; }
@@ -1027,13 +1027,14 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-sec:nth-child(4n+3) { --col: 2; }
 .about-sec:nth-child(4n+4) { --col: 3; }
 .about-sec {
-  /* lewa krawędź karty w siatce: kolumna × (szerokość karty + odstęp 16 px) */
-  --seg-x: calc(var(--col, 0) * (100cqw + 16px) / var(--cols));
+  /* lewa krawędź karty na stronie: margines siatki ((100vw − szerokość siatki) / 2) + kolumna × (szerokość karty + odstęp 16 px);
+     nić karty i kropka koordynatora to wycinki jednego gradientu 100vw, więc kolor zależy od położenia na stronie */
+  --seg-x: calc((100vw - 100cqw) / 2 + var(--col, 0) * (100cqw + 16px) / var(--cols));
   border: 1px solid var(--color-border); border-top: 3px solid transparent;
   border-radius: var(--radius-md); overflow: hidden;
-  background: var(--gradient-brand) 0 0 / 100% 3px no-repeat border-box; /* bez cqw: pełny gradient w każdej karcie */
+  background: var(--gradient-brand) 0 0 / 100% 3px no-repeat border-box; /* rozmiar i położenie niżej: względem strony */
   background-color: #fff;
-  background-size: 100cqw 3px;
+  background-size: 100vw 3px;
   background-position: calc(-1 * var(--seg-x)) 0;
 }
 .about-sec__head { padding: 18px 18px 4px; }
@@ -1046,7 +1047,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-coord__label::before {
   content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 7px; vertical-align: 1px;
   background: var(--gradient-brand) 0 0 / 100% 100% no-repeat;
-  background-size: 100cqw 100%;
+  background-size: 100vw 100%;
   background-position: calc(-1 * (var(--seg-x) + 31px)) 0;
 }
 .about-coord__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
