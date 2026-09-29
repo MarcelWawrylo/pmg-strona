@@ -924,7 +924,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
    — .join-page-form__main (tytuł, przycisk) i .join-page-form__side (pomoc, link do sekcji) — jedna pod
    drugą, wyśrodkowane, rozdzielone cienką linią na szerokość formularza. */
 .join-page-form {
-  display: flex; flex-direction: column; gap: 24px; width: fit-content; max-width: 100%; margin-inline: auto;
+  display: flex; flex-direction: column; gap: 24px; width: fit-content; max-width: 100%; margin: 34px auto; /* margines zamiast dawnego paddingu karty: ten sam odstęp od sąsiednich sekcji */
 }
 .join-page-form__main { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
 .join-page-form__title { font: 600 24px/1.2 var(--font-head); letter-spacing: 0; }
@@ -937,6 +937,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 }
 @media (max-width: 640px) {
   .join-page-main { padding: 40px 0 60px; }
+  .join-page-form { margin: 28px auto; }
 }
 
 /* ---------- 10. O nas ---------- */
