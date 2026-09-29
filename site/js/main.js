@@ -64,14 +64,58 @@
     var toggle = $('.site-nav__toggle', nav);
     var menu = $('.site-nav__menu', nav);
     if (!toggle || !menu) return;
+    // stała nazwa przycisku; stan (otwarte/zamknięte) przekazuje tylko aria-expanded
+    toggle.setAttribute('aria-label', 'Menu');
+
+    // ≤ 960 px: „Dołącz” zawsze widoczne w pasku (na desktopie jest w samym menu) — kopia linku z menu,
+    // więc HTML podstron się nie zmienia; na stronie Dołącz (aria-current) kopii nie ma
+    var cta = $('.site-nav__cta', menu);
+    if (cta && !cta.hasAttribute('aria-current')) {
+      var barCta = cta.cloneNode(true);
+      barCta.classList.add('site-nav__bar-cta');
+      toggle.parentNode.insertBefore(barCta, toggle);
+    }
+
+    // ≤ 960 px menu jest panelem na cały ekran: reszta strony dostaje inert (niedostępna dla fokusu
+    // i czytnika), tło się nie przewija, Tab krąży po nagłówku
+    var mobile = window.matchMedia('(max-width: 960px)');
+    var inerted = [];
+    var setInert = function (on) {
+      if (on) {
+        for (var el = nav; el.parentElement && el !== document.body; el = el.parentElement) {
+          Array.prototype.forEach.call(el.parentElement.children, function (sib) {
+            if (sib !== el && !sib.inert && !/^(SCRIPT|STYLE|TEMPLATE)$/.test(sib.tagName)) { sib.inert = true; inerted.push(sib); }
+          });
+        }
+      } else {
+        inerted.forEach(function (sib) { sib.inert = false; });
+        inerted = [];
+      }
+    };
     var setOpen = function (open) {
       nav.classList.toggle('is-open', open);
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      toggle.setAttribute('aria-label', open ? 'Zamknij menu' : 'Otwórz menu');
+      var modal = open && mobile.matches;
+      document.documentElement.classList.toggle('nav-open', modal);
+      setInert(modal);
+    };
+    var focusables = function () {
+      return $$('a[href], button:not([disabled])', nav).filter(function (el) {
+        return el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
+      });
     };
     toggle.addEventListener('click', function () { setOpen(!nav.classList.contains('is-open')); });
+    // klik w link w panelu zamyka menu (także kotwice na tej samej stronie)
+    menu.addEventListener('click', function (e) { if (e.target.closest('a')) setOpen(false); });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && nav.classList.contains('is-open')) { setOpen(false); toggle.focus(); }
+      if (!nav.classList.contains('is-open')) return;
+      if (e.key === 'Escape') { setOpen(false); toggle.focus(); return; }
+      if (e.key !== 'Tab' || !mobile.matches) return;
+      var items = focusables();
+      if (!items.length) return;
+      var first = items[0], last = items[items.length - 1], active = document.activeElement;
+      if (e.shiftKey && (active === first || !nav.contains(active))) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (active === last || !nav.contains(active))) { e.preventDefault(); first.focus(); }
     });
     var mq = window.matchMedia('(min-width: 961px)');
     var onMq = function () { if (mq.matches) setOpen(false); };
@@ -374,6 +418,32 @@
         setTimeout(focusTarget, 900); // zabezpieczenie na przeglądarki bez zdarzenia scrollend
       }
     });
+  }
+
+  /* ---------- Poziome pasy przewijane palcem (≤ 640 px: kafelki „Po co? / Dla kogo?…” na PM Session) ----------
+     Pas bez linków w środku nie dostałby fokusu, więc z klawiatury (np. Safari) nie dałoby się go przewinąć:
+     gdy treść faktycznie wychodzi w bok, owijka pasa dostaje tabindex="0", rolę region i nazwę (sama lista <dl>
+     zostaje listą); na szerokim ekranie (siatka) nic. */
+  function initScrollers() {
+    var items = $$('.pms-facts-wrap');
+    if (!items.length) return;
+    var update = function () {
+      items.forEach(function (el) {
+        var scrolls = el.scrollWidth > el.clientWidth + 1;
+        if (scrolls) {
+          el.setAttribute('tabindex', '0');
+          el.setAttribute('role', 'region');
+          el.setAttribute('aria-label', 'PM Session w pytaniach (przewijane w poziomie)');
+        } else {
+          el.removeAttribute('tabindex');
+          el.removeAttribute('role');
+          el.removeAttribute('aria-label');
+        }
+      });
+    };
+    update();
+    var t = 0;
+    window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(update, 200); });
   }
 
   /* ---------- Odsłanianie przy scrollu ---------- */
@@ -679,6 +749,7 @@
     initToTop();
     initAnchorScroll();
     initReveal();
+    initScrollers();
     initLightbox();
     initContactForm();
     initReportBug();
@@ -813,6 +884,8 @@
     if (canvas && canvas.getContext) {
       var ctx = canvas.getContext('2d');
       var SCALE = 0.5, timer = null, raf = null;
+      // ≤ 960 px klatka co 120 ms zamiast 60 ms: ten sam wygląd ziarna, o połowę mniej pracy procesora i baterii telefonu
+      var FRAME_MS = window.matchMedia('(max-width: 960px)').matches ? 120 : 60;
       var resize = function () {
         canvas.width = Math.max(1, Math.ceil(window.innerWidth * SCALE));
         canvas.height = Math.max(1, Math.ceil(window.innerHeight * SCALE));
@@ -830,7 +903,7 @@
       };
       var loop = function () {
         draw();
-        timer = setTimeout(function () { raf = requestAnimationFrame(loop); }, 60);
+        timer = setTimeout(function () { raf = requestAnimationFrame(loop); }, FRAME_MS);
       };
       var start = function () {
         stop();

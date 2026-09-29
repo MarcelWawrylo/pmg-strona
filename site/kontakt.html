@@ -14,6 +14,7 @@
 <script>document.documentElement.classList.add('js')</script>
 <script src="js/main.js" defer></script>
 <script src="js/v2.js" defer></script>
+<script src="js/mobile.js" defer></script>
 </head>
 <body class="v2-page" data-page="kontakt">
 <a class="skip-link" href="#main">Przejdź do treści</a>
@@ -67,20 +68,20 @@
           <div class="contact-form__row">
             <div class="field">
               <label class="field__label" for="cf-name">Imię i nazwisko</label>
-              <input class="field__input" id="cf-name" name="name" type="text" autocomplete="name" placeholder="Jan Kowalski" required>
+              <input class="field__input" id="cf-name" name="name" type="text" autocomplete="name" autocapitalize="words" enterkeyhint="next" placeholder="Jan Kowalski" required>
             </div>
             <div class="field">
               <label class="field__label" for="cf-email">E-mail</label>
-              <input class="field__input" id="cf-email" name="email" type="email" autocomplete="email" placeholder="twoj@adres.mailowy" required>
+              <input class="field__input" id="cf-email" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" enterkeyhint="next" placeholder="twoj@adres.mailowy" required>
             </div>
             <div class="field field--full">
               <label class="field__label" for="cf-subject">Temat</label>
-              <input class="field__input" id="cf-subject" name="subject" type="text" placeholder="Propozycja warsztatów" required>
+              <input class="field__input" id="cf-subject" name="subject" type="text" autocomplete="off" enterkeyhint="next" placeholder="Propozycja warsztatów" required>
             </div>
           </div>
           <div class="field">
             <label class="field__label" for="cf-message">Opisz swój pomysł</label>
-            <textarea class="field__input field__input--area" id="cf-message" name="message" rows="3" placeholder="Opisz swoją sprawę..." required></textarea>
+            <textarea class="field__input field__input--area" id="cf-message" name="message" rows="3" autocapitalize="sentences" placeholder="Opisz swoją sprawę..." required></textarea>
           </div>
           <div class="visually-hidden" aria-hidden="true"><label for="cf-website">Nie wypełniaj tego pola</label><input id="cf-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
           <p class="contact-form__error" data-form-error role="alert" hidden>Uzupełnij wszystkie pola i podaj poprawny adres e-mail.</p>
