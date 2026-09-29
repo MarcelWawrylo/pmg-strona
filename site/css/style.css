@@ -285,9 +285,10 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
    Pułapka fokusu, inert na reszcie strony, Esc i blokada przewijania tła: main.js initNav.
    Panel siedzi w nav, więc nav nie może mieć wtedy transform ani backdrop-filter (tworzą containing block dla fixed). */
 @media (max-width: 960px) {
-  /* sticky nagłówek zmienia wysokość po przewinięciu; bez tego scroll anchoring cofa przewinięcie pod próg
-     is-scrolled i nagłówek migocze w pętli (ok. 60 zmian/s) */
-  html, body { overflow-anchor: none; }
+  /* stała wysokość nagłówka (pasek 92 px, pigułka mieści się w nim): gdyby malała po przewinięciu, scroll anchoring
+     cofałby przewinięcie pod próg is-scrolled i nagłówek migotałby w pętli (ok. 60 zmian klasy/s) */
+  .site-nav { min-height: 92px; }
+  .site-nav__logo img { display: block; } /* bez odstępu pod linią bazową obrazka inline: pasek ma równe 92 px */
   .site-nav__inner { gap: 12px; transition: padding var(--ease), margin var(--ease), border-radius var(--ease), background-color var(--ease), box-shadow var(--ease); }
   .site-nav__logo img { height: 56px; width: 56px; }
   .site-nav.is-scrolled .site-nav__logo img { height: 46px; width: 46px; }
@@ -296,8 +297,9 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   .site-nav__logo, .site-nav__toggle, .site-nav__bar-cta { position: relative; z-index: 2; }
   .site-nav__bar-cta {
     display: inline-flex; align-items: center; min-height: 44px; margin-left: auto; padding: 0 18px;
-    font-size: 14px; transition: opacity var(--hover-t), visibility 0s linear .2s, transform var(--hover-t), background var(--hover-t), color var(--hover-t);
+    font-size: 14px;
   }
+  .site-nav .site-nav__bar-cta { transition: opacity var(--hover-t), visibility 0s linear .2s, transform var(--hover-t), background var(--hover-t), color var(--hover-t); }
   .site-nav__bar-cta + .site-nav__toggle { margin-left: 0; }
 
   /* pływająca pigułka po przewinięciu (bez backdrop-filter: tło i tak jest nieprzezroczyste) */
@@ -385,8 +387,9 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   .site-nav__sublink[aria-current="page"]::before { top: 10px; bottom: 10px; }
 }
 @keyframes navsub-in { from { opacity: 0; transform: translateY(-6px); } }
-/* blokada przewijania tła przy otwartym menu (klasa z main.js) */
-html.nav-open { overflow: hidden; }
+/* blokada przewijania tła przy otwartym menu (klasa z main.js). Na body, nie na html: overflow na html zrobiłby z body
+   (overflow-x: hidden) osobny kontener przewijania i sticky nagłówek z przyciskiem zamknięcia uciekłby poza ekran */
+html.nav-open body { overflow: hidden; }
 @media (max-width: 960px) and (prefers-reduced-motion: reduce) {
   .site-nav.is-open .site-nav__menu > * { transition-delay: 0s; }
 }
@@ -786,8 +789,7 @@ html.nav-open { overflow: hidden; }
 @media (hover: hover) { .join-card:hover .join-card__arrow { transform: translateX(3px); } }
 .join-card:focus-visible .join-card__arrow { transform: translateX(3px); }
 @media (max-width: 640px) { .join-card { padding: 30px 24px; } }
-@media (min-width: 640px) { .join-card__title { flex-wrap: nowrap; white-space: nowrap; } }
-@media (max-width: 960px) { .join-card__title { flex-wrap: wrap; white-space: normal; } } /* 640–960: nowrap wystawał poza kartę */
+@media (min-width: 961px) { .join-card__title { flex-wrap: nowrap; white-space: nowrap; } } /* 640–960 px nowrap wystawał poza kartę */
 .home-join__links { display: flex; flex-direction: column; gap: 16px; }
 .link-tile {
   flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 5px; background: #fff;
