@@ -1,7 +1,7 @@
 /* PMG — efekty wersji mobilnej (≤ 960 px). Lustro js/v2.js: tam desktop z GSAP i Lenis, tu telefon i tablet bez bibliotek.
    Działa tylko ≤ 960 px i bez prefers-reduced-motion; wtedy <html> dostaje klasę mobile-fx, a style.css włącza animacje.
-   Tylko transform/opacity/color; przewijanie przez CSS animation-timeline (progressive enhancement) albo IntersectionObserver,
-   bez nasłuchu scroll. Menu mobilne jest w main.js (initNav), bo działa także przy ograniczonym ruchu. */
+   Tylko transform/opacity/color; przewijanie przez CSS animation-timeline (progressive enhancement), bez nasłuchu scroll.
+   Menu mobilne jest w main.js (initNav), bo działa także przy ograniczonym ruchu. */
 (function () {
   'use strict';
 
@@ -18,42 +18,27 @@
     return sr;
   }
 
-  /* ---------- PM Session „Czym jest”: zdanie wchodzi słowo po słowie ----------
-     Odpowiednik v2.js initPmsIntro bez pinu i przesuwu poziomego: podział na słowa jak tam, a wejście (i „echo” ostatniego słowa)
-     robi CSS (style.css). Do podziału tytuł jest ukryty przez CSS z bezpiecznikiem 2,5 s, więc bez skryptu treść i tak się pokaże. */
+  /* ---------- PM Session „Czym jest”: reszta zdania odsłaniana przewijaniem ----------
+     Odpowiednik v2.js initPmsIntro bez GSAP i przypinania: „Konferencja naukowa” (.pms-intro__lead) zostaje nietknięta,
+     a „poświęcona zarządzaniu projektami” (.pms-intro__rest) dzielimy na słowa jak tam (spacje jako węzły tekstowe, bez
+     aria-hidden i bez duplikatu tekstu — textContent się nie zmienia). Odsłanianie słów po kolei robi CSS (style.css). */
   function initPmsIntro() {
     var section = document.querySelector('[data-pms-intro]');
-    var title = section && section.querySelector('.pms-intro__title');
-    if (!title) return;
+    var rest = section && section.querySelector('.pms-intro__rest');
+    if (!rest) return;
 
-    var line = document.createElement('span');
-    line.className = 'pms-intro__line';
-    line.setAttribute('aria-hidden', 'true');
     var n = 0;
-    var addWord = function (inner) {
-      if (line.childNodes.length) line.appendChild(document.createTextNode(' '));
+    var parts = rest.textContent.split(/(\s+)/);
+    rest.textContent = '';
+    parts.forEach(function (part) {
+      if (!part) return;
+      if (/^\s+$/.test(part)) { rest.appendChild(document.createTextNode(part)); return; }
       var w = document.createElement('span');
       w.className = 'pms-intro__word';
-      w.style.setProperty('--i', String(n++)); // numer słowa → opóźnienie wejścia w CSS
-      w.appendChild(inner);
-      line.appendChild(w);
-    };
-    var sr = srText(title.textContent.replace(/\s+/g, ' ').trim());
-    Array.prototype.slice.call(title.childNodes).forEach(function (node) {
-      if (node.nodeType === 3) {
-        node.textContent.split(/\s+/).forEach(function (part) {
-          if (!part) return;
-          var s = document.createElement('span');
-          s.textContent = part;
-          addWord(s);
-        });
-      } else if (node.nodeType === 1) {
-        addWord(node.cloneNode(true)); // akcent („projektami”) to jedno słowo
-      }
+      w.style.setProperty('--i', String(n++)); // numer słowa → przesunięcie odsłaniania w CSS
+      w.textContent = part;
+      rest.appendChild(w);
     });
-    title.textContent = '';
-    title.appendChild(sr);
-    title.appendChild(line);
     section.classList.add('is-words');
   }
 
@@ -81,22 +66,6 @@
     });
   }
 
-  /* ---------- Case Koła: animowane logo ----------
-     Jak w v2.js: .is-anim ustawia sekwencję w klatce początkowej (wstrzymaną przez .is-anim-wait, CSS w v2.css);
-     gdy logo wejdzie w widok, zdejmujemy .is-anim-wait i sekwencja rusza — raz na wczytanie strony. */
-  function initCaseLogo() {
-    var logo = document.querySelector('.case-logo');
-    if (!logo || !('IntersectionObserver' in window)) return;
-    logo.classList.add('is-anim', 'is-anim-wait');
-    var io = new IntersectionObserver(function (entries) {
-      if (!entries.some(function (e) { return e.isIntersecting; })) return;
-      io.disconnect();
-      logo.classList.remove('is-anim-wait');
-    }, { threshold: 0.3 });
-    io.observe(logo);
-  }
-
   initPmsIntro();
   initPmsWords();
-  initCaseLogo();
 })();

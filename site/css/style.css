@@ -1012,36 +1012,30 @@ html.nav-open body { overflow: hidden; }
    Klasy ustawia js/mobile.js: .mobile-fx na <html>, .is-words na .pms-intro, .m-word na słowach akapitów.
    Tylko transform/opacity (oraz color słów akapitów, jak na desktopie), bez nasłuchu scroll. */
 
-/* v2.css ustawia .pms-intro__line jako nowrap (desktopowy przesuw poziomy) — na telefonie zdanie ma się zawijać.
-   Poza media query celowo: .is-words nadaje tylko mobile.js, więc reguła nigdy nie trafi w desktop. */
-.pms-intro.is-words .pms-intro__line { display: inline; white-space: normal; will-change: auto; }
-
-@keyframes pms-title-failsafe { to { opacity: 1; } }
 @keyframes pms-word-in { from { opacity: 0; transform: translateY(.6em); } to { opacity: 1; transform: none; } }
 @keyframes pms-bg-in { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: none; } }
-@keyframes pms-last-echo { from { opacity: .3; } to { opacity: 1; } }
-@keyframes pms-exit-left { from { transform: translateX(0); opacity: 1; } to { transform: translateX(-22%); opacity: .35; } }
+@keyframes pms-rest-in { from { opacity: 0; transform: translateY(.4em); } to { opacity: 1; transform: none; } }
 @keyframes m-word-ink { to { color: var(--color-ink); } }
 
 @media (max-width: 960px) and (prefers-reduced-motion: no-preference) {
-  /* bezpiecznik: tytuł jest ukryty najwyżej do podziału na słowa (.is-words) albo 2,5 s — gdy skrypt nie ruszy, tekst i tak się pokaże.
-     .js dodaje inline skrypt w <head>, więc bez JS tytuł nigdy nie jest ukryty. .is-scrub: strona otwarta na desktopie (v2.js), potem zwężona */
-  .js .pms-intro__title { opacity: 0; animation: pms-title-failsafe 0s 2.5s forwards; }
-  .pms-intro.is-words .pms-intro__title,
-  .pms-intro.is-scrub .pms-intro__title { opacity: 1; animation: none; }
-
-  /* wejście: słowa kolejno z dołu, tło rośnie z 0,5 */
-  .pms-intro.is-words .pms-intro__word { animation: pms-word-in .7s cubic-bezier(.23, 1, .32, 1) calc(150ms + var(--i) * 70ms) both; }
+  /* „Konferencja naukowa” jest w HTML od początku (widoczna także bez skryptu — reguła działa dopiero z .mobile-fx);
+     display: block, bo transform nie działa na elemencie inline (układ bez zmian: reszta zdania też jest blokiem) */
+  .mobile-fx .pms-intro__lead { display: block; animation: pms-word-in .7s cubic-bezier(.23, 1, .32, 1) both; }
+  /* tło rośnie z .5 przy wejściu */
   .pms-intro.is-words .pms-intro__bg { animation: pms-bg-in 1.1s cubic-bezier(.33, 1, .68, 1) both; }
-  /* echo desktopu: ostatnie słowo (akcent) po wejściu wszystkich słów przechodzi z .3 do 1; --i dziedziczy z .pms-intro__word */
-  .pms-intro.is-words .pms-intro__word:last-child > * { animation: pms-last-echo 1s cubic-bezier(.33, 1, .68, 1) calc(150ms + var(--i) * 70ms + 600ms) both; }
+
+  /* reszta zdania: słowa odsłaniane po kolei przewijaniem strony od góry (odpowiednik opacity-scrub z v2.js); --i ustawia mobile.js.
+     Bez obsługi scroll() (Firefox) słowa są po prostu widoczne. inline-block, bo transform nie działa na elemencie inline */
+  @supports (animation-timeline: scroll()) {
+    .pms-intro.is-words .pms-intro__word {
+      display: inline-block;
+      animation: pms-rest-in linear both;
+      animation-timeline: scroll(root);
+      animation-range: calc(var(--i) * 70px) calc(var(--i) * 70px + 140px);
+    }
+  }
 
   @supports (animation-timeline: view()) {
-    /* overflow: hidden robi z rodzica kontener przewijania i view() zostaje bez działającej osi — clip tnie tak samo, ale nim nie jest */
-    .pms-intro__pin { overflow: clip; }
-    /* przewijanie w dół: zdanie odjeżdża w lewo, gdy wychodzi górą z ekranu */
-    .pms-intro.is-words .pms-intro__inner { animation: pms-exit-left linear both; animation-timeline: view(); animation-range: exit 0% exit 100%; }
-
     /* akapity „Co to PM Session?”: słowo ciemnieje, gdy przejeżdża przez dolną połowę ekranu (wiersz po wierszu).
        inline-block: dla elementu inline Chromium liczy view() z całego akapitu (wszystkie słowa miałyby ten sam postęp) */
     .mobile-fx .m-word { display: inline-block; color: var(--color-text-muted); animation: m-word-ink linear both; animation-timeline: view(); animation-range: cover 18% cover 42%; }
