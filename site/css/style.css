@@ -1650,14 +1650,19 @@ body.has-dialog { overflow: hidden; }
 @media (max-width: 960px) { .pms-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .pms-facts { grid-template-columns: minmax(0, 1fr); } }
 /* ≤ 640 px: 6 kafelków jako poziomy pas przewijany palcem (jak Aktualności na stronie głównej) zamiast ~1000 px kart
-   pod sobą; main.js (initScrollers) daje pasowi tabindex i etykietę, żeby dało się go przewijać klawiaturą */
+   pod sobą. Przewija się owijka .pms-facts-wrap (nie sama lista <dl>, żeby nie tracić jej semantyki); main.js
+   (initScrollers) daje owijce tabindex, rolę region i nazwę, żeby dało się ją przewijać klawiaturą */
 @media (max-width: 640px) {
-  .pms-facts {
-    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: min(80%, 320px); gap: 12px;
+  .pms-facts-wrap {
     margin: 28px calc(-1 * var(--gutter)) 0; padding: 2px var(--gutter) 16px; scroll-padding-inline: var(--gutter);
     overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none;
   }
-  .pms-facts::-webkit-scrollbar { display: none; }
+  .pms-facts-wrap::-webkit-scrollbar { display: none; }
+  .pms-facts-wrap:focus-visible { outline-offset: -3px; }
+  .pms-facts {
+    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: min(calc((100vw - 2 * var(--gutter)) * .86), 320px);
+    gap: 12px; width: max-content; margin-top: 0;
+  }
   .pms-facts__item { scroll-snap-align: start; }
 }
 

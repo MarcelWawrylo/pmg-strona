@@ -422,9 +422,10 @@
 
   /* ---------- Poziome pasy przewijane palcem (≤ 640 px: kafelki „Po co? / Dla kogo?…” na PM Session) ----------
      Pas bez linków w środku nie dostałby fokusu, więc z klawiatury (np. Safari) nie dałoby się go przewinąć:
-     gdy treść faktycznie wychodzi w bok, pas dostaje tabindex="0", rolę region i nazwę; na szerokim ekranie (siatka) nic. */
+     gdy treść faktycznie wychodzi w bok, owijka pasa dostaje tabindex="0", rolę region i nazwę (sama lista <dl>
+     zostaje listą); na szerokim ekranie (siatka) nic. */
   function initScrollers() {
-    var items = $$('.pms-facts');
+    var items = $$('.pms-facts-wrap');
     if (!items.length) return;
     var update = function () {
       items.forEach(function (el) {
