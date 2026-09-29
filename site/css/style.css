@@ -957,29 +957,71 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-structure { padding: 64px 0; position: relative; isolation: isolate; overflow: hidden; }
 .about-structure .about-h2 { margin-bottom: 30px; }
 #struktura {
-  background: radial-gradient(circle, rgba(20, 20, 20, .06) 0 1px, transparent 1.5px) 0 0 / 20px 20px, var(--color-bg);
+  background: var(--color-bg); /* bez kropkowanego wzoru: w przejściu prześwitywałby i tworzył granicę z .about-units */
 }
-#struktura::before {
-  content: ""; position: absolute; z-index: -1; top: -180px; right: -160px; width: 620px; height: 420px; border-radius: 50%;
-  background: var(--gradient-brand); filter: blur(90px); opacity: .08; pointer-events: none;
-}
+#struktura::before { display: none; } /* poświata (blur 90px) byłaby widoczna przy górnej krawędzi sekcji; pod zdjęciem i tak niewidoczna */
 /* Zdjęcie zespołu w tle sekcji: dekoracyjne <picture aria-hidden> (pierwsze dziecko #struktura, z-index -1)
    w o-nas.html, kadr poziomy 1600×1000 (kawałek nieba + grupa, bez nóg) w image-set 1x/2x (webp + jpg),
    lżejsza wersja 800w dla wąskich ekranów przez srcset/sizes. Zasłania kropkowane tło i poświatę wyżej —
    to nie problem, obie są niewidoczne pod nieprzezroczystym zdjęciem. */
 .about-structure__bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
 .about-structure__bg img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 30% 50%; }
-/* Przejście zdjęcia w kolor tła sekcji (= tło .about-units i <body>, var(--color-bg) #F7F6F3) na górnych
-   ~30% wysokości sekcji, żeby nie było twardej krawędzi od strony poprzedniej sekcji; dalej stała półprzezroczysta
-   warstwa w tym samym kolorze aż do dołu (dół celowo bez rozjaśnienia, krawędź ze stopką jest widoczna) —
-   czytelność nagłówka i tekstu poza kartami przy zachowanej rozpoznawalności tła. */
+/* Płynne przejście od --color-bg (górna krawędź sekcji = tło .about-units i <body>, bez krawędzi) do zdjęcia: robi je
+   sama maska na .about-structure__bg — górne max(320px, 50%) wysokości sekcji to wygładzona krzywa (smoothstep 3t²−2t³,
+   17 punktów, zerowe nachylenie na obu końcach, więc bez załamań i pasm Macha), niżej zdjęcie jest w całości (druga
+   warstwa maski). Tło sekcji pod zdjęciem to var(--color-bg) (ID wygrywa z .bg-surface, które dałoby biel #fff). */
+.about-structure__bg {
+  --fade: max(320px, 50%);
+  -webkit-mask-image: linear-gradient(180deg,
+      rgba(0, 0, 0, 0.000) 0%,
+      rgba(0, 0, 0, 0.011) 6.2%,
+      rgba(0, 0, 0, 0.043) 12.5%,
+      rgba(0, 0, 0, 0.092) 18.8%,
+      rgba(0, 0, 0, 0.156) 25%,
+      rgba(0, 0, 0, 0.232) 31.2%,
+      rgba(0, 0, 0, 0.316) 37.5%,
+      rgba(0, 0, 0, 0.407) 43.8%,
+      rgba(0, 0, 0, 0.500) 50%,
+      rgba(0, 0, 0, 0.593) 56.2%,
+      rgba(0, 0, 0, 0.684) 62.5%,
+      rgba(0, 0, 0, 0.768) 68.8%,
+      rgba(0, 0, 0, 0.844) 75%,
+      rgba(0, 0, 0, 0.908) 81.2%,
+      rgba(0, 0, 0, 0.957) 87.5%,
+      rgba(0, 0, 0, 0.989) 93.8%,
+      rgba(0, 0, 0, 1.000) 100%),
+    linear-gradient(#000, #000);
+  mask-image: linear-gradient(180deg,
+      rgba(0, 0, 0, 0.000) 0%,
+      rgba(0, 0, 0, 0.011) 6.2%,
+      rgba(0, 0, 0, 0.043) 12.5%,
+      rgba(0, 0, 0, 0.092) 18.8%,
+      rgba(0, 0, 0, 0.156) 25%,
+      rgba(0, 0, 0, 0.232) 31.2%,
+      rgba(0, 0, 0, 0.316) 37.5%,
+      rgba(0, 0, 0, 0.407) 43.8%,
+      rgba(0, 0, 0, 0.500) 50%,
+      rgba(0, 0, 0, 0.593) 56.2%,
+      rgba(0, 0, 0, 0.684) 62.5%,
+      rgba(0, 0, 0, 0.768) 68.8%,
+      rgba(0, 0, 0, 0.844) 75%,
+      rgba(0, 0, 0, 0.908) 81.2%,
+      rgba(0, 0, 0, 0.957) 87.5%,
+      rgba(0, 0, 0, 0.989) 93.8%,
+      rgba(0, 0, 0, 1.000) 100%),
+    linear-gradient(#000, #000);
+  -webkit-mask-size: 100% var(--fade), 100% calc(100% - var(--fade));
+  mask-size: 100% var(--fade), 100% calc(100% - var(--fade));
+  -webkit-mask-position: 0 0, 0 100%;
+  mask-position: 0 0, 0 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+/* Warstwa czytelności: jednolita, o stałym kryciu na całej wysokości (bez przejść), w kolorze tła sekcji — nagłówek
+   i teksty poza kartami zachowują kontrast, tło zostaje rozpoznawalne; dół celowo bez rozjaśnienia (krawędź ze stopką). */
 #struktura::after {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background: linear-gradient(180deg,
-    rgba(247, 246, 243, 1) 0%,
-    rgba(247, 246, 243, .78) 14%,
-    rgba(247, 246, 243, .42) 30%,
-    rgba(247, 246, 243, .42) 100%);
+  background: rgba(247, 246, 243, .42);
 }
 .about-board { display: flex; flex-direction: column; align-items: center; }
 .about-board__list { display: flex; flex-direction: column; gap: 14px; align-items: stretch; max-width: 100%; }
