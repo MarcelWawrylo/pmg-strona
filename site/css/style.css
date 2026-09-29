@@ -1062,6 +1062,20 @@ html.nav-open { overflow: hidden; }
 .join-page-steps__item:nth-child(2) .join-page-steps__dot { background: #b0308a; }
 .join-page-steps__title { font: 600 16px/1.3 var(--font-head); letter-spacing: 0; }
 .join-page-steps__text { font: 400 13.5px/1.55 var(--font-body); color: var(--color-text-muted); margin-top: 5px; }
+/* ≤ 960 px: mobilny odpowiednik desktopowej linii rysowanej scrollem (v2.js initJoinPath) — pionowa oś rysuje się
+   przewijaniem (scaleY), grot pojawia się, gdy linia dochodzi do kroku 04, kropki „wskakują”, gdy wjeżdżają w ekran.
+   Tylko transform/opacity, bez JS (CSS scroll-driven animations); bez wsparcia albo przy reduced-motion oś jest statyczna. */
+@media (max-width: 960px) and (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .join-page-steps { view-timeline-name: --join-steps; }
+    .join-page-steps::before { transform-origin: 50% 0; animation: join-line-draw linear both; animation-timeline: --join-steps; animation-range: entry 35% cover 62%; }
+    .join-page-steps__item:last-child::after { animation: join-arrow-in linear both; animation-timeline: --join-steps; animation-range: cover 56% cover 64%; }
+    .join-page-steps__dot { animation: join-dot-in linear both; animation-timeline: view(); animation-range: entry 40% cover 38%; }
+  }
+}
+@keyframes join-line-draw { from { transform: scaleY(0); } }
+@keyframes join-arrow-in { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%); } }
+@keyframes join-dot-in { from { opacity: .25; transform: scale(.35); } }
 
 /* Karta formularza: na całą szerokość kontenera. Wewnątrz dwie części — .join-page-form__main (tytuł,
    przycisk) i .join-page-form__side (pomoc, link do sekcji) — jedna pod drugą, wyśrodkowane, rozdzielone
