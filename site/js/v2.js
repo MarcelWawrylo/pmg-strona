@@ -95,7 +95,9 @@
   /* ---------- PM Session „Czym jest”: zdanie jedzie poziomo, napędzane pionowym przewijaniem ---------- */
   // Sekcja ma 4× wysokość okna, wrapper w środku jest przypięty przez position: sticky (v2.css).
   // Zdanie to pierwszy ekran strony, więc wejście słów i tła gra od razu po otwarciu (a nie na początku scrubu),
-  // żeby pierwszy ekran nie był pusty. Scrub: 0–0.15 pauza, 0.15–0.9 przesuw w poziomie, 0.8–1 ostatnie słowo 0.3 → 1.
+  // żeby pierwszy ekran nie był pusty. Na starcie widać „Konferencja naukowa…”, reszta słów ma opacity 0.
+  // Scrub: 0–0.12 pauza, potem 3 kroki po 0.26 (0.12 przesuw w poziomie, aż słowo zmieści się w oknie, 0.14 pojawienie słowa),
+  // trzykropek znika (0.04) w chwili, gdy zaczyna się pojawiać „poświęcona”; 0.9–1 całe zdanie stoi.
   function initPmsIntro() {
     var section = document.querySelector('[data-pms-intro]');
     var title = section && section.querySelector('.pms-intro__title');
@@ -134,22 +136,40 @@
     section.classList.add('is-scrub');
 
     var words = line.querySelectorAll('.pms-intro__word');
-    var lastInner = words[words.length - 1].firstChild;
+    var SHOWN = 2; // na starcie widać „Konferencja naukowa”, pozostałe słowa odsłania scrub
+    // trzykropek zaraz za „naukowa”: zerowa szerokość (v2.css), więc nie przesuwa słów, a znak wystaje w miejsce spacji
+    var dots = document.createElement('span');
+    dots.className = 'pms-intro__ellipsis';
+    dots.setAttribute('aria-hidden', 'true');
+    var dotsInner = document.createElement('span');
+    dotsInner.textContent = '\u2026';
+    dots.appendChild(dotsInner);
+    line.insertBefore(dots, words[SHOWN - 1].nextSibling);
     var bg = section.querySelector('.pms-intro__bg');
     var START_X = 100;
-    var endX = function () { return -(line.offsetWidth - window.innerWidth + START_X); };
+    // x zdania, przy którym prawy brzeg słowa i stoi START_X od prawej krawędzi okna (dla ostatniego = dawny endX)
+    var xFor = function (i) {
+      return function () {
+        var w = words[i];
+        return Math.min(START_X, window.innerWidth - START_X - (w.offsetLeft - line.offsetLeft + w.offsetWidth));
+      };
+    };
 
-    // wejście (czasowe, raz): tło i słowa kolejno z dołu
-    gsap.set(lastInner, { opacity: 0.3 });
+    // wejście (czasowe, raz): tło, „Konferencja naukowa” i trzykropek kolejno z dołu
     if (bg) gsap.fromTo(bg, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 1.1, ease: 'power2.out' });
-    gsap.fromTo(words, { opacity: 0, y: 64 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.07, delay: 0.15 });
+    gsap.fromTo([words[0], words[1], dots], { opacity: 0, y: 64 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.07, delay: 0.15 });
 
-    // scrub: przesuw całego zdania i dojście ostatniego słowa
+    // scrub: przesuw zdania do kolejnego słowa, potem jego pojawienie; trzykropek znika wraz z pierwszym z nich
     var tl = gsap.timeline({
       scrollTrigger: { trigger: section, start: 'top top', end: 'bottom bottom', scrub: 0.5, invalidateOnRefresh: true }
     });
-    tl.fromTo(line, { x: START_X }, { x: endX, ease: 'none', duration: 0.75 }, 0.15)
-      .fromTo(lastInner, { opacity: 0.3 }, { opacity: 1, ease: 'none', duration: 0.2 }, 0.8);
+    var PAUSE = 0.12, STEP = 0.26, MOVE = 0.12;
+    Array.prototype.slice.call(words, SHOWN).forEach(function (w, k) {
+      var at = PAUSE + k * STEP;
+      tl.fromTo(line, { x: k ? xFor(SHOWN + k - 1) : START_X }, { x: xFor(SHOWN + k), ease: 'none', duration: MOVE, immediateRender: !k }, at)
+        .fromTo(w, { opacity: 0, y: 40 }, { opacity: 1, y: 0, ease: 'none', duration: STEP - MOVE }, at + MOVE);
+    });
+    tl.fromTo(dotsInner, { opacity: 1 }, { opacity: 0, ease: 'none', duration: 0.04 }, PAUSE + MOVE);
     tl.set({}, {}, 1);
 
     // szerokość zdania zależy od fontu Space Grotesk: przelicz po jego wczytaniu
