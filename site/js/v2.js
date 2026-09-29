@@ -92,68 +92,49 @@
     });
   }
 
-  /* ---------- PM Session „Czym jest”: zdanie jedzie poziomo, napędzane pionowym przewijaniem ---------- */
-  // Sekcja ma 4× wysokość okna, wrapper w środku jest przypięty przez position: sticky (v2.css).
-  // Zdanie to pierwszy ekran strony, więc wejście słów i tła gra od razu po otwarciu (a nie na początku scrubu),
-  // żeby pierwszy ekran nie był pusty. Scrub: 0–0.15 pauza, 0.15–0.9 przesuw w poziomie, 0.8–1 ostatnie słowo 0.3 → 1.
+  /* ---------- PM Session „Czym jest”: reszta zdania odsłania się pod „Konferencja naukowa” ----------
+     Na starcie widać tylko „Konferencja naukowa” (.pms-intro__lead); „poświęcona zarządzaniu projektami” (.pms-intro__rest)
+     zajmuje już swoje miejsce, ale ma krycie 0. Pierwszy ekran przewija się zwyczajnie; gdy góra leada dojdzie do 40% wysokości
+     okna, cały pierwszy ekran (.pms-intro__pin z tłem i bańkami) zostaje przypięty na 80% wysokości okna przewijania, a słowa
+     reszty pojawiają się kolejno w miejscu (tylko opacity, bez ruchu; słowo po słowie, więc działa też, gdy reszta zawija się
+     na 2 linie). Scrub w obie strony. Po odsłonięciu pin puszcza i strona przewija się dalej (pin-spacer ScrollTrigger, bez dziury).
+     Przypinany jest wrapper, a nie sam <h1>: pin-spacer w środku wrappera (flex, wyśrodkowanie) podniósłby zdanie na starcie.
+     Słowa zostają prawdziwym tekstem <h1> (spany bez aria-hidden, spacje jako węzły tekstowe), textContent się nie zmienia. */
   function initPmsIntro() {
     var section = document.querySelector('[data-pms-intro]');
-    var title = section && section.querySelector('.pms-intro__title');
-    if (!title) return;
+    var pin = section && section.querySelector('.pms-intro__pin');
+    var lead = section && section.querySelector('.pms-intro__lead');
+    var rest = section && section.querySelector('.pms-intro__rest');
+    if (!pin || !lead || !rest) return;
     var gsap = window.gsap;
 
-    // czytnik ekranu dostaje całe zdanie jednym tekstem; słowa w spanach są tylko wizualne
-    var sr = document.createElement('span');
-    sr.className = 'visually-hidden';
-    sr.textContent = title.textContent.replace(/\s+/g, ' ').trim();
-    var line = document.createElement('span');
-    line.className = 'pms-intro__line';
-    line.setAttribute('aria-hidden', 'true');
-    var addWord = function (inner) {
-      if (line.childNodes.length) line.appendChild(document.createTextNode(' '));
+    var words = [];
+    var parts = rest.textContent.split(/(\s+)/);
+    rest.textContent = '';
+    parts.forEach(function (part) {
+      if (!part) return;
+      if (/^\s+$/.test(part)) { rest.appendChild(document.createTextNode(part)); return; }
       var w = document.createElement('span');
-      w.className = 'pms-intro__word';
-      w.appendChild(inner);
-      line.appendChild(w);
-    };
-    Array.prototype.slice.call(title.childNodes).forEach(function (node) {
-      if (node.nodeType === 3) {
-        node.textContent.split(/\s+/).forEach(function (part) {
-          if (!part) return;
-          var s = document.createElement('span');
-          s.textContent = part;
-          addWord(s);
-        });
-      } else if (node.nodeType === 1) {
-        addWord(node.cloneNode(true));
-      }
+      w.textContent = part;
+      rest.appendChild(w);
+      words.push(w);
     });
-    title.textContent = '';
-    title.appendChild(sr);
-    title.appendChild(line);
-    section.classList.add('is-scrub');
+    gsap.set(words, { opacity: 0 });
+    section.classList.add('is-reveal');
 
-    var words = line.querySelectorAll('.pms-intro__word');
-    var lastInner = words[words.length - 1].firstChild;
+    // wejście tła (czasowe, raz) po otwarciu strony
     var bg = section.querySelector('.pms-intro__bg');
-    var START_X = 100;
-    var endX = function () { return -(line.offsetWidth - window.innerWidth + START_X); };
-
-    // wejście (czasowe, raz): tło i słowa kolejno z dołu
-    gsap.set(lastInner, { opacity: 0.3 });
     if (bg) gsap.fromTo(bg, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 1.1, ease: 'power2.out' });
-    gsap.fromTo(words, { opacity: 0, y: 64 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.07, delay: 0.15 });
 
-    // scrub: przesuw całego zdania i dojście ostatniego słowa
-    var tl = gsap.timeline({
-      scrollTrigger: { trigger: section, start: 'top top', end: 'bottom bottom', scrub: 0.5, invalidateOnRefresh: true }
-    });
-    tl.fromTo(line, { x: START_X }, { x: endX, ease: 'none', duration: 0.75 }, 0.15)
-      .fromTo(lastInner, { opacity: 0.3 }, { opacity: 1, ease: 'none', duration: 0.2 }, 0.8);
-    tl.set({}, {}, 1);
-
-    // szerokość zdania zależy od fontu Space Grotesk: przelicz po jego wczytaniu
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { window.ScrollTrigger.refresh(); });
+    // start: góra leada na 40% okna, ale nie mniej niż 0 — na niskich ekranach lead jest od razu wyżej, wtedy pin
+    // i odsłanianie od pierwszego przewinięcia; długość zawsze 80% wysokości okna
+    var from = function () { return Math.max(0, lead.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.4); };
+    gsap.timeline({
+      scrollTrigger: {
+        trigger: lead, start: from, end: function () { return from() + window.innerHeight * 0.8; },
+        pin: pin, scrub: 0.5, invalidateOnRefresh: true
+      }
+    }).to(words, { opacity: 1, ease: 'none', duration: 1, stagger: 0.7 });
   }
 
   /* ---------- Dołącz: pozioma ścieżka procesu rysowana przy przewijaniu, z grotem strzałki ----------
