@@ -276,35 +276,129 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .site-nav--dark .site-nav__sublink:hover { background: rgba(255,255,255,.08); color: #fff; }
 .site-nav--dark .site-nav__sublink[aria-current="page"] { color: #fff; }
 
+/* CTA „Dołącz” w pasku obok przycisku menu: kopia linku z menu tworzona przez main.js (initNav), tylko ≤ 960 px */
+.site-nav__bar-cta { display: none; }
+
+/* ---------- 6a. Nawigacja mobilna (≤ 960 px) ----------
+   Pasek: logo, „Dołącz”, przycisk menu. Po przewinięciu pasek zwęża się do pływającej pigułki (jak na desktopie, v2.css).
+   Menu: panel pełnoekranowy (position: fixed) nad stroną, pasek zostaje na jego wierzchu; animacja tylko opacity/transform.
+   Pułapka fokusu, inert na reszcie strony, Esc i blokada przewijania tła: main.js initNav.
+   Panel siedzi w nav, więc nav nie może mieć wtedy transform ani backdrop-filter (tworzą containing block dla fixed). */
 @media (max-width: 960px) {
-  .site-nav__inner { flex-wrap: wrap; gap: 12px; }
+  /* sticky nagłówek zmienia wysokość po przewinięciu; bez tego scroll anchoring cofa przewinięcie pod próg
+     is-scrolled i nagłówek migocze w pętli (ok. 60 zmian/s) */
+  html, body { overflow-anchor: none; }
+  .site-nav__inner { gap: 12px; transition: padding var(--ease), margin var(--ease), border-radius var(--ease), background-color var(--ease), box-shadow var(--ease); }
   .site-nav__logo img { height: 56px; width: 56px; }
   .site-nav.is-scrolled .site-nav__logo img { height: 46px; width: 46px; }
-  .site-nav__toggle { display: inline-flex; }
-  .site-nav__menu {
-    display: none; flex-basis: 100%; flex-direction: column; align-items: stretch; gap: 0;
-    margin: 6px 0 8px; padding-top: 6px; border-top: 1px solid var(--color-border);
-    max-height: calc(100vh - 90px); overflow-y: auto;
+  .site-nav.is-scrolled { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .site-nav__toggle { display: inline-flex; flex: none; }
+  .site-nav__logo, .site-nav__toggle, .site-nav__bar-cta { position: relative; z-index: 2; }
+  .site-nav__bar-cta {
+    display: inline-flex; align-items: center; min-height: 44px; margin-left: auto; padding: 0 18px;
+    font-size: 14px; transition: opacity var(--hover-t), visibility 0s linear .2s, transform var(--hover-t), background var(--hover-t), color var(--hover-t);
   }
-  .site-nav--dark .site-nav__menu { border-top-color: rgba(255,255,255,.12); }
-  .site-nav.is-open .site-nav__menu { display: flex; }
-  .site-nav__link { font-size: 17px; padding: 13px 4px; border-bottom: 1px solid var(--color-border); }
-  .site-nav--dark .site-nav__link { border-bottom-color: rgba(255,255,255,.1); }
+  .site-nav__bar-cta + .site-nav__toggle { margin-left: 0; }
+
+  /* pływająca pigułka po przewinięciu (bez backdrop-filter: tło i tak jest nieprzezroczyste) */
+  .site-nav.is-scrolled:not(.is-open) { background-color: transparent; box-shadow: none; }
+  .site-nav.is-scrolled:not(.is-open) .site-nav__inner {
+    margin: 8px 10px 0; padding: 6px 6px 6px 14px; border-radius: var(--radius-pill);
+    background-color: rgba(247,246,243,.98); box-shadow: 0 14px 34px -14px rgba(20,20,40,.35), 0 0 0 1px rgba(20,20,20,.06);
+  }
+  .site-nav--dark.is-scrolled:not(.is-open) .site-nav__inner { background-color: rgba(12,12,16,.96); box-shadow: 0 14px 34px -14px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.08); }
+
+  /* panel menu */
+  .site-nav__menu {
+    position: fixed; inset: 0; z-index: 1;
+    display: flex; flex-direction: column; align-items: stretch; gap: 0;
+    height: 100vh; height: 100dvh; margin: 0;
+    padding: calc(96px + env(safe-area-inset-top)) var(--gutter) max(28px, env(safe-area-inset-bottom));
+    overflow-y: auto; overscroll-behavior: contain;
+    background:
+      radial-gradient(75% 42% at 100% 100%, rgba(229,24,94,.14), transparent 70%),
+      radial-gradient(65% 38% at 0% 92%, rgba(29,70,224,.12), transparent 70%),
+      var(--color-bg);
+    visibility: hidden; opacity: 0; transform: translateY(-10px);
+    transition: opacity .26s ease, transform .34s var(--press-ease), visibility 0s linear .34s;
+  }
+  .site-nav--dark .site-nav__menu {
+    background:
+      radial-gradient(75% 42% at 100% 100%, rgba(229,24,94,.24), transparent 70%),
+      radial-gradient(65% 38% at 0% 92%, rgba(29,70,224,.24), transparent 70%),
+      #0a0a0c;
+  }
+  .site-nav.is-open { background-color: transparent; box-shadow: none; }
+  .site-nav.is-open .site-nav__menu { visibility: visible; opacity: 1; transform: none; transition: opacity .26s ease, transform .34s var(--press-ease), visibility 0s; }
+  .site-nav.is-open .site-nav__bar-cta { visibility: hidden; opacity: 0; }
+  /* linki wjeżdżają kolejno po otwarciu */
+  .site-nav__menu > * { opacity: 0; transform: translateY(14px); transition: opacity .3s ease, transform .4s var(--press-ease); }
+  .site-nav.is-open .site-nav__menu > * { opacity: 1; transform: none; transition-delay: calc(60ms + var(--i, 0) * 40ms); }
+  .site-nav__menu > :nth-child(2) { --i: 1; }
+  .site-nav__menu > :nth-child(3) { --i: 2; }
+  .site-nav__menu > :nth-child(4) { --i: 3; }
+  .site-nav__menu > :nth-child(5) { --i: 4; }
+  .site-nav__menu > :nth-child(6) { --i: 5; }
+  .site-nav__menu > :nth-child(n+7) { --i: 6; }
+
+  .site-nav__link {
+    position: relative; font: 600 clamp(22px, 6.4vw, 28px)/1.15 var(--font-head); letter-spacing: -.02em;
+    color: var(--color-ink); padding: 14px 4px; border-bottom: 1px solid var(--color-border); white-space: normal;
+  }
+  .site-nav--dark .site-nav__link { color: #f5f5f5; border-bottom-color: rgba(255,255,255,.1); }
   .site-nav__link:hover { border-bottom-color: var(--color-border); }
-  .site-nav__link[aria-current="page"] { border-bottom: 1px solid var(--color-border); box-shadow: inset 4px 0 0 var(--nav-accent); padding-left: 14px; }
-  .site-nav__cta { align-self: flex-start; margin-top: 16px; font-size: 15px; padding: 11px 24px; }
-  /* listy rozwijane jako akordeon w menu mobilnym */
+  .site-nav--dark .site-nav__link:hover { border-bottom-color: rgba(255,255,255,.1); }
+  /* aktywna strona: pionowa nić gradientu marki */
+  .site-nav__link[aria-current="page"],
+  .site-nav__item:has(.site-nav__sublink[aria-current="page"]) > .site-nav__link { border-bottom: 1px solid var(--color-border); padding-left: 18px; }
+  .site-nav--dark .site-nav__link[aria-current="page"] { border-bottom-color: rgba(255,255,255,.1); }
+  .site-nav__link[aria-current="page"]::before,
+  .site-nav__item:has(.site-nav__sublink[aria-current="page"]) > .site-nav__link::before,
+  .site-nav__sublink[aria-current="page"]::before {
+    content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 4px; border-radius: 4px; background: var(--gradient-vertical);
+  }
+  /* „Dołącz” w panelu: duży gradientowy przycisk na dole (kciuk); start gradientu przyciemniony dla kontrastu bieli ≥ 4.5:1 */
+  .site-nav__menu > .site-nav__cta {
+    align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 56px; margin-top: auto;
+    font: 700 17px var(--font-body); color: #fff; border: 0; background: linear-gradient(110deg, #c8124f, #8b2c9c 55%, #1d46e0);
+    transition: opacity .3s ease, transform .4s var(--press-ease);
+  }
+  .site-nav__menu > :nth-last-child(2) { margin-bottom: 28px; }
+  .site-nav__menu > .site-nav__cta:hover, .site-nav__menu > .site-nav__cta:focus-visible,
+  .site-nav__menu > .site-nav__cta[aria-current="page"],
+  .site-nav--dark .site-nav__menu > .site-nav__cta, .site-nav--dark .site-nav__menu > .site-nav__cta[aria-current="page"] { color: #fff; background: linear-gradient(110deg, #c8124f, #8b2c9c 55%, #1d46e0); }
+
+  /* listy rozwijane jako akordeon w panelu */
   .site-nav__item { flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--color-border); }
   .site-nav--dark .site-nav__item { border-bottom-color: rgba(255,255,255,.1); }
-  .site-nav__item > .site-nav__link { flex: 1; border-bottom: 0; }
-  .site-nav__item > .site-nav__link[aria-current="page"] { border-bottom: 0; }
-  .site-nav__item:has(.site-nav__sublink[aria-current="page"]) > .site-nav__link { box-shadow: inset 4px 0 0 var(--nav-accent); padding-left: 14px; }
-  .site-nav__subtoggle { width: 44px; height: 44px; }
-  .site-nav__subtoggle svg { width: 14px; height: 14px; }
-  .site-nav__sub { position: static; flex-basis: 100%; min-width: 0; padding: 0 0 10px 14px; background: transparent; border-radius: 0; box-shadow: none; }
+  .site-nav__item > .site-nav__link, .site-nav__item > .site-nav__link[aria-current="page"],
+  .site-nav__item:has(.site-nav__sublink[aria-current="page"]) > .site-nav__link { flex: 1; border-bottom: 0; }
+  .site-nav__subtoggle { width: 44px; height: 44px; color: var(--color-ink); }
+  .site-nav--dark .site-nav__subtoggle { color: #f5f5f5; }
+  .site-nav__subtoggle svg { width: 16px; height: 16px; }
+  .site-nav__sub { position: static; flex-basis: 100%; width: auto; min-width: 0; padding: 0 0 12px 12px; background: transparent; border-radius: 0; box-shadow: none; }
   .site-nav--dark .site-nav__sub { background: transparent; box-shadow: none; }
   .site-nav__sub::before { display: none; }
-  .site-nav__sublink { font-size: 16px; padding: 11px 12px; white-space: normal; }
+  .site-nav__item.is-open > .site-nav__sub { animation: navsub-in .28s var(--press-ease) both; }
+  .site-nav__sublink { position: relative; font-size: 17px; padding: 12px 12px 12px 16px; white-space: normal; }
+  .site-nav__sublink[aria-current="page"] { box-shadow: none; }
+  .site-nav__sublink[aria-current="page"]::before { top: 10px; bottom: 10px; }
+}
+@keyframes navsub-in { from { opacity: 0; transform: translateY(-6px); } }
+/* blokada przewijania tła przy otwartym menu (klasa z main.js) */
+html.nav-open { overflow: hidden; }
+@media (max-width: 960px) and (prefers-reduced-motion: reduce) {
+  .site-nav.is-open .site-nav__menu > * { transition-delay: 0s; }
+}
+/* bez JS: menu widoczne od razu pod paskiem, bez przycisku (który bez skryptu nic by nie robił) */
+@media (max-width: 960px) {
+  html:not(.js) .site-nav__inner { flex-wrap: wrap; }
+  html:not(.js) .site-nav__toggle { display: none; }
+  html:not(.js) .site-nav__menu {
+    position: static; flex-basis: 100%; height: auto; padding: 6px 0 8px; background: none;
+    visibility: visible; opacity: 1; transform: none; overflow: visible;
+  }
+  html:not(.js) .site-nav__menu > * { opacity: 1; transform: none; }
 }
 
 /* ---------- 6b. Ścieżka nawigacji (breadcrumb) ---------- */
