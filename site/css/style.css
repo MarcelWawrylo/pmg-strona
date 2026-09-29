@@ -968,19 +968,18 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
    lżejsza wersja 800w dla wąskich ekranów przez srcset/sizes. Zasłania kropkowane tło i poświatę wyżej —
    to nie problem, obie są niewidoczne pod nieprzezroczystym zdjęciem. */
 .about-structure__bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
-.about-structure__bg img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+.about-structure__bg img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 30% 50%; }
 /* Przejście zdjęcia w kolor tła sekcji (= tło .about-units i <body>, var(--color-bg) #F7F6F3) na górnych
-   ~30% wysokości sekcji i lustrzanie na dolnych ~30%, żeby nie było twardej krawędzi; pomiędzy stała półprzezroczysta
-   warstwa w tym samym kolorze — czytelność nagłówka i tekstu poza kartami przy zachowanej rozpoznawalności zdjęcia. */
+   ~30% wysokości sekcji, żeby nie było twardej krawędzi od strony poprzedniej sekcji; dalej stała półprzezroczysta
+   warstwa w tym samym kolorze aż do dołu (dół celowo bez rozjaśnienia, krawędź ze stopką jest widoczna) —
+   czytelność nagłówka i tekstu poza kartami przy zachowanej rozpoznawalności tła. */
 #struktura::after {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background: linear-gradient(180deg,
     rgba(247, 246, 243, 1) 0%,
     rgba(247, 246, 243, .78) 14%,
     rgba(247, 246, 243, .42) 30%,
-    rgba(247, 246, 243, .42) 70%,
-    rgba(247, 246, 243, .78) 86%,
-    rgba(247, 246, 243, 1) 100%);
+    rgba(247, 246, 243, .42) 100%);
 }
 .about-board { display: flex; flex-direction: column; align-items: center; }
 .about-board__list { display: flex; flex-direction: column; gap: 14px; align-items: stretch; max-width: 100%; }
@@ -1096,6 +1095,27 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
   .about-sec:nth-child(n) { --col: 0; }
 }
 
+/* ---------- O nas: Wizja, Misja, Cel ---------- */
+/* Mobile-first: jedna kolumna, między blokami krótka pozioma kreska (::before). Od 961 px trzy kolumny, a kreski
+   zamieniają się w dwie pionowe linie na wysokości wiersza z akapitami (nie nagłówków). Czysto dekoracyjne (CSS). */
+.about-values { padding: 8px 0 48px; }
+.about-values__list { display: grid; grid-template-columns: minmax(0, 1fr); text-align: center; --values-line: rgba(20, 20, 20, .6); }
+.about-values__item:not(:first-child)::before { content: ""; display: block; width: 64px; height: 1px; margin: 40px auto; background: var(--values-line); }
+.about-values__title { font: 700 clamp(32px, 4vw, 52px)/1.1 var(--font-head); letter-spacing: -.02em; color: var(--color-ink); }
+.about-values__text { font: 400 16px/1.7 var(--font-body); color: var(--color-text); max-width: 36ch; margin: 24px auto 0; text-wrap: pretty; }
+@media (min-width: 961px) {
+  .about-values { padding-bottom: 72px; }
+  .about-values__list { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: clamp(32px, 5vw, 72px); }
+  .about-values__item { display: grid; grid-template-rows: auto 1fr; row-gap: clamp(32px, 4.5vw, 64px); }
+  .about-values__item:not(:first-child)::before {
+    grid-row: 2; grid-column: 1; justify-self: start; align-self: stretch;
+    width: 1px; height: auto; margin: 0 0 0 calc(clamp(32px, 5vw, 72px) / -2);
+  }
+  .about-values__title, .about-values__text { grid-column: 1; }
+  .about-values__title { grid-row: 1; }
+  .about-values__text { grid-row: 2; margin-top: 0; font-size: clamp(16px, 1.2vw, 17px); }
+}
+
 /* ---------- 10. Aktualności ---------- */
 /* ---------- Aktualności (lista + artykuł) — plik tymczasowy do scalenia ze style.css ---------- */
 @keyframes blogfade { from { opacity: 0; } to { opacity: 1; } }
@@ -1107,11 +1127,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 
 .blog-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .blog-date { font: 500 12px var(--font-body); color: var(--color-text-muted); }
-.blog-more { font: 600 13px/1.4 var(--font-body); margin-top: 24px; }
-.blog-more--pink { color: #c8124f; }
-.blog-more--purple { color: #8b2c9c; }
-.blog-more--blue { color: #1d46e0; }
-.blog-more--violet { color: #5a2fb0; }
+.blog-more { font: 600 13px/1.4 var(--font-body); margin-top: 24px; color: var(--color-purple); }
 
 /* Placeholdery zdjęć (tła z makiety) */
 .blog-ph { overflow: hidden; display: flex; align-items: center; justify-content: center; font: 600 11px ui-monospace, monospace; color: var(--color-text-muted); }
