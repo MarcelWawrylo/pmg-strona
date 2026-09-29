@@ -854,7 +854,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .pms-intro__bubble:nth-child(8) { left: 55%; top: 76%; width: 8px; }
 .pms-intro__bubble:nth-child(9) { left: 76%; top: 86%; width: 28px; }
 .pms-intro__bubble:nth-child(10) { left: 93%; top: 74%; width: 19px; }
-.pms-intro__title { font: 600 clamp(33px, 5.8vw, 80px)/1 var(--font-head); letter-spacing: -.04em; color: var(--color-ink); text-wrap: balance; }
+.pms-intro__title { font: 600 clamp(33px, 7vw, 100px)/1 var(--font-head); letter-spacing: -.04em; color: var(--color-ink); text-wrap: balance; }
 .pms-intro__rest { display: block; margin-top: .3em; font-size: .6em; line-height: 1.1; }
 .pms-intro + .pms-about { padding-top: 64px; }
 @media (max-width: 640px) { .pms-intro__pin { padding: 40px 0; } }
