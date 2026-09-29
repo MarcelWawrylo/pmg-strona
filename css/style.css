@@ -692,11 +692,14 @@ html.nav-open body { overflow: hidden; }
 .hero-logo__bar--5 { left: 70.3%; top: 0; height: 90.2%; --rise: .42s; --loop: 1.76s; --s: .66; --dy: 2.04%; background: linear-gradient(180deg, #1d46e0, #3a2fb0); }
 .hero-logo__bar--6 { left: 87.7%; top: 11.9%; height: 69.6%; border-radius: 0 11px 11px 0; --rise: .5s; --loop: 1.79s; --s: .66; --dy: -5.44%; background: linear-gradient(180deg, #1d46e0, #5a2fb0); }
 @media (max-width: 960px) { .home-hero__inner { justify-content: flex-start; } }
-/* ≤ 960 px: logo PMG w hero ukryte (display: none wyłącza też jego animacje); przycisk i „Poznaj nas” zawsze w jednym wierszu,
-   przycisk z lewej, link z prawej */
+/* ≤ 960 px: logo PMG w hero ukryte (display: none wyłącza też jego animacje); przycisk i „Poznaj nas” w jednym wierszu,
+   przycisk z lewej, link z prawej. Napisy się nie łamią; gdy przy powiększonym tekście systemowym nie zmieszczą się obok
+   siebie, link przechodzi do drugiego wiersza (dalej po prawej) zamiast łamać „Nasze / projekty” w przycisku */
 @media (max-width: 960px) {
   .hero-logo { display: none; }
-  .home-hero__actions { flex-wrap: nowrap; justify-content: space-between; gap: 12px; }
+  .home-hero__actions { justify-content: space-between; gap: 12px; }
+  .home-hero__actions > * { white-space: nowrap; }
+  .home-hero__link { margin-left: auto; }
 }
 /* ≤ 374 px: przy 320 px przycisk (padding 30 px) + „Poznaj nas” + odstęp = 297 px, a kontener ma 280 px — węższy padding przycisku */
 @media (max-width: 374px) {
@@ -1011,21 +1014,22 @@ html.nav-open body { overflow: hidden; }
    Klasy ustawia js/mobile.js: .mobile-fx na <html>, .is-words na .pms-intro, .m-word na słowach akapitów.
    Tylko transform/opacity (oraz color słów akapitów, jak na desktopie), bez nasłuchu scroll. */
 
-@keyframes pms-word-in { from { opacity: 0; transform: translateY(.6em); } to { opacity: 1; transform: none; } }
 @keyframes pms-bg-in { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: none; } }
+@keyframes pms-rest-failsafe { to { opacity: 1; } }
 @keyframes pms-rest-in { from { opacity: 0; transform: translateY(.4em); } to { opacity: 1; transform: none; } }
 @keyframes m-word-ink { to { color: var(--color-ink); } }
 
 @media (max-width: 960px) and (prefers-reduced-motion: no-preference) {
-  /* „Konferencja naukowa” jest w HTML od początku (widoczna także bez skryptu — reguła działa dopiero z .mobile-fx);
-     display: block, bo transform nie działa na elemencie inline (układ bez zmian: reszta zdania też jest blokiem) */
-  .mobile-fx .pms-intro__lead { display: block; animation: pms-word-in .7s cubic-bezier(.23, 1, .32, 1) both; }
-  /* tło rośnie z .5 przy wejściu */
+  /* „Konferencja naukowa” widoczna od pierwszej klatki, bez animacji wejścia (jak na desktopie) — bez mignięcia przed
+     uruchomieniem odroczonego mobile.js; tło rośnie z .5 przy wejściu */
   .pms-intro.is-words .pms-intro__bg { animation: pms-bg-in 1.1s cubic-bezier(.33, 1, .68, 1) both; }
 
   /* reszta zdania: słowa odsłaniane po kolei przewijaniem strony od góry (odpowiednik opacity-scrub z v2.js); --i ustawia mobile.js.
      Bez obsługi scroll() (Firefox) słowa są po prostu widoczne. inline-block, bo transform nie działa na elemencie inline */
   @supports (animation-timeline: scroll()) {
+    /* do podziału na słowa reszta zdania jest ukryta (jak .v2-enhanced na desktopie; miejsce zajęte, bez skoku układu),
+       żeby nie mignęła w całości przed mobile.js; bezpiecznik: gdy skrypt nie ruszy, pokazuje się po 2,5 s */
+    .js .pms-intro:not(.is-words) .pms-intro__rest { opacity: 0; animation: pms-rest-failsafe 0s 2.5s forwards; }
     .pms-intro.is-words .pms-intro__word {
       display: inline-block;
       animation: pms-rest-in linear both;
