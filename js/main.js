@@ -857,6 +857,8 @@
     if (canvas && canvas.getContext) {
       var ctx = canvas.getContext('2d');
       var SCALE = 0.5, timer = null, raf = null;
+      // ≤ 960 px klatka co 120 ms zamiast 60 ms: ten sam wygląd ziarna, o połowę mniej pracy procesora i baterii telefonu
+      var FRAME_MS = window.matchMedia('(max-width: 960px)').matches ? 120 : 60;
       var resize = function () {
         canvas.width = Math.max(1, Math.ceil(window.innerWidth * SCALE));
         canvas.height = Math.max(1, Math.ceil(window.innerHeight * SCALE));
@@ -874,7 +876,7 @@
       };
       var loop = function () {
         draw();
-        timer = setTimeout(function () { raf = requestAnimationFrame(loop); }, 60);
+        timer = setTimeout(function () { raf = requestAnimationFrame(loop); }, FRAME_MS);
       };
       var start = function () {
         stop();
