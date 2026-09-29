@@ -1027,15 +1027,14 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-board__list { display: flex; flex-direction: column; gap: 14px; align-items: stretch; max-width: 100%; }
 .about-board__card {
   min-width: min(280px, 100%); display: flex; align-items: center; justify-content: space-between; gap: 18px;
-  /* zarząd: karta w szarości #525252 z nicią gradientu marki u góry, biały tekst ≥ 4.5:1 (nazwisko 7,8:1, rola 4,8:1);
-     nić = wycinek jednego gradientu na szerokość strony (100vw, środek obrazu na środku karty = środku strony) */
-  background: var(--gradient-brand) 50% 0 / 100vw 3px no-repeat, #525252; border-radius: var(--radius-md); padding: 16px 22px;
+  /* zarząd: biała karta (jak karty sekcji), ciemny tekst; struktura koła jest monochromatyczna, bez nici gradientu */
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px 22px;
   box-shadow: 0 12px 28px -16px rgba(20, 20, 20, .45);
 }
 .about-board__who { min-width: 0; }
-.about-board__role { display: block; font: 600 10px var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: rgba(255, 255, 255, .7); }
-.about-board__name { display: block; font: 600 19px var(--font-head); color: #fff; margin-top: 2px; }
-.about-board__line { width: 2px; height: 26px; background: rgba(20, 20, 20, .2); }
+.about-board__role { display: block; font: 600 10px var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: var(--color-text-muted); }
+.about-board__name { display: block; font: 600 19px var(--font-head); color: var(--color-ink); margin-top: 2px; }
+.about-board__line { width: 2px; height: 26px; background: rgba(20, 20, 20, .55); }
 
 /* globalny html { scroll-padding-top: 96px } już liczy odstęp na przyklejony header */
 .about-units { padding: 8px 0 72px; }
@@ -1084,12 +1083,9 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-sec__body { padding: 12px 16px 18px; }
 .about-coord { background: rgba(20, 20, 20, .035); border: 1px solid transparent; border-radius: 12px; padding: 12px 13px; margin-bottom: 10px; }
 .about-coord__label { font: 600 10px var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--color-text-muted); }
-/* 31 px = ramka karty 1 + padding body 16 + ramka koordynatora 1 + jego padding 13 */
 .about-coord__label::before {
   content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 7px; vertical-align: 1px;
-  background: var(--gradient-brand) 0 0 / 100% 100% no-repeat;
-  background-size: 100vw 100%;
-  background-position: calc(-1 * (var(--seg-x) + 31px)) 0;
+  background: var(--color-ink);
 }
 .about-coord__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
 .about-coord__name { font: 600 15px/1.3 var(--font-head); color: var(--color-ink); min-width: 0; }
@@ -1116,6 +1112,10 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-ico--light { width: 28px; height: 28px; background: rgba(255, 255, 255, .92); color: var(--color-ink); }
 .about-ico--light:hover, .about-ico--light:focus-visible { color: var(--color-ink); }
 .about-ico--light:focus-visible { outline-color: #fff; }
+/* ikony w białych kartach zarządu: jak ikony koordynatorów (ciemne kółko, biała ikona), fokus w ciemnym kolorze */
+.about-board__card .about-ico--light { background: var(--color-ink); color: #fff; }
+.about-board__card .about-ico--light:hover, .about-board__card .about-ico--light:focus-visible { color: #fff; }
+.about-board__card .about-ico--light:focus-visible { outline-color: var(--color-ink); }
 
 @media (max-width: 1240px) { .about-sections, .about-units__list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) {
