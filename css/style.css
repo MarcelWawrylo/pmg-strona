@@ -691,11 +691,15 @@ html.nav-open body { overflow: hidden; }
 .hero-logo__bar--5 { left: 70.3%; top: 0; height: 90.2%; --rise: .42s; --loop: 1.76s; --s: .66; --dy: 2.04%; background: linear-gradient(180deg, #1d46e0, #3a2fb0); }
 .hero-logo__bar--6 { left: 87.7%; top: 11.9%; height: 69.6%; border-radius: 0 11px 11px 0; --rise: .5s; --loop: 1.79s; --s: .66; --dy: -5.44%; background: linear-gradient(180deg, #1d46e0, #5a2fb0); }
 @media (max-width: 960px) { .home-hero__inner { justify-content: flex-start; } }
-/* ≤ 960 px: logo pod tekstem, wyrównane do prawej (skos tekst → logo zamiast pustej prawej połowy); wejście jak na desktopie
-   (ramka, słupki, litery), ale bez nieskończonego „oddechu” — na telefonie bez pętli animacji > 5 s (WCAG 2.2.2) */
+/* ≤ 960 px: logo PMG w hero ukryte (display: none wyłącza też jego animacje); przycisk i „Poznaj nas” zawsze w jednym wierszu,
+   przycisk z lewej, link z prawej */
 @media (max-width: 960px) {
-  .hero-logo { margin-left: auto; }
-  .hero-logo__bar { animation: pmgbarrise .56s var(--pmg-out) var(--rise) both; }
+  .hero-logo { display: none; }
+  .home-hero__actions { flex-wrap: nowrap; justify-content: space-between; gap: 12px; }
+}
+/* ≤ 374 px: przy 320 px przycisk (padding 30 px) + „Poznaj nas” + odstęp = 297 px, a kontener ma 280 px — węższy padding przycisku */
+@media (max-width: 374px) {
+  .home-hero__actions .btn { padding-left: 18px; padding-right: 18px; }
 }
 @media (max-width: 640px) {
   .home-hero { padding: 44px 0 50px; }
@@ -703,12 +707,6 @@ html.nav-open body { overflow: hidden; }
   html.v2 .display { font-size: clamp(36px, 12.4vw, 44px); }
   .home-hero__text { flex-basis: 100%; }
   .home-hero__lead { font-size: 17px; }
-  .home-hero__actions { flex-direction: column; align-items: stretch; gap: 12px; }
-  .home-hero__actions .btn { width: 100%; }
-  /* link tekstowy nie rozciąga się na 100% jak przycisk — zostaje przy lewej krawędzi */
-  .home-hero__link { align-self: flex-start; }
-  /* mobile: logo mniejsze (ujemne marginesy oddają miejsce po skali .62), do prawej; animowane jak wyżej */
-  .hero-logo { transform: scale(.62); transform-origin: left top; margin: 0 -114px -114px auto; }
 }
 /* reduced motion: statyczne logo w kształcie referencyjnym */
 @media (prefers-reduced-motion: reduce) {
