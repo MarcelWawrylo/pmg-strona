@@ -618,7 +618,9 @@ html.nav-open { overflow: hidden; }
 .contact-form__foot { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 6px; flex-wrap: wrap; }
 .contact-form__note { font: 400 13px/1.4 var(--font-body); color: var(--color-text-muted); }
 .contact-form__send { font-size: 15px; padding: 15px 34px; white-space: nowrap; }
-.contact-form__send:hover, .contact-form__send:focus-visible { background: var(--color-pink-text); }
+/* hover tylko przy prawdziwym wskaźniku — na dotyku różowy zostawał „przyklejony” po tapnięciu; tam kolor przy :active */
+.contact-form__send:focus-visible, .contact-form__send:active { background: var(--color-pink-text); }
+@media (hover: hover) { .contact-form__send:hover { background: var(--color-pink-text); } }
 .contact-form__hint { font: 400 12.5px/1.5 var(--font-body); color: var(--color-text-muted); margin-top: -14px; }
 @media (max-width: 960px) {
   .contact__grid { grid-template-columns: minmax(0, 1fr); gap: 48px; }
@@ -1090,7 +1092,8 @@ html.nav-open { overflow: hidden; }
 .join-page-form__main { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
 .join-page-form__title { font: 600 24px/1.2 var(--font-head); letter-spacing: 0; }
 .join-page-form__btn { font-size: 15px; padding: 14px 30px; white-space: nowrap; }
-.join-page-form__btn:hover, .join-page-form__btn:focus-visible { background: var(--color-pink-text); color: #fff; }
+.join-page-form__btn:focus-visible, .join-page-form__btn:active { background: var(--color-pink-text); color: #fff; }
+@media (hover: hover) { .join-page-form__btn:hover { background: var(--color-pink-text); color: #fff; } } /* jak „Wyślij” w Kontakcie */
 .join-page-form__side { display: flex; flex-direction: column; gap: 14px; text-align: center; padding-top: 24px; border-top: 1px solid var(--color-border); }
 
 @media (max-width: 960px) {
@@ -1647,6 +1650,13 @@ body.has-dialog { overflow: hidden; }
   .about-act { gap: 12px; }
   .about-ico, .about-member .about-ico, .about-ico--light { position: relative; width: 32px; height: 32px; }
   .about-ico::after { content: ""; position: absolute; inset: -6px; }
+}
+
+/* ---------- 12c. Wersja mobilna: dotyk zamiast hovera ----------
+   Na ekranach dotykowych strzałki kart przesuwają się w chwili dotknięcia (:active), jak na desktopie po najechaniu. */
+@media (hover: none), (pointer: coarse) {
+  .case-card:active .case-card__more-arrow, .join-card:active .join-card__arrow, .link-tile:active .link-tile__arrow,
+  .join-page-form__sections a:active span { transform: translateX(3px); }
 }
 
 /* ---------- 9b. Karta serwisu (wspólna baza — celowo na końcu pliku, żeby wygrała kolejnością) ---------- */
