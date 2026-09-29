@@ -635,6 +635,7 @@ html.nav-open { overflow: hidden; }
   .contact-hero__title { font-size: min(7vw, calc((100vw - var(--gutter) * 2) / 13.6)); }
 }
 @media (max-width: 640px) { .contact-form__row { grid-template-columns: minmax(0, 1fr); } .contact { padding-bottom: 60px; } }
+}
 
 /* ---------- 10d. Strona główna ---------- */
 .btn--lg { font-size: 15px; padding: 15px 30px; }
@@ -906,6 +907,18 @@ html.nav-open { overflow: hidden; }
   .schedule__row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .schedule__tag br { display: none; }
   .schedule__tag { display: inline; margin-left: 8px; }
+}
+/* PM Session XIV ≤ 640 px: harmonogram zostaje tabelą (semantyka i rowspan bez zmian), ale bez min-width 560 px —
+   tekst zawija się w trzech wąskich kolumnach zamiast chować kolumnę „Prowadzący” poza ekranem */
+@media (max-width: 640px) {
+  .schedule-table-wrap { overflow-x: visible; }
+  .schedule-table { min-width: 0; table-layout: fixed; }
+  .schedule-table th:first-child { width: 64px; }
+  .schedule-table th:last-child { width: 32%; }
+  .schedule-table th, .schedule-table td { padding: 8px 10px 8px 0; line-height: 1.4; overflow-wrap: anywhere; }
+  .schedule-table th:last-child, .schedule-table td:last-child { padding-right: 0; }
+  .schedule-table th { font-size: 11px; overflow-wrap: normal; }
+  .schedule-table td:last-child { color: var(--color-text-muted); }
 }
 
 .pms-stats__sub { font: 400 15px/1.6 var(--font-body); color: var(--color-text-muted); margin-top: 8px; }
