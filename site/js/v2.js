@@ -92,88 +92,49 @@
     });
   }
 
-  /* ---------- PM Session „Czym jest”: zdanie jedzie poziomo, napędzane pionowym przewijaniem ---------- */
-  // Sekcja ma 4× wysokość okna, wrapper w środku jest przypięty przez position: sticky (v2.css).
-  // Zdanie to pierwszy ekran strony, więc wejście słów i tła gra od razu po otwarciu (a nie na początku scrubu),
-  // żeby pierwszy ekran nie był pusty. Na starcie widać „Konferencja naukowa…”, reszta słów ma opacity 0.
-  // Scrub: 0–0.12 pauza, potem 3 kroki po 0.26 (0.12 przesuw w poziomie, aż słowo zmieści się w oknie, 0.14 pojawienie słowa),
-  // trzykropek znika (0.04) w chwili, gdy zaczyna się pojawiać „poświęcona”; 0.9–1 całe zdanie stoi.
+  /* ---------- PM Session „Czym jest”: reszta zdania odsłania się pod „Konferencja naukowa” ----------
+     Na starcie widać tylko „Konferencja naukowa” (.pms-intro__lead); „poświęcona zarządzaniu projektami” (.pms-intro__rest)
+     zajmuje już swoje miejsce, ale ma krycie 0. Pierwszy ekran przewija się zwyczajnie; gdy góra leada dojdzie do 40% wysokości
+     okna, cały pierwszy ekran (.pms-intro__pin z tłem i bańkami) zostaje przypięty na 80% wysokości okna przewijania, a słowa
+     reszty pojawiają się kolejno w miejscu (tylko opacity, bez ruchu; słowo po słowie, więc działa też, gdy reszta zawija się
+     na 2 linie). Scrub w obie strony. Po odsłonięciu pin puszcza i strona przewija się dalej (pin-spacer ScrollTrigger, bez dziury).
+     Przypinany jest wrapper, a nie sam <h1>: pin-spacer w środku wrappera (flex, wyśrodkowanie) podniósłby zdanie na starcie.
+     Słowa zostają prawdziwym tekstem <h1> (spany bez aria-hidden, spacje jako węzły tekstowe), textContent się nie zmienia. */
   function initPmsIntro() {
     var section = document.querySelector('[data-pms-intro]');
-    var title = section && section.querySelector('.pms-intro__title');
-    if (!title) return;
+    var pin = section && section.querySelector('.pms-intro__pin');
+    var lead = section && section.querySelector('.pms-intro__lead');
+    var rest = section && section.querySelector('.pms-intro__rest');
+    if (!pin || !lead || !rest) return;
     var gsap = window.gsap;
 
-    // czytnik ekranu dostaje całe zdanie jednym tekstem; słowa w spanach są tylko wizualne
-    var sr = document.createElement('span');
-    sr.className = 'visually-hidden';
-    sr.textContent = title.textContent.replace(/\s+/g, ' ').trim();
-    var line = document.createElement('span');
-    line.className = 'pms-intro__line';
-    line.setAttribute('aria-hidden', 'true');
-    var addWord = function (inner) {
-      if (line.childNodes.length) line.appendChild(document.createTextNode(' '));
+    var words = [];
+    var parts = rest.textContent.split(/(\s+)/);
+    rest.textContent = '';
+    parts.forEach(function (part) {
+      if (!part) return;
+      if (/^\s+$/.test(part)) { rest.appendChild(document.createTextNode(part)); return; }
       var w = document.createElement('span');
-      w.className = 'pms-intro__word';
-      w.appendChild(inner);
-      line.appendChild(w);
-    };
-    Array.prototype.slice.call(title.childNodes).forEach(function (node) {
-      if (node.nodeType === 3) {
-        node.textContent.split(/\s+/).forEach(function (part) {
-          if (!part) return;
-          var s = document.createElement('span');
-          s.textContent = part;
-          addWord(s);
-        });
-      } else if (node.nodeType === 1) {
-        addWord(node.cloneNode(true));
-      }
+      w.textContent = part;
+      rest.appendChild(w);
+      words.push(w);
     });
-    title.textContent = '';
-    title.appendChild(sr);
-    title.appendChild(line);
-    section.classList.add('is-scrub');
+    gsap.set(words, { opacity: 0 });
+    section.classList.add('is-reveal');
 
-    var words = line.querySelectorAll('.pms-intro__word');
-    var SHOWN = 2; // na starcie widać „Konferencja naukowa”, pozostałe słowa odsłania scrub
-    // trzykropek zaraz za „naukowa”: zerowa szerokość (v2.css), więc nie przesuwa słów, a znak wystaje w miejsce spacji
-    var dots = document.createElement('span');
-    dots.className = 'pms-intro__ellipsis';
-    dots.setAttribute('aria-hidden', 'true');
-    var dotsInner = document.createElement('span');
-    dotsInner.textContent = '\u2026';
-    dots.appendChild(dotsInner);
-    line.insertBefore(dots, words[SHOWN - 1].nextSibling);
+    // wejście tła (czasowe, raz) po otwarciu strony
     var bg = section.querySelector('.pms-intro__bg');
-    var START_X = 100;
-    // x zdania, przy którym prawy brzeg słowa i stoi START_X od prawej krawędzi okna (dla ostatniego = dawny endX)
-    var xFor = function (i) {
-      return function () {
-        var w = words[i];
-        return Math.min(START_X, window.innerWidth - START_X - (w.offsetLeft - line.offsetLeft + w.offsetWidth));
-      };
-    };
-
-    // wejście (czasowe, raz): tło, „Konferencja naukowa” i trzykropek kolejno z dołu
     if (bg) gsap.fromTo(bg, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 1.1, ease: 'power2.out' });
-    gsap.fromTo([words[0], words[1], dots], { opacity: 0, y: 64 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.07, delay: 0.15 });
 
-    // scrub: przesuw zdania do kolejnego słowa, potem jego pojawienie; trzykropek znika wraz z pierwszym z nich
-    var tl = gsap.timeline({
-      scrollTrigger: { trigger: section, start: 'top top', end: 'bottom bottom', scrub: 0.5, invalidateOnRefresh: true }
-    });
-    var PAUSE = 0.12, STEP = 0.26, MOVE = 0.12;
-    Array.prototype.slice.call(words, SHOWN).forEach(function (w, k) {
-      var at = PAUSE + k * STEP;
-      tl.fromTo(line, { x: k ? xFor(SHOWN + k - 1) : START_X }, { x: xFor(SHOWN + k), ease: 'none', duration: MOVE, immediateRender: !k }, at)
-        .fromTo(w, { opacity: 0, y: 40 }, { opacity: 1, y: 0, ease: 'none', duration: STEP - MOVE }, at + MOVE);
-    });
-    tl.fromTo(dotsInner, { opacity: 1 }, { opacity: 0, ease: 'none', duration: 0.04 }, PAUSE + MOVE);
-    tl.set({}, {}, 1);
-
-    // szerokość zdania zależy od fontu Space Grotesk: przelicz po jego wczytaniu
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { window.ScrollTrigger.refresh(); });
+    // start: góra leada na 40% okna, ale nie mniej niż 0 — na niskich ekranach lead jest od razu wyżej, wtedy pin
+    // i odsłanianie od pierwszego przewinięcia; długość zawsze 80% wysokości okna
+    var from = function () { return Math.max(0, lead.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.4); };
+    gsap.timeline({
+      scrollTrigger: {
+        trigger: lead, start: from, end: function () { return from() + window.innerHeight * 0.8; },
+        pin: pin, scrub: 0.5, invalidateOnRefresh: true
+      }
+    }).to(words, { opacity: 1, ease: 'none', duration: 1, stagger: 0.7 });
   }
 
   /* ---------- Dołącz: pozioma ścieżka procesu rysowana przy przewijaniu, z grotem strzałki ----------
