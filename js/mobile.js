@@ -81,6 +81,22 @@
     });
   }
 
+  /* ---------- Case Koła: animowane logo ----------
+     Jak w v2.js: .is-anim ustawia sekwencję w klatce początkowej (wstrzymaną przez .is-anim-wait, CSS w v2.css);
+     gdy logo wejdzie w widok, zdejmujemy .is-anim-wait i sekwencja rusza — raz na wczytanie strony. */
+  function initCaseLogo() {
+    var logo = document.querySelector('.case-logo');
+    if (!logo || !('IntersectionObserver' in window)) return;
+    logo.classList.add('is-anim', 'is-anim-wait');
+    var io = new IntersectionObserver(function (entries) {
+      if (!entries.some(function (e) { return e.isIntersecting; })) return;
+      io.disconnect();
+      logo.classList.remove('is-anim-wait');
+    }, { threshold: 0.3 });
+    io.observe(logo);
+  }
+
   initPmsIntro();
   initPmsWords();
+  initCaseLogo();
 })();
