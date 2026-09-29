@@ -920,12 +920,11 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .join-page-steps__title { font: 600 16px/1.3 var(--font-head); letter-spacing: 0; }
 .join-page-steps__text { font: 400 13.5px/1.55 var(--font-body); color: var(--color-text-muted); margin-top: 5px; }
 
-/* Karta formularza: na całą szerokość kontenera. Wewnątrz dwie części — .join-page-form__main (tytuł,
-   przycisk) i .join-page-form__side (pomoc, link do sekcji) — jedna pod drugą, wyśrodkowane, rozdzielone
-   cienką linią, na wszystkich szerokościach. */
+/* Formularz bez karty: szerokość = najszerszy tekst (fit-content), wyśrodkowany. Wewnątrz dwie części
+   — .join-page-form__main (tytuł, przycisk) i .join-page-form__side (pomoc, link do sekcji) — jedna pod
+   drugą, wyśrodkowane, rozdzielone cienką linią na szerokość formularza. */
 .join-page-form {
-  background: var(--color-surface); border: 1px solid rgba(20,20,20,.1); border-radius: 22px; padding: 34px;
-  box-shadow: var(--shadow-feature); display: flex; flex-direction: column; gap: 24px;
+  display: flex; flex-direction: column; gap: 24px; width: fit-content; max-width: 100%; margin-inline: auto;
 }
 .join-page-form__main { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
 .join-page-form__title { font: 600 24px/1.2 var(--font-head); letter-spacing: 0; }
@@ -938,7 +937,6 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 }
 @media (max-width: 640px) {
   .join-page-main { padding: 40px 0 60px; }
-  .join-page-form { padding: 28px 22px; }
 }
 
 /* ---------- 10. O nas ---------- */
