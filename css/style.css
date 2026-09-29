@@ -1311,13 +1311,6 @@ html.nav-open body { overflow: hidden; }
   .about-sections, .about-units__list { grid-template-columns: minmax(0, 1fr); }
   .about-units { padding-bottom: 48px; }
   .about-board__list { width: 100%; }
-  /* zdjęcie zespołu tylko w górnej części sekcji (za nagłówkiem i zarządem), wygaszone maską — zamiast rozciągania
-     na ~2500 px wysokości (skrajne przybliżenie i rozmycie); nakładka w px, żeby zdjęcie nie ginęło pod górnym wygaszeniem */
-  .about-structure__bg { bottom: auto; height: min(640px, 100%); -webkit-mask-image: linear-gradient(#000 60%, transparent); mask-image: linear-gradient(#000 60%, transparent); }
-  .about-structure__bg img { object-position: 50% 25%; }
-  #struktura::after {
-    background: linear-gradient(180deg, rgba(247, 246, 243, 1) 0, rgba(247, 246, 243, .72) 90px, rgba(247, 246, 243, .38) 220px, rgba(247, 246, 243, .38) calc(100% - 160px), rgba(247, 246, 243, 1) 100%);
-  }
 }
 
 /* ---------- O nas: Wizja, Misja, Cel ---------- */
