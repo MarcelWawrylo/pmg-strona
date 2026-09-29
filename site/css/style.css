@@ -1004,6 +1004,9 @@ html.nav-open { overflow: hidden; }
 }
 .pms-intro + .pms-about { padding-top: 64px; }
 @media (max-width: 640px) { .pms-intro__pin { padding: 40px 0; } }
+/* ≤ 960 px bez przypinania (400vh na telefonie to ok. 3000 px pustego przewijania): intro niższe niż ekran,
+   żeby spod zdania było widać początek „Co to PM Session?”; ruch słów w js/mobile.js */
+@media (max-width: 960px) { .pms-intro__pin { min-height: clamp(360px, 62svh, 560px); } }
 
 /* ---------- 10. Dołącz ---------- */
 /* ---------- Dołącz (tymczasowy plik — do scalenia ze style.css) ---------- */
@@ -1602,6 +1605,17 @@ body.has-dialog { overflow: hidden; }
 .pms-facts__a { font: 400 15px/1.55 var(--font-body); color: var(--color-text-muted); margin: 0; }
 @media (max-width: 960px) { .pms-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .pms-facts { grid-template-columns: minmax(0, 1fr); } }
+/* ≤ 640 px: 6 kafelków jako poziomy pas przewijany palcem (jak Aktualności na stronie głównej) zamiast ~1000 px kart
+   pod sobą; main.js (initScrollers) daje pasowi tabindex i etykietę, żeby dało się go przewijać klawiaturą */
+@media (max-width: 640px) {
+  .pms-facts {
+    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: min(80%, 320px); gap: 12px;
+    margin: 28px calc(-1 * var(--gutter)) 0; padding: 2px var(--gutter) 16px; scroll-padding-inline: var(--gutter);
+    overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none;
+  }
+  .pms-facts::-webkit-scrollbar { display: none; }
+  .pms-facts__item { scroll-snap-align: start; }
+}
 
 /* ---------- 12. Strony prawne (polityka prywatności, deklaracja dostępności) + 404 ---------- */
 .legal-hero__lead { margin-top: 14px; }

@@ -420,6 +420,31 @@
     });
   }
 
+  /* ---------- Poziome pasy przewijane palcem (≤ 640 px: kafelki „Po co? / Dla kogo?…” na PM Session) ----------
+     Pas bez linków w środku nie dostałby fokusu, więc z klawiatury (np. Safari) nie dałoby się go przewinąć:
+     gdy treść faktycznie wychodzi w bok, pas dostaje tabindex="0", rolę region i nazwę; na szerokim ekranie (siatka) nic. */
+  function initScrollers() {
+    var items = $$('.pms-facts');
+    if (!items.length) return;
+    var update = function () {
+      items.forEach(function (el) {
+        var scrolls = el.scrollWidth > el.clientWidth + 1;
+        if (scrolls) {
+          el.setAttribute('tabindex', '0');
+          el.setAttribute('role', 'region');
+          el.setAttribute('aria-label', 'PM Session w pytaniach (przewijane w poziomie)');
+        } else {
+          el.removeAttribute('tabindex');
+          el.removeAttribute('role');
+          el.removeAttribute('aria-label');
+        }
+      });
+    };
+    update();
+    var t = 0;
+    window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(update, 200); });
+  }
+
   /* ---------- Odsłanianie przy scrollu ---------- */
   function initReveal() {
     var items = $$('[data-reveal]');
@@ -723,6 +748,7 @@
     initToTop();
     initAnchorScroll();
     initReveal();
+    initScrollers();
     initLightbox();
     initContactForm();
     initReportBug();
