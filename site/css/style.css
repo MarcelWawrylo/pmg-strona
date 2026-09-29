@@ -1107,11 +1107,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 
 .blog-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .blog-date { font: 500 12px var(--font-body); color: var(--color-text-muted); }
-.blog-more { font: 600 13px/1.4 var(--font-body); margin-top: 24px; }
-.blog-more--pink { color: #c8124f; }
-.blog-more--purple { color: #8b2c9c; }
-.blog-more--blue { color: #1d46e0; }
-.blog-more--violet { color: #5a2fb0; }
+.blog-more { font: 600 13px/1.4 var(--font-body); margin-top: 24px; color: var(--color-purple); }
 
 /* Placeholdery zdjęć (tła z makiety) */
 .blog-ph { overflow: hidden; display: flex; align-items: center; justify-content: center; font: 600 11px ui-monospace, monospace; color: var(--color-text-muted); }
