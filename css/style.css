@@ -638,12 +638,12 @@ html.nav-open { overflow: hidden; }
 }
 @media (max-width: 640px) { .contact-form__row { grid-template-columns: minmax(0, 1fr); } .contact { padding-bottom: 60px; } }
 /* Kontakt ≤ 640 px: luźniejsza interlinia tytułu (.92 z v2.css sklejało wiersze, ogonek „ę” dotykał kolejnego wiersza),
-   „Wyślij” na pełną szerokość pod kciukiem, e-mail z obszarem trafienia 44 px */
+   „Wyślij” na pełną szerokość pod kciukiem; ≤ 960 px e-mail z obszarem trafienia 44 px (podkreślenie zostaje przy tekście) */
 @media (max-width: 640px) {
   html.v2 .contact-hero__title { line-height: 1.04; }
   .contact-form__send { width: 100%; }
-  .contact__mail { display: inline-block; padding-top: 16px; margin-top: -12px; }
 }
+@media (max-width: 960px) { .contact__mail { display: inline-block; padding-top: 19px; margin-top: -15px; } }
 
 /* ---------- 10d. Strona główna ---------- */
 .btn--lg { font-size: 15px; padding: 15px 30px; }
@@ -1684,7 +1684,7 @@ body.has-dialog { overflow: hidden; }
   .home-hero__link { min-height: 44px; }
   .chip-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; }
   .pod-btn { min-height: 44px; }
-  .join-page-form__sections a { display: inline-block; padding: 8px 0; }
+  .join-page-form__sections a { display: inline-block; padding: 12px 0; }
   /* ikony e-mail/LinkedIn w O nas: 32 px widoczne + 44 px obszar trafienia (::after), odstęp 12 px, żeby obszary się nie nakładały */
   .about-act { gap: 12px; }
   .about-ico, .about-member .about-ico, .about-ico--light { position: relative; width: 32px; height: 32px; }
