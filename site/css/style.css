@@ -920,12 +920,11 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .join-page-steps__title { font: 600 16px/1.3 var(--font-head); letter-spacing: 0; }
 .join-page-steps__text { font: 400 13.5px/1.55 var(--font-body); color: var(--color-text-muted); margin-top: 5px; }
 
-/* Karta formularza: na całą szerokość kontenera. Wewnątrz dwie części — .join-page-form__main (tytuł,
-   przycisk) i .join-page-form__side (pomoc, link do sekcji) — jedna pod drugą, wyśrodkowane, rozdzielone
-   cienką linią, na wszystkich szerokościach. */
+/* Formularz bez karty: szerokość = najszerszy tekst (fit-content), wyśrodkowany. Wewnątrz dwie części
+   — .join-page-form__main (tytuł, przycisk) i .join-page-form__side (pomoc, link do sekcji) — jedna pod
+   drugą, wyśrodkowane, rozdzielone cienką linią na szerokość formularza. */
 .join-page-form {
-  background: var(--color-surface); border: 1px solid rgba(20,20,20,.1); border-radius: 22px; padding: 34px;
-  box-shadow: var(--shadow-feature); display: flex; flex-direction: column; gap: 24px;
+  display: flex; flex-direction: column; gap: 24px; width: fit-content; max-width: 100%; margin: 34px auto; /* margines zamiast dawnego paddingu karty: ten sam odstęp od sąsiednich sekcji */
 }
 .join-page-form__main { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
 .join-page-form__title { font: 600 24px/1.2 var(--font-head); letter-spacing: 0; }
@@ -938,7 +937,7 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 }
 @media (max-width: 640px) {
   .join-page-main { padding: 40px 0 60px; }
-  .join-page-form { padding: 28px 22px; }
+  .join-page-form { margin: 28px auto; }
 }
 
 /* ---------- 10. O nas ---------- */
@@ -957,43 +956,84 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-structure { padding: 64px 0; position: relative; isolation: isolate; overflow: hidden; }
 .about-structure .about-h2 { margin-bottom: 30px; }
 #struktura {
-  background: radial-gradient(circle, rgba(20, 20, 20, .06) 0 1px, transparent 1.5px) 0 0 / 20px 20px, var(--color-bg);
+  background: var(--color-bg); /* bez kropkowanego wzoru: w przejściu prześwitywałby i tworzył granicę z .about-units */
 }
-#struktura::before {
-  content: ""; position: absolute; z-index: -1; top: -180px; right: -160px; width: 620px; height: 420px; border-radius: 50%;
-  background: var(--gradient-brand); filter: blur(90px); opacity: .08; pointer-events: none;
-}
+#struktura::before { display: none; } /* poświata (blur 90px) byłaby widoczna przy górnej krawędzi sekcji; pod zdjęciem i tak niewidoczna */
 /* Zdjęcie zespołu w tle sekcji: dekoracyjne <picture aria-hidden> (pierwsze dziecko #struktura, z-index -1)
    w o-nas.html, kadr poziomy 1600×1000 (kawałek nieba + grupa, bez nóg) w image-set 1x/2x (webp + jpg),
    lżejsza wersja 800w dla wąskich ekranów przez srcset/sizes. Zasłania kropkowane tło i poświatę wyżej —
    to nie problem, obie są niewidoczne pod nieprzezroczystym zdjęciem. */
 .about-structure__bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
 .about-structure__bg img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 30% 50%; }
-/* Przejście zdjęcia w kolor tła sekcji (= tło .about-units i <body>, var(--color-bg) #F7F6F3) na górnych
-   ~30% wysokości sekcji, żeby nie było twardej krawędzi od strony poprzedniej sekcji; dalej stała półprzezroczysta
-   warstwa w tym samym kolorze aż do dołu (dół celowo bez rozjaśnienia, krawędź ze stopką jest widoczna) —
-   czytelność nagłówka i tekstu poza kartami przy zachowanej rozpoznawalności tła. */
+/* Płynne przejście od --color-bg (górna krawędź sekcji = tło .about-units i <body>, bez krawędzi) do zdjęcia: robi je
+   sama maska na .about-structure__bg — górne max(320px, 50%) wysokości sekcji to wygładzona krzywa (smoothstep 3t²−2t³,
+   17 punktów, zerowe nachylenie na obu końcach, więc bez załamań i pasm Macha), niżej zdjęcie jest w całości (druga
+   warstwa maski). Tło sekcji pod zdjęciem to var(--color-bg) (ID wygrywa z .bg-surface, które dałoby biel #fff). */
+.about-structure__bg {
+  --fade: max(320px, 50%);
+  -webkit-mask-image: linear-gradient(180deg,
+      rgba(0, 0, 0, 0.000) 0%,
+      rgba(0, 0, 0, 0.011) 6.2%,
+      rgba(0, 0, 0, 0.043) 12.5%,
+      rgba(0, 0, 0, 0.092) 18.8%,
+      rgba(0, 0, 0, 0.156) 25%,
+      rgba(0, 0, 0, 0.232) 31.2%,
+      rgba(0, 0, 0, 0.316) 37.5%,
+      rgba(0, 0, 0, 0.407) 43.8%,
+      rgba(0, 0, 0, 0.500) 50%,
+      rgba(0, 0, 0, 0.593) 56.2%,
+      rgba(0, 0, 0, 0.684) 62.5%,
+      rgba(0, 0, 0, 0.768) 68.8%,
+      rgba(0, 0, 0, 0.844) 75%,
+      rgba(0, 0, 0, 0.908) 81.2%,
+      rgba(0, 0, 0, 0.957) 87.5%,
+      rgba(0, 0, 0, 0.989) 93.8%,
+      rgba(0, 0, 0, 1.000) 100%),
+    linear-gradient(#000, #000);
+  mask-image: linear-gradient(180deg,
+      rgba(0, 0, 0, 0.000) 0%,
+      rgba(0, 0, 0, 0.011) 6.2%,
+      rgba(0, 0, 0, 0.043) 12.5%,
+      rgba(0, 0, 0, 0.092) 18.8%,
+      rgba(0, 0, 0, 0.156) 25%,
+      rgba(0, 0, 0, 0.232) 31.2%,
+      rgba(0, 0, 0, 0.316) 37.5%,
+      rgba(0, 0, 0, 0.407) 43.8%,
+      rgba(0, 0, 0, 0.500) 50%,
+      rgba(0, 0, 0, 0.593) 56.2%,
+      rgba(0, 0, 0, 0.684) 62.5%,
+      rgba(0, 0, 0, 0.768) 68.8%,
+      rgba(0, 0, 0, 0.844) 75%,
+      rgba(0, 0, 0, 0.908) 81.2%,
+      rgba(0, 0, 0, 0.957) 87.5%,
+      rgba(0, 0, 0, 0.989) 93.8%,
+      rgba(0, 0, 0, 1.000) 100%),
+    linear-gradient(#000, #000);
+  -webkit-mask-size: 100% var(--fade), 100% calc(100% - var(--fade));
+  mask-size: 100% var(--fade), 100% calc(100% - var(--fade));
+  -webkit-mask-position: 0 0, 0 100%;
+  mask-position: 0 0, 0 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+/* Warstwa czytelności: jednolita, o stałym kryciu na całej wysokości (bez przejść), w kolorze tła sekcji — nagłówek
+   i teksty poza kartami zachowują kontrast, tło zostaje rozpoznawalne; dół celowo bez rozjaśnienia (krawędź ze stopką). */
 #struktura::after {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background: linear-gradient(180deg,
-    rgba(247, 246, 243, 1) 0%,
-    rgba(247, 246, 243, .78) 14%,
-    rgba(247, 246, 243, .42) 30%,
-    rgba(247, 246, 243, .42) 100%);
+  background: rgba(247, 246, 243, .42);
 }
 .about-board { display: flex; flex-direction: column; align-items: center; }
 .about-board__list { display: flex; flex-direction: column; gap: 14px; align-items: stretch; max-width: 100%; }
 .about-board__card {
   min-width: min(280px, 100%); display: flex; align-items: center; justify-content: space-between; gap: 18px;
-  /* zarząd: karta w szarości #525252 z nicią gradientu marki u góry, biały tekst ≥ 4.5:1 (nazwisko 7,8:1, rola 4,8:1);
-     nić = wycinek jednego gradientu na szerokość strony (100vw, środek obrazu na środku karty = środku strony) */
-  background: var(--gradient-brand) 50% 0 / 100vw 3px no-repeat, #525252; border-radius: var(--radius-md); padding: 16px 22px;
+  /* zarząd: biała karta (jak karty sekcji), ciemny tekst; struktura koła jest monochromatyczna, bez nici gradientu */
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px 22px;
   box-shadow: 0 12px 28px -16px rgba(20, 20, 20, .45);
 }
 .about-board__who { min-width: 0; }
-.about-board__role { display: block; font: 600 10px var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: rgba(255, 255, 255, .7); }
-.about-board__name { display: block; font: 600 19px var(--font-head); color: #fff; margin-top: 2px; }
-.about-board__line { width: 2px; height: 26px; background: rgba(20, 20, 20, .2); }
+.about-board__role { display: block; font: 600 10px var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: var(--color-text-muted); }
+.about-board__name { display: block; font: 600 19px var(--font-head); color: var(--color-ink); margin-top: 2px; }
+.about-board__line { width: 2px; height: 26px; background: rgba(20, 20, 20, .55); }
 
 /* globalny html { scroll-padding-top: 96px } już liczy odstęp na przyklejony header */
 .about-units { padding: 8px 0 72px; }
@@ -1042,12 +1082,9 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-sec__body { padding: 12px 16px 18px; }
 .about-coord { background: rgba(20, 20, 20, .035); border: 1px solid transparent; border-radius: 12px; padding: 12px 13px; margin-bottom: 10px; }
 .about-coord__label { font: 600 10px var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--color-text-muted); }
-/* 31 px = ramka karty 1 + padding body 16 + ramka koordynatora 1 + jego padding 13 */
 .about-coord__label::before {
   content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 7px; vertical-align: 1px;
-  background: var(--gradient-brand) 0 0 / 100% 100% no-repeat;
-  background-size: 100vw 100%;
-  background-position: calc(-1 * (var(--seg-x) + 31px)) 0;
+  background: var(--color-ink);
 }
 .about-coord__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
 .about-coord__name { font: 600 15px/1.3 var(--font-head); color: var(--color-ink); min-width: 0; }
@@ -1074,6 +1111,10 @@ html:not(.js) .site-nav__item:not(:hover):not(:focus-within) > .site-nav__sub { 
 .about-ico--light { width: 28px; height: 28px; background: rgba(255, 255, 255, .92); color: var(--color-ink); }
 .about-ico--light:hover, .about-ico--light:focus-visible { color: var(--color-ink); }
 .about-ico--light:focus-visible { outline-color: #fff; }
+/* ikony w białych kartach zarządu: jak ikony koordynatorów (ciemne kółko, biała ikona), fokus w ciemnym kolorze */
+.about-board__card .about-ico--light { background: var(--color-ink); color: #fff; }
+.about-board__card .about-ico--light:hover, .about-board__card .about-ico--light:focus-visible { color: #fff; }
+.about-board__card .about-ico--light:focus-visible { outline-color: var(--color-ink); }
 
 @media (max-width: 1240px) { .about-sections, .about-units__list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) {
