@@ -551,6 +551,7 @@ html.nav-open body { overflow: hidden; }
 .hub-banner__logo { width: auto; height: 56px; border-radius: 16px; object-fit: contain; }
 .hub-banner__title { font: 600 clamp(36px, 5.6vw, 56px)/1.05 var(--font-head); letter-spacing: -.02em; margin-top: 0; }
 @media (max-width: 640px) { .hub-banner__head { flex-direction: column; align-items: flex-start; gap: 16px; } }
+@media (max-width: 960px) { .hub-banner__brand { display: none; } } /* logo projektu w banerze tylko na desktopie */
 .hub-banner__lead { max-width: 760px; margin-top: 16px; text-wrap: pretty; }
 .hub-banner__lead--full { max-width: none; }
 .hub-grid { padding: 20px 0 80px; }

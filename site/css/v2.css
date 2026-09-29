@@ -25,15 +25,14 @@ html.lenis, html.lenis body { height: auto; }
    Czasy i easing jak .hero-logo na stronie głównej: ramka rysuje się 4,8 s, potem słupki PMG, litery P→M→G — jednorazowo,
    z fill-mode backwards. Od 6 s mózg i promienie migoczą w pętli: okres 3 s (krótki błysk + pauza), brightness do 1.12,
    poświata do .5, promienie przygasają do .55; klatka 0%/100% = spoczynkowy wygląd, więc pętla startuje i zamyka się
-   bez skoku. Klasę dodaje v2.js (≥ 961 px) albo js/mobile.js (≤ 960 px, tam bez pętli — niżej). Bez JS i przy
-   reduced-motion klasy nie ma — logo jest statyczne. */
+   bez skoku. Bez JS, < 961 px i przy reduced-motion klasy nie ma — logo jest statyczne. */
 @keyframes caselogo-draw { from { stroke-dasharray: 1141; stroke-dashoffset: 1141; } to { stroke-dasharray: 1141; stroke-dashoffset: 0; } }
 @keyframes caselogo-fade { from { opacity: 0; } }
 @keyframes caselogo-letter { from { opacity: 0; transform: translateY(8px); } }
 @keyframes caselogo-glow { 0%, 100% { opacity: 0; } 20% { opacity: .5; } 40% { opacity: 0; } }
 @keyframes caselogo-bright { 0%, 100% { filter: brightness(1); } 20% { filter: brightness(1.12); } 40% { filter: brightness(1); } }
 @keyframes caselogo-ray { 0%, 100% { opacity: 1; } 20% { opacity: .55; } 40% { opacity: 1; } }
-@media (prefers-reduced-motion: no-preference) {
+@media (min-width: 961px) and (prefers-reduced-motion: no-preference) {
   .case-logo.is-anim { --caselogo-sine: cubic-bezier(.37, 0, .63, 1); }
   .case-logo.is-anim .case-logo__frame { animation: caselogo-draw 4.8s var(--caselogo-sine) .2s backwards; }
   .case-logo.is-anim .case-logo__bars { animation: caselogo-fade .3s ease-out 4.4s backwards; }
@@ -45,10 +44,6 @@ html.lenis, html.lenis body { height: auto; }
   .case-logo.is-anim .case-logo__ray { animation: caselogo-ray 3s ease-in-out 6.15s infinite backwards; }
   /* do wejścia logo w widok sekwencja stoi w klatce początkowej */
   .case-logo.is-anim.is-anim-wait * { animation-play-state: paused; }
-}
-/* ≤ 960 px: tylko jednorazowe wejście logo, bez nieskończonej pętli migotania (WCAG 2.2.2, bateria telefonu) */
-@media (max-width: 960px) {
-  .case-logo.is-anim .case-logo__glow, .case-logo.is-anim .case-logo__brain, .case-logo.is-anim .case-logo__ray { animation: none; }
 }
 .v2 .contact-hero__title { line-height: .92; letter-spacing: -.04em; }
 .v2 .home-h2, .v2 .pms-h2 { letter-spacing: -.03em; }
