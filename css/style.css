@@ -459,8 +459,18 @@ html.nav-open { overflow: hidden; }
   .site-footer__brand img { height: 70px; width: 70px; }
   .site-footer__uni img { height: 48px; }
   .site-footer__uni-link--pwr img { height: 84px; }
-  .site-footer__bottom { flex-direction: column; }
-  .site-footer__credits { text-align: left; }
+  .site-footer__totop .btn { width: 100%; min-height: 48px; }
+}
+/* ≤ 960 px: dół stopki w kolumnie, linki prawne i autorzy jako osobne cele dotykowe ≥ 44 px (zamiast linków w jednym zdaniu,
+   które na 375 px łamały „Zgłoś / błąd”); autorzy wyrównani do lewej */
+@media (max-width: 960px) {
+  .site-footer__contact a { display: inline-block; padding: 11px 0; }
+  .site-footer__bottom { flex-direction: column; gap: 14px; }
+  .site-footer__bottom > p:first-child { display: flex; flex-wrap: wrap; align-items: center; column-gap: 20px; }
+  .site-footer__switch { display: inline-flex; align-items: center; min-height: 44px; margin-left: 0; }
+  .site-footer__credits { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
+  .site-footer__credits br { display: none; }
+  .site-footer__credits a { display: inline-flex; align-items: center; min-height: 44px; }
 }
 /* ≥ 961 px: logo PMG z adresem, sociale i logotypy uczelni w jednym rzędzie, na wysokości logo PMG */
 @media (min-width: 961px) {
@@ -1547,6 +1557,23 @@ body.has-dialog { overflow: hidden; }
 .error-404 { text-align: center; }
 .error-404__lead { max-width: 44ch; margin: 16px auto 0; }
 .error-404__actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
+
+/* ---------- 12b. Wersja mobilna: cele dotykowe ≥ 44 px (≤ 960 px) ----------
+   Po definicjach komponentów, żeby wygrać kolejnością; tylko rozmiar obszaru trafienia, wygląd bez zmian. */
+@media (max-width: 960px) {
+  .skip-link { padding-top: 13px; padding-bottom: 13px; }
+  .breadcrumb { padding: 10px 0 4px; }
+  .breadcrumb a { display: inline-flex; align-items: center; min-height: 44px; }
+  .section-head__link { display: inline-flex; align-items: center; min-height: 44px; }
+  .home-hero__link { min-height: 44px; }
+  .chip-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; }
+  .pod-btn { min-height: 44px; }
+  .join-page-form__sections a { display: inline-block; padding: 8px 0; }
+  /* ikony e-mail/LinkedIn w O nas: 32 px widoczne + 44 px obszar trafienia (::after), odstęp 12 px, żeby obszary się nie nakładały */
+  .about-act { gap: 12px; }
+  .about-ico, .about-member .about-ico, .about-ico--light { position: relative; width: 32px; height: 32px; }
+  .about-ico::after { content: ""; position: absolute; inset: -6px; }
+}
 
 /* ---------- 9b. Karta serwisu (wspólna baza — celowo na końcu pliku, żeby wygrała kolejnością) ---------- */
 .case-card, .project-card, .blog-card, .blog-featured, .link-tile, .pod-ep { border-radius: var(--card-radius); }
