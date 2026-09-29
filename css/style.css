@@ -635,6 +635,12 @@ html.nav-open { overflow: hidden; }
   .contact-hero__title { font-size: min(7vw, calc((100vw - var(--gutter) * 2) / 13.6)); }
 }
 @media (max-width: 640px) { .contact-form__row { grid-template-columns: minmax(0, 1fr); } .contact { padding-bottom: 60px; } }
+/* Kontakt ≤ 640 px: luźniejsza interlinia tytułu (.92 z v2.css sklejało wiersze, ogonek „ę” dotykał kolejnego wiersza),
+   „Wyślij” na pełną szerokość pod kciukiem, e-mail z obszarem trafienia 44 px */
+@media (max-width: 640px) {
+  html.v2 .contact-hero__title { line-height: 1.04; }
+  .contact-form__send { width: 100%; }
+  .contact__mail { display: inline-block; padding-top: 16px; margin-top: -12px; }
 }
 
 /* ---------- 10d. Strona główna ---------- */
