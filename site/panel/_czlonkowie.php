@@ -19,6 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (PDOException $e) {
             $error = $e->getCode() === '23000' ? 'W sekcji są osoby — przenieś je najpierw.' : 'Błąd usuwania.';
         }
+    } elseif ($action === 'import') {
+        pmg_import_wykonaj('czlonkowie');
     } elseif ($action === 'sekcja_zapisz') {
         $id = (int) ($_POST['id'] ?? 0);
         $f = [
@@ -261,6 +263,7 @@ if ($editOsoba !== null) {
   <?php endif; ?>
 
 <?php else: ?>
+  <?php pmg_import_blok('czlonkowie'); ?>
   <div class="pmg-card">
     <div class="pmg-card__head"><h2 class="pmg-h2">Zarząd</h2></div>
     <div class="pmg-table-wrap pmg-table-wrap--flush">

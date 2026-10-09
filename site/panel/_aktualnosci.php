@@ -24,6 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         loguj('aktualnosci', 'usuniecie', $id);
         $_SESSION['flash'] = 'Wpis usunięty.';
         go('?m=aktualnosci');
+    } elseif ($action === 'import') {
+        pmg_import_wykonaj('aktualnosci');
     } elseif ($action === 'save') {
         $id = (int) ($_POST['id'] ?? 0);
         $f = [];
@@ -161,6 +163,7 @@ if ($edit !== null) {
   <?php endif; ?>
 
 <?php else: ?>
+  <?php pmg_import_blok('aktualnosci'); ?>
   <div class="pmg-table-wrap">
     <table class="pmg-table pmg-table--klikalna">
       <caption class="pmg-vh">Wpisy Aktualności</caption>

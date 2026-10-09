@@ -38,6 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             go('?m=pmsession');
         }
 
+    } elseif ($action === 'import') {
+        pmg_import_wykonaj('pmsession');
     } elseif ($action === 'edycja_usun') {
         $id = (int) ($_POST['id'] ?? 0);
         $st = pmg_db()->prepare('SELECT status FROM pmg_edycje WHERE id = ?');
@@ -131,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $f = [
             'imie_nazwisko' => mb_substr(trim((string) ($_POST['imie_nazwisko'] ?? '')), 0, 100),
             'temat' => mb_substr(trim((string) ($_POST['temat'] ?? '')), 0, 300),
-            'bio' => mb_substr(trim((string) ($_POST['bio'] ?? '')), 0, 1500),
+            'bio' => mb_substr(trim((string) ($_POST['bio'] ?? '')), 0, 2500),
             'notatka' => mb_substr(trim((string) ($_POST['notatka'] ?? '')), 0, 200),
             'linkedin' => mb_substr(trim((string) ($_POST['linkedin'] ?? '')), 0, 200),
             'zdjecie_alt' => mb_substr(trim((string) ($_POST['zdjecie_alt'] ?? '')), 0, 200),
@@ -354,8 +356,8 @@ if ($editPrelegent !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-bio">
       <h2 class="pmg-form-section__title" id="sek-bio">Biogram i LinkedIn</h2>
       <label for="bio">Biogram</label>
-      <p class="pmg-hint" id="bio_h">Maksymalnie 1500 znaków.</p>
-      <textarea id="bio" name="bio" maxlength="1500" aria-describedby="bio_h" data-pmg-licznik><?= $v('bio') ?></textarea>
+      <p class="pmg-hint" id="bio_h">Maksymalnie 2500 znaków.</p>
+      <textarea id="bio" name="bio" maxlength="2500" aria-describedby="bio_h" data-pmg-licznik><?= $v('bio') ?></textarea>
       <label for="linkedin">LinkedIn <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="linkedin_h">Pełny adres zaczynający się od https://. Pole opcjonalne.</p>
       <input type="text" id="linkedin" name="linkedin" maxlength="200" value="<?= $v('linkedin') ?>" aria-describedby="linkedin_h">
@@ -515,6 +517,7 @@ if ($editPrelegent !== null) {
   </div>
 
 <?php else: ?>
+  <?php pmg_import_blok('pmsession'); ?>
   <div class="pmg-card">
     <div class="pmg-card__head"><h2 class="pmg-h2">Edycje</h2></div>
     <div class="pmg-table-wrap pmg-table-wrap--flush">

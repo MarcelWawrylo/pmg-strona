@@ -384,6 +384,7 @@ if (!$me) {
 }
 
 // ---------- Router modułów ----------
+require_once __DIR__ . '/_import.php'; // przycisk „Wczytaj treści ze strony” (tylko administrator)
 $m = $_GET['m'] ?? '';
 $tresc = null;
 if ($me && $m !== '') {
