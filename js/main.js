@@ -1442,7 +1442,7 @@
     cards.forEach(function (c) {
       var li = document.createElement('li'), a = document.createElement('a');
       a.className = 'site-nav__sublink';
-      a.href = c.url;
+      a.href = abs(c.url); // od katalogu strony, nie od bieżącego adresu (404.html wyświetla się pod dowolną ścieżką)
       a.textContent = c.nazwa;
       if ((page && nrParam === String(c.numer)) || (curText && c.nazwa.toLowerCase() === curText) || (c.adres_strony && c.adres_strony === file)) a.setAttribute('aria-current', 'page');
       li.appendChild(a);
