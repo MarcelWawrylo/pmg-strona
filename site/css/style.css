@@ -599,8 +599,14 @@ html.nav-open body { overflow: hidden; }
 .contact__mail { font: 500 17px var(--font-head); color: var(--color-ink); text-decoration: none; border-bottom: 1px solid rgba(20,20,20,.25); padding-bottom: 2px; }
 .contact__mail:hover { color: var(--color-pink-text); border-bottom-color: currentColor; }
 .contact__address { font: 400 17px/1.5 var(--font-head); font-style: normal; color: var(--color-ink); margin-bottom: 16px; }
-.contact__map { border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-border); height: 200px; }
-.contact__map iframe { width: 100%; height: 100%; border: 0; display: block; filter: grayscale(.15) contrast(1.02); }
+.contact__map { border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-border); min-height: 200px; }
+.contact__map iframe { width: 100%; height: 200px; border: 0; display: block; filter: grayscale(.15) contrast(1.02); }
+.map-consent { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 18px; background: #fff; }
+.map-consent__text { font: 400 13.5px/1.55 var(--font-body); color: var(--color-text-muted); margin: 0; }
+.map-consent__text a, .map-consent__link { color: var(--color-blue); text-decoration: underline; text-underline-offset: 3px; }
+.map-consent__link { font: 500 14px/1.4 var(--font-body); }
+.map-consent__btn[hidden] { display: none; }
+.map-consent__link--after { display: inline-block; margin-top: 10px; }
 .contact__social { display: flex; gap: 10px; }
 .contact__social-link { width: 44px; height: 44px; border-radius: 50%; background: var(--color-ink); display: flex; align-items: center; justify-content: center; color: #fff; }
 .contact__social-link:hover, .contact__social-link:focus-visible { background: var(--color-pink-text); color: #fff; }
