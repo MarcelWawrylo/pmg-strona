@@ -37,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $f['kolor'] = array_key_exists((string) ($_POST['kolor'] ?? ''), KOLORY) ? $_POST['kolor'] : 'pink';
         $f['opublikowany'] = empty($_POST['opublikowany']) ? 0 : 1;
         $old = null;
+        $noweZdjecie = null; // plik wgrany w tym żądaniu — usuwany, jeśli zapis do bazy się nie uda
         if ($id) {
             $st = pmg_db()->prepare('SELECT * FROM pmg_aktualnosci WHERE id = ?');
             $st->execute([$id]);
@@ -47,9 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!data_ok($f['data'])) throw new RuntimeException('Podaj datę wpisu.');
             $stareZdjecie = $old['zdjecie'] ?? null;
             $f['zdjecie'] = zdjecie('aktualnosci', $stareZdjecie);
+            if ($f['zdjecie'] !== $stareZdjecie) $noweZdjecie = $f['zdjecie'];
             if ($id && $old) {
                 $st = pmg_db()->prepare('UPDATE pmg_aktualnosci SET data=?, kategoria=?, kolor=?, tytul=?, lead=?, zajawka=?, tresc=?, zdjecie=?, zdjecie_alt=?, autor=?, opublikowany=? WHERE id=?');
                 $st->execute([$f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $id]);
+                $noweZdjecie = null;
                 if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
                 loguj('aktualnosci', 'edycja', $id);
             } else {
@@ -58,11 +61,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 for ($n = 2; $st->execute([$slug]) && $st->fetchColumn(); $n++) $slug = $base . '-' . $n;
                 $st = pmg_db()->prepare('INSERT INTO pmg_aktualnosci (slug, data, kategoria, kolor, tytul, lead, zajawka, tresc, zdjecie, zdjecie_alt, autor, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
                 $st->execute([$slug, $f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany']]);
+                $noweZdjecie = null;
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('aktualnosci', 'dodanie', $id);
             }
             $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano.' : 'Zapisano jako szkic (niewidoczny na stronie).';
             go('?m=aktualnosci');
+        } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
+            error_log('aktualnosci zapis: ' . $e->getMessage());
+            drop_image($noweZdjecie);
+            $error = 'Błąd zapisu — nic nie zapisano. Sprawdź długość treści i spróbuj ponownie.';
+            $edit = array_merge($old ?: [], $f, ['id' => $id, 'zdjecie' => $old['zdjecie'] ?? null]);
         } catch (RuntimeException $e) {
             $error = $e->getMessage();
             $edit = array_merge($old ?: [], $f, ['id' => $id]);

@@ -156,6 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $st = pmg_db()->prepare('SELECT * FROM pmg_case_galeria WHERE id = ? AND edycja_id = ?');
         $st->execute([$gid, $eid]);
         $g = $st->fetch() ?: null;
+        $noweGal = null; // plik wgrany w tym żądaniu — usuwany, jeśli zapis do bazy się nie uda
         try {
             if ($action === 'gal_dodaj') {
                 $podpis = mb_substr(trim((string) ($_POST['podpis'] ?? '')), 0, 200);
@@ -164,11 +165,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ((int) $ile->fetchColumn() >= CASE_GALERIA_MAX) throw new RuntimeException('Galeria może mieć najwyżej ' . CASE_GALERIA_MAX . ' zdjęć.');
                 if (empty($_FILES['plik']['name'])) throw new RuntimeException('Wybierz plik ze zdjęciem.');
                 if ($podpis === '') throw new RuntimeException('Dodaj podpis zdjęcia (to także opis dla osób niewidomych).');
-                $plik = save_image($_FILES['plik'], 'case');
+                $plik = $noweGal = save_image($_FILES['plik'], 'case');
                 $kol = pmg_db()->prepare('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_case_galeria WHERE edycja_id = ?');
                 $kol->execute([$eid]);
                 pmg_db()->prepare('INSERT INTO pmg_case_galeria (edycja_id, zdjecie, pelne, podpis, kolejnosc) VALUES (?,?,NULL,?,?)')
                     ->execute([$eid, $plik, $podpis, (int) $kol->fetchColumn()]);
+                $noweGal = null;
                 loguj('case', 'galeria', $eid);
                 $_SESSION['flash'] = 'Zdjęcie dodane do galerii.';
                 go($wroc);
@@ -178,10 +180,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $podpis = mb_substr(trim((string) ($_POST['podpis'] ?? '')), 0, 200);
                 if ($podpis === '') throw new RuntimeException('Podpis zdjęcia nie może być pusty (to także opis dla osób niewidomych).');
                 $nowe = null;
-                if (!empty($_FILES['plik']['name'])) $nowe = save_image($_FILES['plik'], 'case');
+                if (!empty($_FILES['plik']['name'])) $nowe = $noweGal = save_image($_FILES['plik'], 'case');
                 if ($nowe !== null) {
                     // nowy plik zastępuje zdjęcie i powiększenie (osobny plik „pełne” dotyczył starego zdjęcia)
                     pmg_db()->prepare('UPDATE pmg_case_galeria SET podpis = ?, zdjecie = ?, pelne = NULL WHERE id = ?')->execute([$podpis, $nowe, $gid]);
+                    $noweGal = null;
                     drop_image($g['zdjecie']);
                     drop_image($g['pelne']);
                 } else {
@@ -201,12 +204,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['flash'] = 'Zdjęcie usunięte z galerii.';
                 go($wroc);
             }
+        } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
+            error_log('case galeria: ' . $e->getMessage());
+            drop_image($noweGal);
+            $error = 'Błąd zapisu galerii.';
+            $edit = $ed;
         } catch (RuntimeException $e) {
             $error = $e->getMessage();
-            $edit = $ed;
-        } catch (PDOException $e) {
-            error_log('case galeria: ' . $e->getMessage());
-            $error = 'Błąd zapisu galerii.';
             $edit = $ed;
         }
     }
