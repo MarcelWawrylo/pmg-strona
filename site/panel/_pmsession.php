@@ -162,22 +162,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
         }
         if ($error === '') {
+            $noweZdjecie = null; // plik wgrany w tym żądaniu — usuwany, jeśli zapis do bazy się nie uda
             try {
                 $stareZdjecie = $old['zdjecie'] ?? null;
                 $f['zdjecie'] = zdjecie('pmsession', $stareZdjecie);
+                if ($f['zdjecie'] !== $stareZdjecie) $noweZdjecie = $f['zdjecie'];
                 if ($id && $old) {
                     $st = pmg_db()->prepare('UPDATE pmg_prelegenci SET imie_nazwisko=?, temat=?, bio=?, opis=?, plec=?, notatka=?, zdjecie=?, zdjecie_alt=?, linkedin=?, kolejnosc=? WHERE id=?');
                     $st->execute([$f['imie_nazwisko'], $f['temat'], $f['bio'], $f['opis'], $f['plec'], $f['notatka'], $f['zdjecie'], $f['zdjecie_alt'], $f['linkedin'], $f['kolejnosc'], $id]);
+                    $noweZdjecie = null;
                     if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
                     loguj('pmsession', 'edycja', $id);
                 } else {
                     $st = pmg_db()->prepare('INSERT INTO pmg_prelegenci (edycja_id, imie_nazwisko, temat, bio, opis, plec, notatka, zdjecie, zdjecie_alt, linkedin, kolejnosc) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
                     $st->execute([$edycjaId, $f['imie_nazwisko'], $f['temat'], $f['bio'], $f['opis'], $f['plec'], $f['notatka'], $f['zdjecie'], $f['zdjecie_alt'], $f['linkedin'], $f['kolejnosc']]);
+                    $noweZdjecie = null;
                     $id = (int) pmg_db()->lastInsertId();
                     loguj('pmsession', 'dodanie', $id);
                 }
                 $_SESSION['flash'] = 'Zapisano.';
                 go('?m=pmsession&e=' . $edycjaId);
+            } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
+                error_log('pmsession prelegent zapis: ' . $e->getMessage());
+                drop_image($noweZdjecie);
+                $f['zdjecie'] = $old['zdjecie'] ?? null;
+                $error = 'Błąd zapisu — nic nie zapisano. Spróbuj ponownie.';
             } catch (RuntimeException $e) {
                 $error = $e->getMessage();
             }

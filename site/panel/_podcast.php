@@ -58,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $f['opublikowany'] = empty($_POST['opublikowany']) ? 0 : 1;
         $f['edycja_id'] = (string) ($_POST['edycja_id'] ?? '') === '' ? null : (int) $_POST['edycja_id'];
         $old = null;
+        $noweZdjecie = null; // plik wgrany w tym żądaniu — usuwany, jeśli zapis do bazy się nie uda
         if ($id) {
             $st = pmg_db()->prepare('SELECT * FROM pmg_odcinki WHERE id = ?');
             $st->execute([$id]);
@@ -83,23 +84,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (mb_strlen($f['apple_url']) > 400 || mb_strlen($f['youtube_url']) > 300) throw new RuntimeException('Adres jest za długi.');
             $stareZdjecie = $old['zdjecie'] ?? null;
             $f['zdjecie'] = zdjecie('podcast', $stareZdjecie);
+            if ($f['zdjecie'] !== $stareZdjecie) $noweZdjecie = $f['zdjecie'];
             if ($id && $old) {
                 $st = pmg_db()->prepare('UPDATE pmg_odcinki SET numer=?, tytul=?, data=?, czas_min=?, opis=?, prowadzacy=?, gosc=?, gosc_bio=?, spotify_id=?, apple_url=?, youtube_url=?, zdjecie=?, zdjecie_alt=?, opublikowany=?, edycja_id=? WHERE id=?');
                 $st->execute([$f['numer'], $f['tytul'], $f['data'], $f['czas_min'], $f['opis'], $f['prowadzacy'], $f['gosc'], $f['gosc_bio'], $f['spotify_id'], $f['apple_url'], $f['youtube_url'], $f['zdjecie'], $f['zdjecie_alt'], $f['opublikowany'], $f['edycja_id'], $id]);
+                $noweZdjecie = null;
                 if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
                 loguj('podcast', 'edycja', $id);
             } else {
                 $kolejnosc = (int) pmg_db()->query('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_odcinki')->fetchColumn();
                 $st = pmg_db()->prepare('INSERT INTO pmg_odcinki (numer, tytul, data, czas_min, opis, prowadzacy, gosc, gosc_bio, spotify_id, apple_url, youtube_url, zdjecie, zdjecie_alt, kolejnosc, opublikowany, edycja_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
                 $st->execute([$f['numer'], $f['tytul'], $f['data'], $f['czas_min'], $f['opis'], $f['prowadzacy'], $f['gosc'], $f['gosc_bio'], $f['spotify_id'], $f['apple_url'], $f['youtube_url'], $f['zdjecie'], $f['zdjecie_alt'], $kolejnosc, $f['opublikowany'], $f['edycja_id']]);
+                $noweZdjecie = null;
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('podcast', 'dodanie', $id);
             }
             $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano.' : 'Zapisano jako szkic (niewidoczny na stronie).';
             go('?m=podcast');
         } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
+            drop_image($noweZdjecie);
             $error = $e->getCode() === '23000' ? 'Odcinek o tym numerze już istnieje.' : 'Błąd zapisu.';
-            $edit = array_merge($old ?: [], $f, ['id' => $id]);
+            $edit = array_merge($old ?: [], $f, ['id' => $id, 'zdjecie' => $old['zdjecie'] ?? null]);
         } catch (RuntimeException $e) {
             $error = $e->getMessage();
             $edit = array_merge($old ?: [], $f, ['id' => $id]);
