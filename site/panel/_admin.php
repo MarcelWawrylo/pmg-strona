@@ -162,7 +162,7 @@ if ($sub === 'dziennik') {
     $pmgAkcjeDziennika = [
         'dodanie' => 'Dodanie', 'edycja' => 'Edycja', 'usuniecie' => 'Usunięcie',
         'zaproszenie' => 'Zaproszenie', 'blokada' => 'Blokada', 'odblokowanie' => 'Odblokowanie',
-        'reset' => 'Reset hasła', 'biezaca' => 'Ustawienie bieżącej edycji', 'pobranie' => 'Pobranie kopii', 'kolejnosc' => 'Zmiana kolejności', 'import' => 'Wczytanie treści ze strony',
+        'reset' => 'Reset hasła', 'biezaca' => 'Ustawienie bieżącej edycji', 'pobranie' => 'Pobranie kopii', 'kolejnosc' => 'Zmiana kolejności', 'import' => 'Wczytanie treści ze strony', 'przywrocenie' => 'Przywrócenie tekstu ze strony',
     ];
     ?>
     <div class="pmg-table-wrap">
@@ -193,7 +193,7 @@ if ($sub === 'dziennik') {
 if ($sub !== 'konta') { echo '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nieznany widok.</p></div>'; return; }
 
 $error = '';
-const MODULY_REDAKTORA = ['aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła'];
+const MODULY_REDAKTORA = ['aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła', 'tresci' => 'Treści stron'];
 
 // Ilu jest innych aktywnych administratorów z ustawionym hasłem (poza kontem $id) — chroni ostatniego admina.
 function inni_aktywni_admini($id)

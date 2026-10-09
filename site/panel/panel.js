@@ -209,7 +209,23 @@
     });
   }
 
+  // „Wstaw tekst ze strony” (Treści stron): kopiuje obecny tekst ze strony do pola, żeby go poprawić zamiast pisać od zera.
+  function wstawTekstZeStrony() {
+    document.querySelectorAll('[data-pmg-wstaw]').forEach(function (btn) {
+      var pole = document.getElementById(btn.getAttribute('data-pmg-wstaw'));
+      var zrodlo = document.getElementById(btn.getAttribute('data-pmg-wstaw-z'));
+      if (!pole || !zrodlo) return;
+      btn.hidden = false;
+      btn.addEventListener('click', function () {
+        pole.value = zrodlo.textContent;
+        pole.dispatchEvent(new Event('input', { bubbles: true }));
+        pole.focus();
+      });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    wstawTekstZeStrony();
     fokusNaBledzie();
     licznikZnakow();
     kopiujLink();

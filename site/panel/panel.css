@@ -562,3 +562,21 @@ body.pmg--auth { background: var(--pmg-bg); }
 .pmg-gal__foto { margin: 0; }
 .pmg-gal__akcje { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .pmg-gal__tytul { font: 600 17px/1.35 var(--pmg-font-head); margin: 0 0 4px; }
+
+/* ===================== 24. Treści stron: zakładki i pola ===================== */
+.pmg-tabs { margin: 0 0 16px; }
+.pmg-tabs__list { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.pmg-tabs__tab {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px;
+  font: 600 15px/1.2 var(--pmg-font-body); color: var(--pmg-text); text-decoration: none;
+  background: var(--pmg-surface); border: 1px solid var(--pmg-border-strong); border-radius: var(--pmg-r-pill);
+}
+@media (hover: hover) { .pmg-tabs__tab:hover { background: var(--pmg-surface-hover); border-color: var(--pmg-border-hover); } }
+.pmg-tabs__tab[aria-current="page"] { background: var(--pmg-primary); color: var(--pmg-on-primary); border-color: var(--pmg-primary); }
+.pmg-tabs__n { display: inline-block; min-width: 22px; padding: 1px 6px; font: 600 13px/1.4 var(--pmg-font-body); text-align: center; background: #E6EBFC; color: #1B36A8; border-radius: var(--pmg-r-pill); }
+.pmg-tabs__tab[aria-current="page"] .pmg-tabs__n { background: #FFF; color: #141414; }
+.pmg-tresc { padding: 4px 0 8px; }
+.pmg-tresc textarea { min-height: 88px; }
+.pmg-tresc__dom { white-space: pre-line; overflow-wrap: anywhere; margin-bottom: 8px; }
+.pmg-tresc__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 8px; }
+.pmg-tresc__meta .pmg-hint { margin: 0; }

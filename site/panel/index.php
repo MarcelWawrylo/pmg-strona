@@ -32,7 +32,7 @@ pmg_migrate();
 const KOLORY = ['pink' => 'Różowy', 'purple' => 'Fioletowy', 'blue' => 'Niebieski', 'violet' => 'Liliowy'];
 const ZDJECIA = ['aktualnosci' => [16 / 9, 1600], 'czlonkowie' => [1, 800], 'pmsession' => [4 / 3, 1600], 'podcast' => [16 / 9, 1600], 'case' => [16 / 9, 1600], 'case-logo' => [null, 800]];
 const MODULY = [
-    'aktualnosci' => 'aktualnosci', 'czlonkowie' => 'czlonkowie', 'pmsession' => 'pmsession', 'podcast' => 'podcast', 'case' => 'case',
+    'aktualnosci' => 'aktualnosci', 'czlonkowie' => 'czlonkowie', 'pmsession' => 'pmsession', 'podcast' => 'podcast', 'case' => 'case', 'tresci' => 'tresci',
     'konta' => 'admin', 'dziennik' => 'admin', 'ustawienia' => 'admin', 'kopia' => 'admin',
 ];
 
@@ -73,6 +73,7 @@ function pmg_ikona($nazwa)
         'start' => 'M3.5 9 10 3.5 16.5 9v7a1 1 0 0 1-1 1h-3.25v-5h-4.5v5H4.5a1 1 0 0 1-1-1Z',
         'aktualnosci' => 'M3.5 4.5h10v11a1.5 1.5 0 0 0 1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z M13.5 8h3v7.5A1.5 1.5 0 0 1 15 17 M6.5 7.5h4 M6.5 10.5h4 M6.5 13.5h2.5',
         'case' => 'M3.5 4.5h13v11h-13Z M3.5 8.5h13 M6.5 11.5h3 M6.5 13.5h6',
+        'tresci' => 'M3.5 5h13 M3.5 9h13 M3.5 13h6 M12.5 16l.5-2.5 4-4 2 2-4 4Z',
         'podcast' => 'M10 12.5a2.5 2.5 0 0 0 2.5-2.5V5.5a2.5 2.5 0 0 0-5 0V10a2.5 2.5 0 0 0 2.5 2.5Z M5.5 9.5a4.5 4.5 0 0 0 9 0 M10 14v3 M7.5 17h5',
         'czlonkowie' => 'M7.5 9.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M2.5 16.5a5 5 0 0 1 10 0 M13 3.75a2.75 2.75 0 0 1 0 5.5 M14.75 11.75a5 5 0 0 1 2.75 4.75',
         'pmsession' => 'M3.5 5.5A1.5 1.5 0 0 1 5 4h10a1.5 1.5 0 0 1 1.5 1.5v10A1.5 1.5 0 0 1 15 17H5a1.5 1.5 0 0 1-1.5-1.5Z M3.5 8.5h13 M7 2.5v3 M13 2.5v3 M7 12h2.5',
@@ -98,7 +99,7 @@ function pmg_ikona($nazwa)
 // Nawigacja modułów (echo; wywoływana dwa razy — sidebar i menu mobilne — jedna kopia jest zawsze ukryta CSS-em).
 function pmg_nawigacja($m, $etykiety)
 {
-    $grupy = ['Treści' => ['aktualnosci', 'czlonkowie', 'pmsession', 'podcast', 'case'], 'Administracja' => ['konta', 'dziennik', 'ustawienia', 'kopia']];
+    $grupy = ['Treści' => ['aktualnosci', 'czlonkowie', 'pmsession', 'podcast', 'case', 'tresci'], 'Administracja' => ['konta', 'dziennik', 'ustawienia', 'kopia']];
     echo '<ul class="pmg-nav__list"><li><a class="pmg-nav__item" href="index.php"' . ($m === '' ? ' aria-current="page"' : '') . '>' . pmg_ikona('start') . '<span>Start</span></a></li></ul>';
     foreach ($grupy as $nazwa => $klucze) {
         $widoczne = array_filter($klucze, function ($mk) { return wolno(MODULY[$mk]); });
@@ -224,7 +225,7 @@ function zdjecie($modul, $old)
 
 // ---------- Etykiety i opisy modułów (nad routerem — moduły ich potrzebują) ----------
 $etykietyModulow = [
-    'aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła',
+    'aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła', 'tresci' => 'Treści stron',
     'konta' => 'Konta', 'dziennik' => 'Dziennik zmian', 'ustawienia' => 'Ustawienia strony', 'kopia' => 'Kopia bazy danych',
 ];
 $opisyModulow = [
@@ -233,6 +234,7 @@ $opisyModulow = [
     'pmsession' => 'Edycje konferencji, prelegenci, harmonogram i liczby na stronie PM Session.',
     'podcast' => 'Odcinki na stronie Podcast: tytuł, opis, goście, linki do Spotify i Apple Podcasts.',
     'case' => 'Edycje Case Koła: karty w hubie i treść podstron (opis partnera, wyzwanie, rozwiązanie, rezultat, galeria).',
+    'tresci' => 'Nagłówki, opisy i napisy na przyciskach stron: Strona główna, O nas, PM Session, Dołącz, Kontakt i inne, w zakładkach.',
     'konta' => 'Kto ma dostęp do panelu i do których modułów.',
     'dziennik' => 'Ostatnie 200 zapisanych zmian.',
     'ustawienia' => 'Linki do mediów społecznościowych, e-mail kontaktowy i rekrutacja na stronie. Zmiany widać w ciągu 5 minut.',
@@ -305,7 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, haslo, rola, moduly, aktywny)
                      SELECT ?,?,?,?,?,1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM pmg_uzytkownicy)'
                 );
-                $st->execute([$imie, $email, $hash, 'admin', 'aktualnosci,czlonkowie,pmsession,podcast,case']);
+                $st->execute([$imie, $email, $hash, 'admin', 'aktualnosci,czlonkowie,pmsession,podcast,case,tresci']);
                 if ($st->rowCount() === 0) {
                     http_response_code(403);
                     exit('To konto już istnieje — zaloguj się.');
@@ -454,6 +456,8 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
       $pmgLiczby[$mk] = pmg_odmiana($a, 'odcinek', 'odcinki', 'odcinków') . ($b ? ' · ' . pmg_odmiana($b, 'szkic', 'szkice', 'szkiców') : ''); }
   if ($mk === 'case') { $a = $db->query('SELECT COUNT(*) FROM pmg_case_edycje')->fetchColumn(); $b = (int) $db->query('SELECT COUNT(*) FROM pmg_case_edycje WHERE widoczna = 0')->fetchColumn();
       $pmgLiczby[$mk] = pmg_odmiana($a, 'edycja', 'edycje', 'edycji') . ($b ? ' · ' . $b . ' ukryta' : ''); }
+  if ($mk === 'tresci') { $a = (int) $db->query("SELECT COUNT(*) FROM pmg_tresci WHERE wartosc <> ''")->fetchColumn();
+      $pmgLiczby[$mk] = $a ? pmg_odmiana($a, 'zmieniony tekst', 'zmienione teksty', 'zmienionych tekstów') : 'teksty ze strony bez zmian'; }
   if ($mk === 'konta') { $a = $db->query('SELECT COUNT(*) FROM pmg_uzytkownicy')->fetchColumn(); $b = (int) $db->query('SELECT COUNT(*) FROM pmg_uzytkownicy WHERE haslo IS NULL')->fetchColumn();
       $pmgLiczby[$mk] = pmg_odmiana($a, 'konto', 'konta', 'kont') . ($b ? ' · ' . $b . ' bez hasła' : ''); }
   if ($mk === 'dziennik') { $pmgLiczby[$mk] = pmg_odmiana($db->query('SELECT COUNT(*) FROM pmg_dziennik')->fetchColumn(), 'zmiana', 'zmiany', 'zmian') . ' w dzienniku'; }
