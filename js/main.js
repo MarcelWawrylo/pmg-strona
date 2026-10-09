@@ -608,16 +608,16 @@
       if (closeBtn) closeBtn.focus();
     };
   }
-  window.PMG = { picture: pictureHtml, wireDialog: wireDialog, $: $, $$: $$, reduceMotion: reduceMotion, root: siteRoot, loadNews: loadNews, esc: esc, fmtDate: fmtDate, api: api };
+  window.PMG = { picture: pictureHtml, wireDialog: wireDialog, $: $, $$: $$, reduceMotion: reduceMotion, root: siteRoot, loadNews: loadNews, esc: esc, fmtDate: fmtDate, api: api, initLightbox: initLightbox };
 
   /* ---------- Lightbox galerii ---------- */
-  function initLightbox() {
+  function initLightbox(scope) { // scope: fragment wstawiony później (np. galeria z API); okno dialogowe podłączamy tylko raz
     var lb = $('[data-lightbox]');
     if (!lb) return;
     var img = $('[data-lightbox-img]', lb);
     var cap = $('[data-lightbox-caption]', lb);
-    var open = wireDialog(lb, function () { img.removeAttribute('src'); });
-    $$('[data-lightbox-trigger]').forEach(function (btn) {
+    var open = lb.__open || (lb.__open = wireDialog(lb, function () { img.removeAttribute('src'); }));
+    $$('[data-lightbox-trigger]', scope).forEach(function (btn) {
       btn.addEventListener('click', function () {
         img.src = btn.getAttribute('data-full');
         img.alt = btn.getAttribute('data-caption') || '';
@@ -1239,4 +1239,170 @@
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+/* ---------- Case Koła: hub, podstrona edycji i menu z panelu ---------- */
+/* Hub (case-kola.html) i menu pokazują edycje z api/case-kola.php, a case-kola-edycja.html?nr=N składa podstronę jednej edycji.
+   Bez backendu (GitHub Pages) albo gdy w panelu nie ma jeszcze edycji zostaje statyczny HTML. Wszystkie pola przechodzą przez esc(). */
+(function () {
+  'use strict';
+  var PMG = window.PMG;
+  if (!PMG) return;
+  var $ = PMG.$, $$ = PMG.$$, esc = PMG.esc;
+  var hub = $('[data-case-hub]');
+  var page = $('[data-case-edycja]');
+  var subnav = $('#subnav-case');
+  if (!hub && !page && !subnav) return;
+
+  // Podstrona edycji czeka z animacjami wjazdu sekcji (v2.js) na treść z API.
+  var ready = function () {};
+  if (page) PMG.caseReady = new Promise(function (resolve) { ready = resolve; });
+
+  // dotychczasowe pliki edycji 1–4: gdy backend nie odpowiada, link do wspólnej podstrony prowadzi do nich
+  var LEGACY = { 1: 'case-kola-debatelab.html', 2: 'case-kola-pwr-racing-team.html', 3: 'case-kola-qubit.html', 4: 'case-kola-solvro.html' };
+  var HERO_SIZES = '(max-width: 960px) calc(100vw - 64px), (max-width: 1272px) calc(100vw - 112px), 1160px';
+  var GALLERY_SIZES = '(max-width: 640px) calc(100vw - 40px), (max-width: 1272px) calc(50vw - 66px), 570px';
+  var abs = function (p) { return PMG.root + p; };
+  var nrParam = (new URLSearchParams(location.search).get('nr') || '');
+
+  /* ----- karty w hubie ----- */
+  var densities = function (set) { // 'a 192w, b 384w' -> 'a 1x, b 2x' (logo na karcie ma stałą wysokość, nie szerokość)
+    var a = set.split(', ').map(function (e) { return e.split(' ')[0]; });
+    return a.slice(0, 2).map(function (p, i) { return abs(p) + ' ' + (i + 1) + 'x'; }).join(', ');
+  };
+  var cardLogo = function (e, plate) {
+    var cls = plate ? ' class="case-card__media__logo-plate"' : '';
+    var o = e.logo_obraz;
+    if (!o) return '<img' + cls + ' src="' + esc(abs(e.logo)) + '" alt="" loading="lazy" decoding="async">';
+    var dim = o.w && o.h ? ' width="' + o.w + '" height="' + o.h + '"' : '';
+    return '<picture>' + (o.webp ? '<source type="image/webp" srcset="' + esc(densities(o.webp)) + '">' : '') +
+      '<img' + cls + ' src="' + esc(abs(o.src)) + '" srcset="' + esc(densities(o.srcset)) + '"' + dim + ' alt="" loading="lazy" decoding="async"></picture>';
+  };
+  var cardHtml = function (e) {
+    var tall = e.logo_styl === 'jasne-wysokie', light = tall || e.logo_styl === 'jasne';
+    var cls = 'case-card__media case-card__media--logo' + (tall ? ' case-card__media--logo-tall' : '') + (light ? ' case-card__media--logo-light' : '');
+    return '<li class="is-in" data-reveal><a class="case-card card card--hover" href="' + esc(e.url) + '">' +
+      '<div class="' + cls + '">' + (e.logo ? cardLogo(e, light) : '') + '</div>' +
+      '<div class="case-card__body"><h2 class="case-card__title">' + esc(e.tytul) + '</h2><p class="case-card__edition">Edycja ' + Number(e.numer) + '</p>' +
+      '<span class="case-card__more">Dowiedz się więcej o&nbsp;tej edycji <span class="case-card__more-arrow" aria-hidden="true">→</span></span></div></a></li>';
+  };
+
+  /* ----- menu: lista edycji w podmenu Case Koła ----- */
+  var rebuildMenu = function (cards) {
+    var first = subnav && subnav.firstElementChild; // „Czym jest Case Koła?” zostaje
+    if (!first) return;
+    var cur = $('a[aria-current="page"]', subnav);
+    var curText = cur && cur.getAttribute('href') !== 'case-kola.html' ? cur.textContent.trim().toLowerCase() : '';
+    var file = location.pathname.split('/').pop();
+    while (first.nextElementSibling) subnav.removeChild(first.nextElementSibling);
+    cards.forEach(function (c) {
+      var li = document.createElement('li'), a = document.createElement('a');
+      a.className = 'site-nav__sublink';
+      a.href = c.url;
+      a.textContent = c.nazwa;
+      if ((page && nrParam === String(c.numer)) || (curText && c.nazwa.toLowerCase() === curText) || (c.adres_strony && c.adres_strony === file)) a.setAttribute('aria-current', 'page');
+      li.appendChild(a);
+      subnav.appendChild(li);
+    });
+  };
+
+  /* ----- podstrona edycji ----- */
+  var paras = function (text) {
+    return String(text == null ? '' : text).split(/\n\s*\n/).map(function (b) { return b.trim(); }).filter(Boolean).map(function (b) {
+      return '<p>' + esc(b).replace(/\n/g, '<br>') + '</p>';
+    }).join('');
+  };
+  var lastPath = function (set) { var a = set.split(', '); return a[a.length - 1].split(' ')[0]; };
+  var galleryHtml = function (g) {
+    var o = g.obraz;
+    var full = g.pelne || (o ? lastPath(o.webp || o.srcset) : g.zdjecie);
+    var cap = esc(g.podpis);
+    return '<figure class="gallery__item"><button class="gallery__button" type="button" data-lightbox-trigger data-full="' + esc(abs(full)) + '" data-caption="' + cap + '" aria-label="Powiększ zdjęcie: ' + cap + '">' +
+      PMG.picture(o, g.zdjecie, { sizes: GALLERY_SIZES, fw: 1200, fh: 675, alt: g.podpis, lazy: true }) + '</button><figcaption class="gallery__caption">' + cap + '</figcaption></figure>';
+  };
+  var sectionsHtml = function (e) {
+    var out = [];
+    var bg = function () { return out.length % 2 ? 'bg-warm' : 'bg-surface'; }; // tła na przemian, także gdy sekcji brakuje
+    var prose = function (id, title, text, wrapped) {
+      if (!String(text || '').trim()) return;
+      var inner = '<h2 id="' + id + '">' + title + '</h2>' + paras(text);
+      out.push('<section class="case-section section ' + bg() + '" aria-labelledby="' + id + '">' +
+        (wrapped ? '<div class="measure" data-reveal><div class="result prose">' + inner + '</div></div>' : '<div class="measure prose" data-reveal>' + inner + '</div>') + '</section>');
+    };
+    prose('h-partner', 'O partnerze', e.o_partnerze);
+    prose('h-wyzwanie', 'Wyzwanie', e.wyzwanie);
+    prose('h-co', 'Co zrobiliśmy', e.co_zrobilismy);
+    prose('h-rezultat', 'Rezultat', e.rezultat, true);
+    if (e.w_toku) out.push('<section class="case-section case-pending bg-warm"><div class="measure" data-reveal><p class="case-pending__text">' + esc(e.w_toku) + '</p></div></section>');
+    if (e.galeria && e.galeria.length) {
+      out.push('<section class="case-section section section--gallery ' + bg() + '" aria-labelledby="h-galeria"><div class="container">' +
+        '<h2 id="h-galeria" class="case-section__title--gallery" data-reveal>Galeria</h2>' +
+        '<div class="gallery' + (e.galeria.length === 1 ? ' gallery--single' : '') + '">' + e.galeria.map(galleryHtml).join('') + '</div></div></section>');
+    }
+    return out.join('');
+  };
+  var heroHtml = function (e) {
+    if (e.hero_tryb === 'zdjecie') {
+      return '<section class="case-hero"><div class="container" data-reveal><div class="media ratio-16x9">' +
+        PMG.picture(e.hero_obraz, e.hero, { sizes: HERO_SIZES, fw: 1920, fh: 1080, alt: e.hero_alt }) + '</div></div></section>';
+    }
+    if (e.hero_tryb === 'logo' && e.logo) {
+      return '<section class="case-hero"><div class="container" data-reveal><div class="media ratio-16x9 case-hero__logo-box">' +
+        PMG.picture(e.logo_obraz, e.logo, { sizes: '(max-width: 960px) 52vw, 384px', alt: 'Logo ' + e.naglowek }) + '</div></div></section>';
+    }
+    return '';
+  };
+  var reveal = function (root) { // elementy [data-reveal] wstawione po starcie main.js (jego IntersectionObserver ich nie widzi)
+    var items = $$('[data-reveal]', root);
+    if (!('IntersectionObserver' in window) || PMG.reduceMotion.matches) {
+      items.forEach(function (el) { el.classList.add('is-in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); } });
+    }, { threshold: 0.1 });
+    items.forEach(function (el) { io.observe(el); });
+  };
+  var status = function (html) {
+    var box = $('[data-ce-status]', page);
+    if (box) box.innerHTML = html;
+  };
+  var renderEdition = function (e) {
+    var box = $('[data-ce-status]', page);
+    var crumb = $('[data-ce-crumb]', page);
+    if (crumb) crumb.textContent = e.nazwa;
+    document.title = 'Case Koła - ' + e.nazwa + ' | Project Management Group';
+    var meta = $('meta[name="description"]');
+    if (meta && e.opis_meta) meta.setAttribute('content', e.opis_meta);
+    var holder = document.createElement('div');
+    holder.innerHTML = '<section class="case-banner"><div class="container rise"><div class="case-banner__head"><h1 class="h1">' + esc(e.naglowek) + '</h1></div></div></section>' +
+      heroHtml(e) + sectionsHtml(e);
+    var frag = document.createDocumentFragment();
+    while (holder.firstChild) frag.appendChild(holder.firstChild);
+    if (box) box.parentNode.removeChild(box);
+    page.appendChild(frag);
+    reveal(page);
+    PMG.initLightbox(page);
+  };
+  var notFound = function (offline) {
+    status('<p class="lead">' + (offline ? 'Nie udało się wczytać tej edycji. Spróbuj ponownie za chwilę.' : 'Nie ma takiej edycji Case Koła.') +
+      ' <a href="case-kola.html">Zobacz wszystkie edycje</a>.</p>');
+  };
+
+  if (page) {
+    if (!/^[0-9]{1,3}$/.test(nrParam)) { notFound(false); ready(); }
+    else PMG.api('case-kola.php?nr=' + nrParam).then(function (d) {
+      if (d && d.edycja) renderEdition(d.edycja);
+      else if (d === null && LEGACY[Number(nrParam)]) { location.replace(LEGACY[Number(nrParam)]); return; }
+      else notFound(d === null);
+      ready();
+    });
+  }
+  if (hub || subnav) {
+    PMG.api('case-kola.php').then(function (d) {
+      if (!d || !d.edycje || !(d.wszystkich > 0)) return;
+      if (hub) hub.innerHTML = d.edycje.map(cardHtml).join('');
+      rebuildMenu(d.edycje);
+    });
+  }
 })();
