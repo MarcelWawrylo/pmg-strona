@@ -228,6 +228,54 @@
     });
   }
 
+  /* ---------- Teksty stron z panelu („Treści stron”): elementy z data-tresc="strona.klucz" ---------- */
+  /* Fallback: brak backendu / brak wartości klucza / pusta wartość = element zostaje z tekstem z HTML.
+     Wartość to zwykły tekst wstawiany jako węzły tekstowe (nigdy HTML): nowa linia = <br>; w <p> pusta linia = kolejny <p>
+     (kopia elementu z tą samą klasą). Podmieniamy tylko początkowy tekst elementu (i <br>), do pierwszego elementu
+     potomnego — ozdobne <span aria-hidden> (strzałka) zostają. window.PMG.tresciReady kończy się po podmianie
+     (v2.js czeka na nią z animacją „słowo po słowie”, która czyta tekst akapitu). */
+  var fillLines = function (parent, text, before) {
+    text.split('\n').forEach(function (line, i) {
+      if (i) parent.insertBefore(document.createElement('br'), before);
+      parent.insertBefore(document.createTextNode(line.trim()), before);
+    });
+  };
+  var applyTresc = function (el, v) {
+    if (typeof v !== 'string') return;
+    var blocks = v.replace(/\r\n?/g, '\n').split(/\n[ \t]*\n/).map(function (b) { return b.trim(); }).filter(Boolean);
+    if (!blocks.length) return;
+    var isP = el.tagName === 'P';
+    var node = el.firstChild, lastText = '';
+    while (node && (node.nodeType === 3 || (node.nodeType === 1 && node.tagName === 'BR'))) {
+      var next = node.nextSibling;
+      if (node.nodeType === 3) lastText = node.nodeValue;
+      el.removeChild(node);
+      node = next;
+    }
+    fillLines(el, isP ? blocks[0] : blocks.join('\n'), node);
+    if (node && /\s$/.test(lastText)) el.insertBefore(document.createTextNode(' '), node);
+    if (!isP) return;
+    var prev = el;
+    blocks.slice(1).forEach(function (b) {
+      var extra = el.cloneNode(false);
+      ['data-tresc', 'id', 'data-reveal'].forEach(function (a) { extra.removeAttribute(a); });
+      fillLines(extra, b, null);
+      prev.parentNode.insertBefore(extra, prev.nextSibling);
+      prev = extra;
+    });
+  };
+  function initTresci() {
+    var els = $$('[data-tresc]');
+    var done = function () {};
+    window.PMG.tresciReady = new Promise(function (resolve) { done = resolve; });
+    if (!els.length) { done(); return; }
+    api('tresci.php').then(function (data) {
+      var map = data && data.tresci;
+      if (map) els.forEach(function (el) { applyTresc(el, map[el.getAttribute('data-tresc')]); });
+      done();
+    });
+  }
+
   /* ---------- Struktura koła (O nas): zarząd + sekcje z panelu ---------- */
   /* Fallback: brak backendu / błąd / pusta lista sekcji i pusty zarząd = strona zostaje statyczna.
      Zarząd i sekcje aktualizowane niezależnie — jeśli jedna z list jest pusta, ten fragment zostaje bez zmian.
@@ -985,6 +1033,7 @@
 
   document.documentElement.classList.add('js');
   var init = function () {
+    initTresci();
     initNewsTiles();
     initHomeNews();
     initSettings();
