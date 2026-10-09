@@ -327,7 +327,8 @@
           lenis.scrollTo(el, { offset: headerOffset(), onComplete: onComplete });
         };
       }
-      initPmsWords();
+      // akapity „Co to PM Session?” mogą mieć tekst z panelu (main.js, data-tresc): dzielimy na słowa dopiero po jego podmianie
+      if (window.PMG && window.PMG.tresciReady) window.PMG.tresciReady.then(function () { initPmsWords(); window.ScrollTrigger.refresh(); }); else initPmsWords();
       initJoinPath();
       // podstrona edycji Case Koła składa sekcje z API (main.js): animacje wjazdu startują dopiero po ich wstawieniu
       if (window.PMG && window.PMG.caseReady) window.PMG.caseReady.then(function () { initCaseReveal(); window.ScrollTrigger.refresh(); }); else initCaseReveal();
