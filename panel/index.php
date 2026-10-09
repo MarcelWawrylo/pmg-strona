@@ -5,6 +5,19 @@ define('PMG_PANEL', 1);
 
 $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
 ini_set('session.gc_maxlifetime', 7200);
+ini_set('session.use_strict_mode', '1');
+// Sesje w katalogu z configu ('tmp_dir', poza webrootem, 0700), a nie we współdzielonym /tmp. Gdy 'tmp_dir' jest
+// ustawiony, PHP sam nie czyści takiego katalogu (Debian robi to cronem tylko dla domyślnego), więc włączamy gc.
+$sesjeDir = pmg_tmp_dir();
+if ($sesjeDir !== sys_get_temp_dir()) {
+    $sesjeDir .= '/sesje';
+    if (!@is_dir($sesjeDir)) @mkdir($sesjeDir, 0700, true);
+    if (@is_dir($sesjeDir) && @is_writable($sesjeDir)) {
+        ini_set('session.save_path', $sesjeDir);
+        ini_set('session.gc_probability', '1');
+        ini_set('session.gc_divisor', '100');
+    }
+}
 session_set_cookie_params(['lifetime' => 0, 'path' => dirname($_SERVER['SCRIPT_NAME']), 'secure' => $https, 'httponly' => true, 'samesite' => 'Strict']);
 session_name('pmgpanel');
 session_start();
@@ -16,12 +29,10 @@ header('Referrer-Policy: no-referrer');
 
 pmg_migrate();
 
-// Hasło stałej długości do porównań przy logowaniu na nieistniejące konto (stały czas odpowiedzi).
-const DUMMY_HASH = '$2y$10$orSlF6sUaQo89zN3NskTuOtXFvhAKDwJFtiZnQzJjJnZMJhWciWfy';
 const KOLORY = ['pink' => 'Różowy', 'purple' => 'Fioletowy', 'blue' => 'Niebieski', 'violet' => 'Liliowy'];
-const ZDJECIA = ['aktualnosci' => [16 / 9, 1600], 'czlonkowie' => [1, 800], 'pmsession' => [1, 800]];
+const ZDJECIA = ['aktualnosci' => [16 / 9, 1600], 'czlonkowie' => [1, 800], 'pmsession' => [1, 800], 'podcast' => [16 / 9, 1600]];
 const MODULY = [
-    'aktualnosci' => 'aktualnosci', 'czlonkowie' => 'czlonkowie', 'pmsession' => 'pmsession',
+    'aktualnosci' => 'aktualnosci', 'czlonkowie' => 'czlonkowie', 'pmsession' => 'pmsession', 'podcast' => 'podcast',
     'konta' => 'admin', 'dziennik' => 'admin', 'ustawienia' => 'admin', 'kopia' => 'admin',
 ];
 
@@ -61,6 +72,7 @@ function pmg_ikona($nazwa)
     static $d = [
         'start' => 'M3.5 9 10 3.5 16.5 9v7a1 1 0 0 1-1 1h-3.25v-5h-4.5v5H4.5a1 1 0 0 1-1-1Z',
         'aktualnosci' => 'M3.5 4.5h10v11a1.5 1.5 0 0 0 1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z M13.5 8h3v7.5A1.5 1.5 0 0 1 15 17 M6.5 7.5h4 M6.5 10.5h4 M6.5 13.5h2.5',
+        'podcast' => 'M10 12.5a2.5 2.5 0 0 0 2.5-2.5V5.5a2.5 2.5 0 0 0-5 0V10a2.5 2.5 0 0 0 2.5 2.5Z M5.5 9.5a4.5 4.5 0 0 0 9 0 M10 14v3 M7.5 17h5',
         'czlonkowie' => 'M7.5 9.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M2.5 16.5a5 5 0 0 1 10 0 M13 3.75a2.75 2.75 0 0 1 0 5.5 M14.75 11.75a5 5 0 0 1 2.75 4.75',
         'pmsession' => 'M3.5 5.5A1.5 1.5 0 0 1 5 4h10a1.5 1.5 0 0 1 1.5 1.5v10A1.5 1.5 0 0 1 15 17H5a1.5 1.5 0 0 1-1.5-1.5Z M3.5 8.5h13 M7 2.5v3 M13 2.5v3 M7 12h2.5',
         'konta' => 'M2.75 5.25a1.5 1.5 0 0 1 1.5-1.5h11.5a1.5 1.5 0 0 1 1.5 1.5v9.5a1.5 1.5 0 0 1-1.5 1.5H4.25a1.5 1.5 0 0 1-1.5-1.5Z M7.5 10a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z M4.75 13.5a2.9 2.9 0 0 1 5.5 0 M12.25 8h3 M12.25 11h3',
@@ -85,7 +97,7 @@ function pmg_ikona($nazwa)
 // Nawigacja modułów (echo; wywoływana dwa razy — sidebar i menu mobilne — jedna kopia jest zawsze ukryta CSS-em).
 function pmg_nawigacja($m, $etykiety)
 {
-    $grupy = ['Treści' => ['aktualnosci', 'czlonkowie', 'pmsession'], 'Administracja' => ['konta', 'dziennik', 'ustawienia', 'kopia']];
+    $grupy = ['Treści' => ['aktualnosci', 'czlonkowie', 'pmsession', 'podcast'], 'Administracja' => ['konta', 'dziennik', 'ustawienia', 'kopia']];
     echo '<ul class="pmg-nav__list"><li><a class="pmg-nav__item" href="index.php"' . ($m === '' ? ' aria-current="page"' : '') . '>' . pmg_ikona('start') . '<span>Start</span></a></li></ul>';
     foreach ($grupy as $nazwa => $klucze) {
         $widoczne = array_filter($klucze, function ($mk) { return wolno(MODULY[$mk]); });
@@ -110,11 +122,39 @@ function loguj($modul, $akcja, $id = null)
         ->execute([$me['id'], $modul, $akcja, $id]);
 }
 
-// Czy ekran "pierwsze konto" może w ogóle przyjąć zgłoszenie: albo instalacja ma z przeszłości
-// wspólne hasło panelu (panel_hash), albo w config.php jest ustawione jednorazowe setup_haslo (min. 12 znaków).
+// Czy ekran "pierwsze konto" może w ogóle przyjąć zgłoszenie: w config jest jednorazowe setup_haslo (min. 12 znaków).
 function pierwsze_ok($cfg)
 {
-    return ($cfg['panel_hash'] ?? '') !== '' || mb_strlen((string) ($cfg['setup_haslo'] ?? '')) >= 12;
+    return mb_strlen((string) ($cfg['setup_haslo'] ?? '')) >= 12;
+}
+
+// Prawdziwa data w formacie RRRR-MM-DD (odrzuca np. 2026-02-31, które przeszłoby sam wzorzec).
+function data_ok($v)
+{
+    $d = DateTime::createFromFormat('!Y-m-d', (string) $v);
+    return $d !== false && $d->format('Y-m-d') === $v;
+}
+
+// Przesuwa rekord o jedną pozycję w górę ($kierunek = 'gora') albo w dół i przenumerowuje całą listę 1..n
+// (kolumna kolejnosc). $tabela i $order pochodzą z kodu modułu (nigdy z żądania); $kolGrupy/$grupa zawęża listę
+// (np. prelegenci jednej edycji). Zwraca false, gdy rekordu nie ma na liście albo jest już na brzegu.
+function przesun($tabela, $order, $id, $kierunek, $kolGrupy = null, $grupa = null)
+{
+    $pdo = pmg_db();
+    $sql = 'SELECT id FROM ' . $tabela . ($kolGrupy ? ' WHERE ' . $kolGrupy . ' = ?' : '') . ' ORDER BY ' . $order;
+    $st = $pdo->prepare($sql);
+    $st->execute($kolGrupy ? [$grupa] : []);
+    $ids = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+    $poz = array_search((int) $id, $ids, true);
+    if ($poz === false) return false;
+    $cel = $kierunek === 'gora' ? $poz - 1 : $poz + 1;
+    if ($cel < 0 || $cel >= count($ids)) return false;
+    $tmp = $ids[$poz]; $ids[$poz] = $ids[$cel]; $ids[$cel] = $tmp;
+    $pdo->beginTransaction();
+    $upd = $pdo->prepare('UPDATE ' . $tabela . ' SET kolejnosc = ? WHERE id = ?');
+    foreach ($ids as $i => $rid) $upd->execute([$i + 1, $rid]);
+    $pdo->commit();
+    return true;
 }
 
 // Puste pole albo adres zaczynający się od https:// i poprawny wg FILTER_VALIDATE_URL.
@@ -133,7 +173,7 @@ function save_image($file, $modul)
     $types = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
     if (!$info || !isset($types[$info[2]])) throw new RuntimeException('Dozwolone formaty: JPG, PNG, WebP.');
     list($w, $hgt) = $info;
-    if ($w * $hgt > 25000000) throw new RuntimeException('Zdjęcie ma za dużą rozdzielczość (maks. ok. 25 megapikseli) — zmniejsz je przed wgraniem.');
+    if ($w * $hgt > 12000000) throw new RuntimeException('Zdjęcie ma za dużą rozdzielczość (maks. ok. 12 megapikseli) — zmniejsz je przed wgraniem.');
     if (abs($w / $hgt - $proporcja) > 0.03) {
         $opis = abs($proporcja - 1) < 0.001 ? '1:1 (kwadrat)' : '16:9';
         throw new RuntimeException('Zdjęcie musi mieć proporcje ' . $opis . ' (wgrane: ' . $w . '×' . $hgt . ' px).');
@@ -142,25 +182,26 @@ function save_image($file, $modul)
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     $name = date('Ymd') . '-' . bin2hex(random_bytes(6));
 
-    // Z biblioteką GD: zmniejsz do maxSzer px i zapisz jako JPG (lżejsza strona). Bez GD: limit 1,5 MB.
+    // Zdjęcie zawsze przechodzi przez GD: zmniejszamy do maxSzer px i zapisujemy jako nowy JPG (bez EXIF, GPS i
+    // ewentualnego kodu doklejonego do pliku). Bez GD nie zapisujemy oryginału — odmowa.
     $open = ['jpg' => 'imagecreatefromjpeg', 'png' => 'imagecreatefrompng', 'webp' => 'imagecreatefromwebp'][$types[$info[2]]];
-    if (function_exists($open) && function_exists('imagejpeg')) {
-        $src = $open($file['tmp_name']);
-        $nw = min($maxSzer, $w);
-        $dst = imagecreatetruecolor($nw, (int) round($nw * $hgt / $w));
-        imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
-        imagecopyresampled($dst, $src, 0, 0, 0, 0, imagesx($dst), imagesy($dst), $w, $hgt);
-        imagejpeg($dst, $dir . $name . '.jpg', 82);
-        return 'uploads/' . $modul . '/' . $name . '.jpg';
-    }
-    if ($file['size'] > 1536 * 1024) throw new RuntimeException('Serwer nie może zmniejszyć zdjęcia — wgraj plik do 1,5 MB.');
-    move_uploaded_file($file['tmp_name'], $dir . $name . '.' . $types[$info[2]]);
-    return 'uploads/' . $modul . '/' . $name . '.' . $types[$info[2]];
+    if (!function_exists($open) || !function_exists('imagejpeg')) throw new RuntimeException('Serwer nie obsługuje przetwarzania zdjęć (brak biblioteki GD) — zgłoś to administratorowi strony.');
+    $src = @$open($file['tmp_name']);
+    if ($src === false) throw new RuntimeException('Nie udało się odczytać zdjęcia — plik jest uszkodzony. Spróbuj zapisać go ponownie (np. jako JPG).');
+    $nw = min($maxSzer, $w);
+    $dst = imagecreatetruecolor($nw, (int) round($nw * $hgt / $w));
+    imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
+    imagecopyresampled($dst, $src, 0, 0, 0, 0, imagesx($dst), imagesy($dst), $w, $hgt);
+    $zapisano = imagejpeg($dst, $dir . $name . '.jpg', 82);
+    imagedestroy($src);
+    imagedestroy($dst);
+    if (!$zapisano) throw new RuntimeException('Nie udało się zapisać zdjęcia na serwerze (brak miejsca albo uprawnień do katalogu uploads).');
+    return 'uploads/' . $modul . '/' . $name . '.jpg';
 }
 
 function drop_image($path)
 {
-    if ($path && preg_match('~^uploads/(aktualnosci|czlonkowie|pmsession)/[0-9a-f-]+\.(jpg|png|webp)$~', $path)) @unlink(__DIR__ . '/../' . $path);
+    if ($path && preg_match('~^uploads/(aktualnosci|czlonkowie|pmsession|podcast)/[0-9a-f-]+\.(jpg|png|webp)$~', $path)) @unlink(__DIR__ . '/../' . $path);
 }
 
 // Sprawdza opis zdjęcia (wymagany przy nowym pliku i przy zachowaniu istniejącego) i wgrywa nowy plik, jeśli podano.
@@ -175,13 +216,14 @@ function zdjecie($modul, $old)
 
 // ---------- Etykiety i opisy modułów (nad routerem — moduły ich potrzebują) ----------
 $etykietyModulow = [
-    'aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session',
+    'aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast',
     'konta' => 'Konta', 'dziennik' => 'Dziennik zmian', 'ustawienia' => 'Ustawienia strony', 'kopia' => 'Kopia bazy danych',
 ];
 $opisyModulow = [
     'aktualnosci' => 'Wpisy na stronie Aktualności i w kafelkach na stronie głównej.',
     'czlonkowie' => 'Zarząd i sekcje koła pokazywane na stronie O nas.',
     'pmsession' => 'Edycje konferencji, prelegenci, harmonogram i liczby na stronie PM Session.',
+    'podcast' => 'Odcinki na stronie Podcast: tytuł, opis, goście, linki do Spotify i Apple Podcasts.',
     'konta' => 'Kto ma dostęp do panelu i do których modułów.',
     'dziennik' => 'Ostatnie 200 zapisanych zmian.',
     'ustawienia' => 'Linki do mediów społecznościowych, e-mail kontaktowy i rekrutacja na stronie. Zmiany widać w ciągu 5 minut.',
@@ -232,14 +274,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $cfg = pmg_config();
         if (!pierwsze_ok($cfg)) {
             http_response_code(403);
-            exit("Aby założyć pierwsze konto, wpisz w api/config.php hasło instalacyjne 'setup_haslo' (min. 12 znaków) — patrz README.");
+            exit("Aby założyć pierwsze konto, wpisz w pliku konfiguracji (pmg-config.php) hasło instalacyjne 'setup_haslo' (min. 12 znaków) — patrz README.");
         }
-        $panelHash = (string) ($cfg['panel_hash'] ?? '');
         if (!pmg_rate_ok('login', 20, 900)) {
             $error = 'Za dużo prób. Spróbuj za 15 minut.';
-        } elseif ($panelHash !== '' && !password_verify((string) ($_POST['stare_haslo'] ?? ''), $panelHash)) {
-            $error = 'Nieprawidłowe dotychczasowe hasło panelu.';
-        } elseif ($panelHash === '' && !hash_equals((string) $cfg['setup_haslo'], (string) ($_POST['setup_haslo'] ?? ''))) {
+        } elseif (!hash_equals((string) $cfg['setup_haslo'], (string) ($_POST['setup_haslo'] ?? ''))) {
             $error = 'Nieprawidłowe hasło instalacyjne.';
         } else {
             $imie = mb_substr(trim((string) ($_POST['imie_nazwisko'] ?? '')), 0, 100);
@@ -257,7 +296,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, haslo, rola, moduly, aktywny)
                      SELECT ?,?,?,?,?,1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM pmg_uzytkownicy)'
                 );
-                $st->execute([$imie, $email, $hash, 'admin', 'aktualnosci,czlonkowie,pmsession']);
+                $st->execute([$imie, $email, $hash, 'admin', 'aktualnosci,czlonkowie,pmsession,podcast']);
                 if ($st->rowCount() === 0) {
                     http_response_code(403);
                     exit('To konto już istnieje — zaloguj się.');
@@ -288,8 +327,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Za dużo prób logowania. Spróbuj za 15 minut.';
             } else {
                 $ma_haslo = $u && $u['haslo'] !== null;
-                $ok = password_verify($haslo, $ma_haslo ? $u['haslo'] : DUMMY_HASH) && $ma_haslo;
+                // Konto nieistniejące / bez hasła: liczymy tyle samo bcrypt-a co przy weryfikacji (koszt = PASSWORD_DEFAULT
+                // bieżącego PHP), żeby czas odpowiedzi nie zdradzał, czy e-mail ma konto.
+                if ($ma_haslo) {
+                    $ok = password_verify($haslo, $u['haslo']);
+                } else {
+                    password_hash($haslo, PASSWORD_DEFAULT);
+                    $ok = false;
+                }
                 if ($ok) {
+                    // Hash z innego PHP (np. kopia z dev, koszt 12, na prod, koszt 10) przeliczamy na lokalny koszt.
+                    if (password_needs_rehash($u['haslo'], PASSWORD_DEFAULT)) {
+                        $u['haslo'] = password_hash($haslo, PASSWORD_DEFAULT);
+                        pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo = ? WHERE id = ?')->execute([$u['haslo'], $u['id']]);
+                    }
                     session_regenerate_id(true);
                     $_SESSION['uid'] = (int) $u['id'];
                     $_SESSION['t'] = time();
@@ -389,6 +440,8 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
   if ($mk === 'czlonkowie') { $pmgLiczby[$mk] = pmg_odmiana($db->query('SELECT COUNT(*) FROM pmg_osoby')->fetchColumn(), 'osoba', 'osoby', 'osób') . ' · ' . pmg_odmiana($db->query('SELECT COUNT(*) FROM pmg_sekcje')->fetchColumn(), 'sekcja', 'sekcje', 'sekcji'); }
   if ($mk === 'pmsession') { $a = $db->query('SELECT COUNT(*) FROM pmg_edycje')->fetchColumn(); $b = (int) $db->query("SELECT COUNT(*) FROM pmg_edycje WHERE status = 'biezaca'")->fetchColumn();
       $pmgLiczby[$mk] = pmg_odmiana($a, 'edycja', 'edycje', 'edycji') . ($b ? '' : ' · brak bieżącej edycji'); }
+  if ($mk === 'podcast') { $a = $db->query('SELECT COUNT(*) FROM pmg_odcinki')->fetchColumn(); $b = (int) $db->query('SELECT COUNT(*) FROM pmg_odcinki WHERE opublikowany = 0')->fetchColumn();
+      $pmgLiczby[$mk] = pmg_odmiana($a, 'odcinek', 'odcinki', 'odcinków') . ($b ? ' · ' . pmg_odmiana($b, 'szkic', 'szkice', 'szkiców') : ''); }
   if ($mk === 'konta') { $a = $db->query('SELECT COUNT(*) FROM pmg_uzytkownicy')->fetchColumn(); $b = (int) $db->query('SELECT COUNT(*) FROM pmg_uzytkownicy WHERE haslo IS NULL')->fetchColumn();
       $pmgLiczby[$mk] = pmg_odmiana($a, 'konto', 'konta', 'kont') . ($b ? ' · ' . $b . ' bez hasła' : ''); }
   if ($mk === 'dziennik') { $pmgLiczby[$mk] = pmg_odmiana($db->query('SELECT COUNT(*) FROM pmg_dziennik')->fetchColumn(), 'zmiana', 'zmiany', 'zmian') . ' w dzienniku'; }
@@ -494,21 +547,15 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
       <h1 class="pmg-h1"><?= h($ng['tytul']) ?></h1>
       <?php if (!pierwsze_ok($cfg)): ?>
         <?= $pmgAlerty ?>
-        <p>Aby założyć pierwsze konto, wpisz w <code>api/config.php</code> hasło instalacyjne <code>'setup_haslo'</code> (min. 12 znaków) — patrz README.</p>
+        <p>Aby założyć pierwsze konto, wpisz w pliku konfiguracji (<code>pmg-config.php</code>) hasło instalacyjne <code>'setup_haslo'</code> (min. 12 znaków) — patrz README.</p>
       <?php else: ?>
         <p>Tabela kont jest pusta — to jednorazowy ekran. Załóż konto administratora, żeby dalej zarządzać panelem.</p>
         <?= $pmgAlerty ?>
         <form method="post">
           <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="pierwsze">
-          <?php if (($cfg['panel_hash'] ?? '') !== ''): ?>
-            <label for="stare_haslo">Dotychczasowe hasło panelu Aktualności</label>
-            <p class="pmg-hint" id="stare_haslo_h">Ta instalacja miała wcześniej wspólne hasło do panelu — potwierdź je, żeby przejąć dostęp.</p>
-            <input type="password" id="stare_haslo" name="stare_haslo" autocomplete="current-password" required aria-describedby="stare_haslo_h">
-          <?php else: ?>
-            <label for="setup_haslo">Hasło instalacyjne (z pliku api/config.php)</label>
-            <p class="pmg-hint" id="setup_haslo_h">Jednorazowe hasło ustawione w <code>api/config.php</code> jako <code>setup_haslo</code>.</p>
-            <input type="password" id="setup_haslo" name="setup_haslo" autocomplete="off" required aria-describedby="setup_haslo_h">
-          <?php endif; ?>
+          <label for="setup_haslo">Hasło instalacyjne (z pliku konfiguracji)</label>
+          <p class="pmg-hint" id="setup_haslo_h">Jednorazowe hasło ustawione w <code>pmg-config.php</code> jako <code>setup_haslo</code>.</p>
+          <input type="password" id="setup_haslo" name="setup_haslo" autocomplete="off" required aria-describedby="setup_haslo_h">
           <label for="imie_nazwisko">Imię i nazwisko</label>
           <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" required>
           <label for="email">E-mail (login)</label>

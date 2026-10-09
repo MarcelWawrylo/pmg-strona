@@ -5,7 +5,20 @@ defined('PMG_PANEL') || exit;
 
 $sub = $_GET['m'] ?? '';
 
-// ---------- Kopia bazy: strumień SQL, bez szablonu ----------
+// ---------- Kopia bazy ----------
+// GET pokazuje tylko ekran z przyciskiem; sam plik (hasze haseł, tokeny, e-maile) wydaje wyłącznie POST z tokenem
+// CSRF — przeglądarka ani rozszerzenie nie pobierze go przy samym wejściu w link.
+if ($sub === 'kopia' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    ?>
+    <form class="pmg-card" method="post">
+      <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="kopia">
+      <p>Plik <code>.sql</code> zawiera całą bazę, także e-maile i skróty haseł kont panelu — przechowuj go bezpiecznie i nie wysyłaj dalej. Nie zawiera zdjęć z katalogu <code>uploads/</code>.</p>
+      <div class="pmg-form-actions"><button class="pmg-btn pmg-btn--primary" type="submit">Pobierz kopię bazy</button></div>
+    </form>
+    <?php
+    return;
+}
+// Strumień SQL, bez szablonu.
 if ($sub === 'kopia') {
     ob_end_clean();
     $pdo = pmg_db();
@@ -135,6 +148,8 @@ if ($sub === 'ustawienia') {
 
 // ---------- Dziennik zmian ----------
 if ($sub === 'dziennik') {
+    // Retencja (RODO: imię i nazwisko + akcje): wpisy starsze niż 12 miesięcy znikają przy wejściu do dziennika.
+    pmg_db()->exec('DELETE FROM pmg_dziennik WHERE kiedy < NOW() - INTERVAL 12 MONTH');
     $wpisy = pmg_db()->query(
         'SELECT d.kiedy, d.modul, d.akcja, d.rekord_id, u.imie_nazwisko
          FROM pmg_dziennik d JOIN pmg_uzytkownicy u ON u.id = d.uzytkownik_id
@@ -144,7 +159,7 @@ if ($sub === 'dziennik') {
     $pmgAkcjeDziennika = [
         'dodanie' => 'Dodanie', 'edycja' => 'Edycja', 'usuniecie' => 'Usunięcie',
         'zaproszenie' => 'Zaproszenie', 'blokada' => 'Blokada', 'odblokowanie' => 'Odblokowanie',
-        'reset' => 'Reset hasła', 'biezaca' => 'Ustawienie bieżącej edycji', 'pobranie' => 'Pobranie kopii',
+        'reset' => 'Reset hasła', 'biezaca' => 'Ustawienie bieżącej edycji', 'pobranie' => 'Pobranie kopii', 'kolejnosc' => 'Zmiana kolejności',
     ];
     ?>
     <div class="pmg-table-wrap">
@@ -175,7 +190,7 @@ if ($sub === 'dziennik') {
 if ($sub !== 'konta') { echo '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nieznany widok.</p></div>'; return; }
 
 $error = '';
-const MODULY_REDAKTORA = ['aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session'];
+const MODULY_REDAKTORA = ['aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast'];
 
 // Ilu jest innych aktywnych administratorów z ustawionym hasłem (poza kontem $id) — chroni ostatniego admina.
 function inni_aktywni_admini($id)

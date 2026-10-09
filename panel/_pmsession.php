@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Numer edycji: użyj tylko cyfr rzymskich (I, V, X, L, C), np. XIV.';
         } elseif ($f['temat'] === '') {
             $error = 'Podaj temat edycji.';
-        } elseif (!preg_match('~^\d{4}-\d{2}-\d{2}$~', $f['data'])) {
+        } elseif (!data_ok($f['data'])) {
             $error = 'Podaj poprawną datę.';
         } elseif ($f['miejsce'] === '') {
             $error = 'Podaj miejsce.';
