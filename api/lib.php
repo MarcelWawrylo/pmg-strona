@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 4;
+const PMG_SCHEMA = 5;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -97,10 +97,11 @@ function pmg_migrate()
             id INT AUTO_INCREMENT PRIMARY KEY,
             slug VARCHAR(80) NOT NULL UNIQUE,
             data DATE NOT NULL,
-            kategoria VARCHAR(40) NOT NULL,
+            kategoria VARCHAR(40) NOT NULL DEFAULT '',
             kolor VARCHAR(10) NOT NULL DEFAULT 'pink',
             tytul VARCHAR(200) NOT NULL,
-            zajawka VARCHAR(400) NOT NULL,
+            lead VARCHAR(600) NOT NULL DEFAULT '',
+            zajawka VARCHAR(400) NOT NULL DEFAULT '',
             tresc TEXT NOT NULL,
             zdjecie VARCHAR(200) NULL,
             zdjecie_alt VARCHAR(200) NOT NULL DEFAULT '',
@@ -178,6 +179,8 @@ function pmg_migrate()
             imie_nazwisko VARCHAR(100) NOT NULL,
             temat VARCHAR(300) NOT NULL,
             bio VARCHAR(2500) NOT NULL DEFAULT '',
+            opis VARCHAR(4000) NOT NULL DEFAULT '',
+            plec CHAR(1) NOT NULL DEFAULT 'm',
             notatka VARCHAR(200) NOT NULL DEFAULT '',
             zdjecie VARCHAR(200) NULL,
             zdjecie_alt VARCHAR(200) NOT NULL DEFAULT '',
@@ -192,6 +195,7 @@ function pmg_migrate()
             godzina TIME NOT NULL,
             tytul VARCHAR(300) NOT NULL,
             prelegent VARCHAR(150) NOT NULL DEFAULT '',
+            znacznik VARCHAR(40) NOT NULL DEFAULT '',
             FOREIGN KEY (edycja_id) REFERENCES pmg_edycje(id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
@@ -240,6 +244,25 @@ function pmg_migrate()
     if ($pdo->query("SHOW COLUMNS FROM pmg_odcinki LIKE 'edycja_id'")->fetchColumn() === false) {
         $pdo->exec('ALTER TABLE pmg_odcinki ADD COLUMN edycja_id INT NULL');
     }
+    // Schemat 5: lead wpisu (akapit pod tytułem w artykule) oddzielony od zajawki (krótki tekst na kafelku). Dotychczasowa
+    // zajawka była jednym i drugim, więc istniejące wpisy dostają lead = zajawka i wyglądają tak samo; kategoria staje się opcjonalna.
+    if ($pdo->query("SHOW COLUMNS FROM pmg_aktualnosci LIKE 'lead'")->fetchColumn() === false) {
+        $pdo->exec("ALTER TABLE pmg_aktualnosci ADD COLUMN lead VARCHAR(600) NOT NULL DEFAULT '' AFTER tytul");
+        $pdo->exec('UPDATE pmg_aktualnosci SET lead = zajawka');
+    }
+    $pdo->exec("ALTER TABLE pmg_aktualnosci MODIFY kategoria VARCHAR(40) NOT NULL DEFAULT ''");
+    $pdo->exec("ALTER TABLE pmg_aktualnosci MODIFY zajawka VARCHAR(400) NOT NULL DEFAULT ''");
+    // Schemat 5: prelegent — opis prelekcji (wieloakapitowy) i rodzaj etykiety biogramu (m = „O prelegencie”, k = „O prelegentce”);
+    // harmonogram — znacznik pod godziną (np. „3 sesje równoległe”), pusty = bez znacznika.
+    if ($pdo->query("SHOW COLUMNS FROM pmg_prelegenci LIKE 'opis'")->fetchColumn() === false) {
+        $pdo->exec("ALTER TABLE pmg_prelegenci ADD COLUMN opis VARCHAR(4000) NOT NULL DEFAULT '' AFTER bio");
+    }
+    if ($pdo->query("SHOW COLUMNS FROM pmg_prelegenci LIKE 'plec'")->fetchColumn() === false) {
+        $pdo->exec("ALTER TABLE pmg_prelegenci ADD COLUMN plec CHAR(1) NOT NULL DEFAULT 'm' AFTER opis");
+    }
+    if ($pdo->query("SHOW COLUMNS FROM pmg_harmonogram LIKE 'znacznik'")->fetchColumn() === false) {
+        $pdo->exec("ALTER TABLE pmg_harmonogram ADD COLUMN znacznik VARCHAR(40) NOT NULL DEFAULT '' AFTER prelegent");
+    }
 
     // Dane startowe: 4 odcinki, które do tej pory były wpisane na sztywno w podcast.html. Tylko przy pierwszym
     // utworzeniu tabeli — późniejsze usunięcie odcinków w panelu ich nie przywraca.
@@ -286,6 +309,44 @@ function pmg_podcast_grupuj($edycje, $odcinki)
     $plaska = [];
     foreach ($grupy as $g) foreach ($g['odcinki'] as $o) $plaska[] = $o;
     return [$grupy, $plaska];
+}
+
+// Warianty szerokości zdjęcia z katalogu img/ do <picture>. Dla ścieżki img/<baza>-<szerokość>.<jpg|png> szuka plików
+// img/<baza>-<N>.<to samo rozszerzenie> i ich odpowiedników .webp. Zwraca [src => najmniejszy wariant, srcset => 'ścieżka Nw, …',
+// webp => srcset z .webp albo '', w/h => wymiary największego wariantu] albo null (zdjęcie wgrane z panelu w uploads/, plik
+// nietypowy albo brak pliku — wtedy strona używa zwykłego <img>). $root = katalog główny strony (z końcowym ukośnikiem).
+function pmg_obraz($sciezka, $root = null)
+{
+    if (!is_string($sciezka) || !preg_match('~^(img/[a-z0-9-]+)-(\d+)\.(jpg|png)$~', $sciezka, $m)) return null;
+    if ($root === null) $root = dirname(__DIR__) . '/';
+    $baza = $m[1];
+    $ext = $m[3];
+    $szer = [];
+    foreach ((array) glob($root . $baza . '-*.' . $ext) as $plik) {
+        // dokładnie <baza>-<liczba>.<ext>: wzorzec glob dopasowałby też dłuższe nazwy (np. -43-800 przy bazie bez -43)
+        if (preg_match('~^' . preg_quote(basename($baza), '~') . '-(\d+)\.' . $ext . '$~', basename($plik), $n)) $szer[(int) $n[1]] = true;
+    }
+    if (!$szer || !isset($szer[(int) $m[2]])) return null;
+    ksort($szer);
+    $skladaj = function ($rozsz) use ($baza, $szer) {
+        $c = [];
+        foreach (array_keys($szer) as $w) $c[] = $baza . '-' . $w . '.' . $rozsz . ' ' . $w . 'w';
+        return implode(', ', $c);
+    };
+    $webp = [];
+    foreach (array_keys($szer) as $w) {
+        if (is_file($root . $baza . '-' . $w . '.webp')) $webp[] = $baza . '-' . $w . '.webp ' . $w . 'w';
+    }
+    $szerokosci = array_keys($szer);
+    $najw = end($szerokosci);
+    $wym = @getimagesize($root . $baza . '-' . $najw . '.' . $ext);
+    return [
+        'src' => $baza . '-' . $szerokosci[0] . '.' . $ext,
+        'srcset' => $skladaj($ext),
+        'webp' => count($webp) === count($szer) ? implode(', ', $webp) : '',
+        'w' => $wym ? (int) $wym[0] : (int) $najw,
+        'h' => $wym ? (int) $wym[1] : 0,
+    ];
 }
 
 function pmg_json($data, $status = 200)
