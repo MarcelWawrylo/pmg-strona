@@ -283,15 +283,15 @@ a, button, summary, label, input, select, textarea {
 
 /* ===================== 9. Link ===================== */
 .pmg-page-head a:not(.pmg-btn):not(.pmg-back),
-.pmg-container a:not(.pmg-btn):not(.btn):not(.pmg-back):not(.pmg-row-link):not(.pmg-nav__item):not(.pmg-tile):not(.news-tile__link) {
+.pmg-container a:not(.pmg-btn):not(.btn):not(.pmg-back):not(.pmg-row-link):not(.pmg-nav__item):not(.pmg-tile):not(.news-tile__link):not(.pmg-tabs__tab) {
   color: var(--pmg-link); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px;
 }
 @media (hover: hover) {
-  .pmg-container a:not(.pmg-btn):not(.btn):not(.pmg-back):not(.pmg-row-link):not(.pmg-nav__item):not(.pmg-tile):hover {
+  .pmg-container a:not(.pmg-btn):not(.btn):not(.pmg-back):not(.pmg-row-link):not(.pmg-nav__item):not(.pmg-tile):not(.pmg-tabs__tab):hover {
     color: var(--pmg-link-hover); text-decoration-thickness: 2px;
   }
 }
-.pmg-container a:not(.pmg-btn):not(.btn):active { color: var(--pmg-text); }
+.pmg-container a:not(.pmg-btn):not(.btn):not(.pmg-tabs__tab):active { color: var(--pmg-text); }
 .pmg-ext { width: 16px; height: 16px; }
 .pmg-row-link { text-decoration: none; font-weight: 600; color: var(--pmg-text); }
 @media (hover: hover) { tr:hover .pmg-row-link { text-decoration: underline; } }
