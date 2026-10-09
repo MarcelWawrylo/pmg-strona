@@ -3,7 +3,8 @@
 // Wczytywane na żądanie administratora przyciskiem „Wczytaj treści ze strony” (panel/_import.php) do PUSTYCH tabel.
 // Źródło (stan HTML z 9.10.2026): aktualnosci.html (3 wpisy), o-nas.html (sekcje i struktura koła), pm-session-xiv.html
 // (edycja XIV, prelegenci, harmonogram), stopka index.html i dolacz.html (linki, e-mail, rekrutacja), pm-session.html (liczby).
-// Plik zwraca tablicę (nie JSON), żeby nie dało się go pobrać jako tekst. Zdjęcia: ścieżki do istniejących plików w img/
+// Plik zwraca tablicę (nie JSON): na serwerze z PHP otwarty w przeglądarce nic nie wypisuje (na GitHub Pages widać go jako tekst,
+// ale to te same, publiczne treści co w HTML). Zdjęcia: ścieżki do istniejących plików w img/
 // (strona składa adres jako katalog_strony + ścieżka, panel jako ../ + ścieżka) — nic nie jest kopiowane do uploads/.
 // Pominięte, bo ich nie ma w HTML: rekrutacja_tekst (zostaje pusty), opisy prelekcji (tylko w HTML), edycja XV.
 return [
