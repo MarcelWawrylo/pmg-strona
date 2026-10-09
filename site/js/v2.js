@@ -329,7 +329,8 @@
       }
       initPmsWords();
       initJoinPath();
-      initCaseReveal();
+      // podstrona edycji Case Koła składa sekcje z API (main.js): animacje wjazdu startują dopiero po ich wstawieniu
+      if (window.PMG && window.PMG.caseReady) window.PMG.caseReady.then(function () { initCaseReveal(); window.ScrollTrigger.refresh(); }); else initCaseReveal();
       window.ScrollTrigger.refresh();
       scrollToHashWhenReady(lenis);
 
