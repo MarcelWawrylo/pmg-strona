@@ -1128,13 +1128,30 @@
           (spotify ? '<div class="pod-modal__player" data-pod-player></div>' : '') +
           (links ? '<p class="pod-modal__links">' + links + '</p>' : '') + desc + guest + '</div></template>';
       };
+      /* Edycja podcastu = osobna sekcja: nagłówek, zespół, opis, lista odcinków. Grupa bez numeru (odcinki bez edycji)
+         nie ma nagłówka ani zespołu. Nowe sekcje dostają is-in od razu — observer [data-reveal] już się uruchomił. */
+      var podTeam = function (label, val) { return val ? label + ': ' + esc(val) : ''; };
+      var podEdition = function (g) {
+        var hid = 'h-edition-' + g.numer;
+        var title = g.numer === null ? '' : '<h2 id="' + hid + '" class="pod-edition__title">Edycja ' + g.numer +
+          (g.lata ? ' <span class="pod-edition__year">(' + esc(g.lata) + ')</span>' : '') + '</h2>';
+        var desc = g.opis ? '<p class="pod-edition__desc">' + esc(g.opis) + '</p>' : '';
+        var team = [podTeam('Koordynator', g.koordynator), podTeam('Mentorzy', g.mentorzy), podTeam('Zespół', g.zespol)].filter(Boolean).join('<br>');
+        var items = g.odcinki.length
+          ? g.odcinki.map(podCard).join('')
+          : '<li class="pod-ep"><div class="pod-ep__body"><p class="pod-ep__meta">Wkrótce nowe odcinki.</p></div></li>';
+        return '<section class="pod-edition"' + (g.numer === null ? ' aria-label="Odcinki"' : ' aria-labelledby="' + hid + '"') + '><div class="container is-in" data-reveal>' +
+          title + desc + (team ? '<p class="pod-edition__team">' + team + '</p>' : '') + '<ul class="pod-episodes">' + items + '</ul></div></section>';
+      };
       PMG.api('podcast.php').then(function (data) {
         if (!data || !data.odcinki || !data.wszystkich) return;
+        var section = episodesList.closest('.pod-edition');
+        if (!section) return;
+        var groups = data.edycje && data.edycje.length ? data.edycje : [{ numer: null, odcinki: data.odcinki }];
         $$('template[id^="pod-ep-"]').forEach(function (t) { t.remove(); });
-        episodesList.innerHTML = data.odcinki.length
-          ? data.odcinki.map(podCard).join('')
-          : '<li class="pod-ep"><div class="pod-ep__body"><p class="pod-ep__meta">Wkrótce nowe odcinki.</p></div></li>';
-        episodesList.insertAdjacentHTML('afterend', data.odcinki.map(podTemplate).join(''));
+        section.insertAdjacentHTML('beforebegin', groups.map(podEdition).join(''));
+        section.insertAdjacentHTML('afterend', data.odcinki.map(podTemplate).join(''));
+        section.remove();
       });
     }
 
