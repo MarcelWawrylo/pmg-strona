@@ -24,6 +24,6 @@ return [
     'tmp_dir' => '',
 
     // Formularz kontaktowy
-    'mail_to'   => 'pmgroup.kontakt@gmail.com',
-    'mail_from' => 'noreply@pmgroup.pwr.edu.pl', // adres w domenie serwera, inaczej Gmail odrzuca jako spam
+    'mail_to'   => 'kontakt@pmgroup.pwr.edu.pl', // skrzynka koła na serwerach WCSS; do czasu jej założenia wpisz tymczasowo dotychczasowy adres
+    'mail_from' => 'kontakt@pmgroup.pwr.edu.pl', // adres w domenie serwera (SPF), inaczej poczta odrzuca jako spam
 ];
