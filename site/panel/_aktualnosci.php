@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         try {
             if ($f['tytul'] === '' || $f['zajawka'] === '' || $f['tresc'] === '' || $f['kategoria'] === '') throw new RuntimeException('Uzupełnij tytuł, kategorię, zajawkę i treść.');
-            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $f['data'])) throw new RuntimeException('Podaj datę wpisu.');
+            if (!data_ok($f['data'])) throw new RuntimeException('Podaj datę wpisu.');
             $stareZdjecie = $old['zdjecie'] ?? null;
             $f['zdjecie'] = zdjecie('aktualnosci', $stareZdjecie);
             if ($id && $old) {

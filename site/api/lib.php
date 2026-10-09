@@ -73,12 +73,23 @@ const USTAWIENIA = [
     'pms_edycji', 'pms_prelekcji', 'pms_prelegentow', 'pms_uczestnikow', 'pms_warsztatow', 'pms_symulacji',
 ];
 
-// Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko). Wywoływana tylko z panelu, przy każdym żądaniu.
-// Kolejne etapy dopiszą tu swoje tabele (pmg_sekcje, pmg_osoby, pmg_edycje, pmg_prelegenci, pmg_harmonogram)
-// i ewentualne ALTER TABLE ... ADD COLUMN IF NOT EXISTS dla już istniejących.
+// Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
+// migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
+const PMG_SCHEMA = 2;
+
+// Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
+// Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
+// Idempotentna: można ją bezpiecznie uruchomić ponownie (np. dwa równoczesne pierwsze żądania).
 function pmg_migrate()
 {
     $pdo = pmg_db();
+    try {
+        $v = $pdo->query("SELECT wartosc FROM pmg_ustawienia WHERE klucz = 'schema'")->fetchColumn();
+        if ($v !== false && (int) $v >= PMG_SCHEMA) return;
+    } catch (PDOException $e) {
+        // brak tabeli pmg_ustawienia = świeża baza, migrujemy
+    }
+    $podcastBylo = $pdo->query("SHOW TABLES LIKE 'pmg\\_odcinki'")->fetchColumn() !== false;
     $tabele = [
         // przeniesiona 1:1 z dawnego pmg_db() — dane zostają
         "CREATE TABLE IF NOT EXISTS pmg_aktualnosci (
@@ -103,7 +114,7 @@ function pmg_migrate()
             email VARCHAR(150) NOT NULL UNIQUE,
             haslo VARCHAR(255) NULL,
             rola ENUM('admin','redaktor') NOT NULL DEFAULT 'redaktor',
-            moduly SET('aktualnosci','czlonkowie','pmsession') NOT NULL DEFAULT '',
+            moduly SET('aktualnosci','czlonkowie','pmsession','podcast') NOT NULL DEFAULT '',
             aktywny TINYINT(1) NOT NULL DEFAULT 1,
             token_hash CHAR(64) NULL UNIQUE,
             token_do DATETIME NULL,
@@ -155,6 +166,7 @@ function pmg_migrate()
             temat VARCHAR(200) NOT NULL,
             data DATE NOT NULL,
             miejsce VARCHAR(200) NOT NULL,
+            opis VARCHAR(600) NOT NULL DEFAULT '',
             status ENUM('szkic','biezaca','zakonczona') NOT NULL DEFAULT 'szkic'
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
@@ -182,7 +194,41 @@ function pmg_migrate()
             FOREIGN KEY (edycja_id) REFERENCES pmg_edycje(id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
+    // Podcast: odcinki. spotify_id = samo 22-znakowe ID odcinka — adres odtwarzacza składa strona (main.js), nie panel.
+    $tabele[] = "CREATE TABLE IF NOT EXISTS pmg_odcinki (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            numer SMALLINT NOT NULL UNIQUE,
+            tytul VARCHAR(200) NOT NULL,
+            data DATE NOT NULL,
+            czas_min SMALLINT NULL,
+            opis TEXT NOT NULL,
+            prowadzacy VARCHAR(200) NOT NULL DEFAULT '',
+            gosc VARCHAR(200) NOT NULL DEFAULT '',
+            gosc_bio VARCHAR(1000) NOT NULL DEFAULT '',
+            spotify_id VARCHAR(22) NOT NULL DEFAULT '',
+            apple_url VARCHAR(400) NOT NULL DEFAULT '',
+            youtube_url VARCHAR(300) NOT NULL DEFAULT '',
+            zdjecie VARCHAR(200) NULL,
+            zdjecie_alt VARCHAR(200) NOT NULL DEFAULT '',
+            kolejnosc SMALLINT NOT NULL DEFAULT 0,
+            opublikowany TINYINT(1) NOT NULL DEFAULT 0
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     foreach ($tabele as $sql) $pdo->exec($sql);
+
+    // Bazy utworzone wcześniej: nowy moduł w SET uprawnień i kolumna opisu edycji PM Session.
+    $pdo->exec("ALTER TABLE pmg_uzytkownicy MODIFY moduly SET('aktualnosci','czlonkowie','pmsession','podcast') NOT NULL DEFAULT ''");
+    if ($pdo->query("SHOW COLUMNS FROM pmg_edycje LIKE 'opis'")->fetchColumn() === false) {
+        $pdo->exec("ALTER TABLE pmg_edycje ADD COLUMN opis VARCHAR(600) NOT NULL DEFAULT '' AFTER miejsce");
+    }
+
+    // Dane startowe: 4 odcinki, które do tej pory były wpisane na sztywno w podcast.html. Tylko przy pierwszym
+    // utworzeniu tabeli — późniejsze usunięcie odcinków w panelu ich nie przywraca.
+    if (!$podcastBylo) {
+        $ins = $pdo->prepare('INSERT IGNORE INTO pmg_odcinki (numer, tytul, data, czas_min, opis, prowadzacy, gosc, gosc_bio, spotify_id, apple_url, zdjecie, zdjecie_alt, kolejnosc, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1)');
+        foreach (require __DIR__ . '/seed-podcast.php' as $o) $ins->execute($o);
+    }
+
+    $pdo->prepare('REPLACE INTO pmg_ustawienia (klucz, wartosc) VALUES (?, ?)')->execute(['schema', (string) PMG_SCHEMA]);
 }
 
 function pmg_json($data, $status = 200)
@@ -197,15 +243,34 @@ function pmg_json($data, $status = 200)
 // Prosty limit prób ($max zdarzeń w $window sekund), plik w katalogu tymczasowym.
 // $key = klucz zdarzenia (np. id konta); domyślnie adres IP. Każde wywołanie liczy się jako próba.
 // Cały odczyt+decyzja+zapis w jednej sekcji krytycznej (flock) — równoległe żądania nie przejdą ponad limit.
+// Katalog na liczniki prób i sesje panelu: config 'tmp_dir' (poza webrootem, tworzony z prawami 0700) albo
+// systemowy katalog tymczasowy (może być współdzielony z innymi kontami na hostingu).
+function pmg_tmp_dir()
+{
+    static $dir = null;
+    if ($dir === null) {
+        $dir = sys_get_temp_dir();
+        $c = pmg_config();
+        $wlasny = isset($c['tmp_dir']) ? rtrim((string) $c['tmp_dir'], '/\\') : '';
+        if ($wlasny !== '') {
+            if (!@is_dir($wlasny)) @mkdir($wlasny, 0700, true);
+            if (@is_dir($wlasny) && @is_writable($wlasny)) $dir = $wlasny;
+            else error_log('pmg_tmp_dir: katalog z configu niedostępny do zapisu: ' . $wlasny);
+        }
+    }
+    return $dir;
+}
+
 function pmg_rate_file($bucket, $key)
 {
-    return sys_get_temp_dir() . '/pmg_' . $bucket . '_' . md5($key !== null ? $key : ($_SERVER['REMOTE_ADDR'] ?? ''));
+    return pmg_tmp_dir() . '/pmg_' . $bucket . '_' . md5($key !== null ? $key : ($_SERVER['REMOTE_ADDR'] ?? ''));
 }
 
 function pmg_rate_ok($bucket, $max, $window, $key = null)
 {
-    $fh = fopen(pmg_rate_file($bucket, $key), 'c+');
-    if ($fh === false) { error_log('pmg_rate_ok: brak zapisu w ' . sys_get_temp_dir()); return true; } // ponytail: fail-open — limit nie jest jedyną obroną
+    if (mt_rand(1, 100) === 1) pmg_rate_sprzatanie();
+    $fh = @fopen(pmg_rate_file($bucket, $key), 'c+');
+    if ($fh === false) { error_log('pmg_rate_ok: brak zapisu w ' . pmg_tmp_dir()); return true; } // ponytail: fail-open — limit nie jest jedyną obroną
     flock($fh, LOCK_EX);
     $now = time();
     $hits = array_filter(explode(',', (string) stream_get_contents($fh)), function ($t) use ($now, $window) {
@@ -227,4 +292,12 @@ function pmg_rate_ok($bucket, $max, $window, $key = null)
 function pmg_rate_clear($bucket, $key)
 {
     @unlink(pmg_rate_file($bucket, $key));
+}
+
+// Usuwa pliki liczników starsze niż doba (wołane przy ok. 1% żądań).
+function pmg_rate_sprzatanie()
+{
+    foreach ((array) @glob(pmg_tmp_dir() . '/pmg_*') as $f) {
+        if (is_file($f) && filemtime($f) < time() - 86400) @unlink($f);
+    }
 }
