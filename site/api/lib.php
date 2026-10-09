@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 3;
+const PMG_SCHEMA = 4;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -90,6 +90,7 @@ function pmg_migrate()
         // brak tabeli pmg_ustawienia = świeża baza, migrujemy
     }
     $podcastBylo = $pdo->query("SHOW TABLES LIKE 'pmg\\_odcinki'")->fetchColumn() !== false;
+    $podcastEdycjeBylo = $pdo->query("SHOW TABLES LIKE 'pmg\\_podcast\\_edycje'")->fetchColumn() !== false;
     $tabele = [
         // przeniesiona 1:1 z dawnego pmg_db() — dane zostają
         "CREATE TABLE IF NOT EXISTS pmg_aktualnosci (
@@ -213,6 +214,19 @@ function pmg_migrate()
             kolejnosc SMALLINT NOT NULL DEFAULT 0,
             opublikowany TINYINT(1) NOT NULL DEFAULT 0
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    // Schemat 4: edycje podcastu (zespół edycji + grupowanie odcinków na stronie). Nazwa z przedrostkiem podcast_,
+    // bo pmg_edycje to edycje PM Session. mentorzy i zespol to zwykły tekst (imiona po przecinku), tak jak na stronie.
+    $tabele[] = "CREATE TABLE IF NOT EXISTS pmg_podcast_edycje (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            numer SMALLINT NOT NULL UNIQUE,
+            lata VARCHAR(20) NOT NULL DEFAULT '',
+            koordynator VARCHAR(200) NOT NULL DEFAULT '',
+            mentorzy VARCHAR(400) NOT NULL DEFAULT '',
+            zespol VARCHAR(800) NOT NULL DEFAULT '',
+            opis VARCHAR(600) NOT NULL DEFAULT '',
+            kolejnosc SMALLINT NOT NULL DEFAULT 0,
+            widoczna TINYINT(1) NOT NULL DEFAULT 1
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     foreach ($tabele as $sql) $pdo->exec($sql);
 
     // Bazy utworzone wcześniej: nowy moduł w SET uprawnień i kolumna opisu edycji PM Session.
@@ -222,6 +236,10 @@ function pmg_migrate()
     if ($pdo->query("SHOW COLUMNS FROM pmg_edycje LIKE 'opis'")->fetchColumn() === false) {
         $pdo->exec("ALTER TABLE pmg_edycje ADD COLUMN opis VARCHAR(600) NOT NULL DEFAULT '' AFTER miejsce");
     }
+    // Schemat 4: przypisanie odcinka do edycji podcastu (NULL = bez edycji; usunięcie edycji z odcinkami blokuje panel).
+    if ($pdo->query("SHOW COLUMNS FROM pmg_odcinki LIKE 'edycja_id'")->fetchColumn() === false) {
+        $pdo->exec('ALTER TABLE pmg_odcinki ADD COLUMN edycja_id INT NULL');
+    }
 
     // Dane startowe: 4 odcinki, które do tej pory były wpisane na sztywno w podcast.html. Tylko przy pierwszym
     // utworzeniu tabeli — późniejsze usunięcie odcinków w panelu ich nie przywraca.
@@ -230,7 +248,44 @@ function pmg_migrate()
         foreach (require __DIR__ . '/seed-podcast.php' as $o) $ins->execute($o);
     }
 
+    // Dane startowe: Edycja 1 (2025/2026) z zespołem, który był wpisany na sztywno w podcast.html, i przypisanie do niej
+    // wszystkich dotychczasowych odcinków. Tylko przy pierwszym utworzeniu tabeli edycji — późniejsze zmiany w panelu
+    // (np. usunięcie edycji) nie są przywracane.
+    if (!$podcastEdycjeBylo) {
+        $ins = $pdo->prepare('INSERT IGNORE INTO pmg_podcast_edycje (numer, lata, koordynator, mentorzy, zespol, opis, kolejnosc, widoczna) VALUES (?,?,?,?,?,?,?,1)');
+        foreach (require __DIR__ . '/seed-podcast-edycje.php' as $e) $ins->execute($e);
+        $pdo->exec('UPDATE pmg_odcinki SET edycja_id = (SELECT id FROM pmg_podcast_edycje WHERE numer = 1) WHERE edycja_id IS NULL');
+    }
+
     $pdo->prepare('REPLACE INTO pmg_ustawienia (klucz, wartosc) VALUES (?, ?)')->execute(['schema', (string) PMG_SCHEMA]);
+}
+
+// Składa odpowiedź api/podcast.php: widoczne edycje (w kolejności z panelu) z ich opublikowanymi odcinkami.
+// $edycje = wiersze pmg_podcast_edycje (widoczne, posortowane), $odcinki = opublikowane odcinki (posortowane), każdy z edycja_id.
+// Odcinki bez edycji (edycja_id NULL) trafiają do ostatniej grupy bez nagłówka (numer = null); odcinki edycji
+// ukrytej lub nieistniejącej nie są pokazywane. Zwraca [grupy, płaska lista odcinków w kolejności wyświetlania].
+function pmg_podcast_grupuj($edycje, $odcinki)
+{
+    $grupy = [];
+    $wg = [];
+    foreach ($edycje as $e) {
+        $wg[(int) $e['id']] = count($grupy);
+        $grupy[] = [
+            'numer' => (int) $e['numer'], 'lata' => $e['lata'], 'koordynator' => $e['koordynator'],
+            'mentorzy' => $e['mentorzy'], 'zespol' => $e['zespol'], 'opis' => $e['opis'], 'odcinki' => [],
+        ];
+    }
+    $bez = [];
+    foreach ($odcinki as $o) {
+        $eid = $o['edycja_id'];
+        unset($o['edycja_id']);
+        if ($eid === null) $bez[] = $o;
+        elseif (isset($wg[(int) $eid])) $grupy[$wg[(int) $eid]]['odcinki'][] = $o;
+    }
+    if ($bez) $grupy[] = ['numer' => null, 'lata' => '', 'koordynator' => '', 'mentorzy' => '', 'zespol' => '', 'opis' => '', 'odcinki' => $bez];
+    $plaska = [];
+    foreach ($grupy as $g) foreach ($g['odcinki'] as $o) $plaska[] = $o;
+    return [$grupy, $plaska];
 }
 
 function pmg_json($data, $status = 200)
