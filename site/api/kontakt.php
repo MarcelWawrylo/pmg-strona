@@ -1,11 +1,19 @@
 <?php
-// Formularz kontaktowy (kontakt.html) → e-mail na adres z config.php. Odpowiedź JSON.
+// Formularz kontaktowy (kontakt.html) → e-mail na adres z config.php. Odpowiedź JSON (fetch z main.js);
+// zwykły POST z przeglądarki (bez JS, Accept: text/html) kończy się przekierowaniem na kontakt.html?wyslano=1 lub ?blad=1.
 require __DIR__ . '/lib.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') pmg_json(['ok' => false, 'error' => 'Metoda niedozwolona.'], 405);
 
+$html = stripos((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'text/html') !== false;
+$respond = function (array $data, $status = 200) use ($html) {
+    if (!$html) pmg_json($data, $status);
+    header('Location: ../kontakt.html?' . (!empty($data['ok']) ? 'wyslano=1' : 'blad=1') . '#formularz', true, 303);
+    exit;
+};
+
 // honeypot: pole niewidoczne dla ludzi — boty je wypełniają; udajemy sukces
-if (($_POST['website'] ?? '') !== '') pmg_json(['ok' => true]);
+if (($_POST['website'] ?? '') !== '') $respond(['ok' => true]);
 
 $clean = function ($k, $max) {
     $v = trim((string) ($_POST[$k] ?? ''));
@@ -17,10 +25,10 @@ $subject = str_replace(["\r", "\n"], ' ', $clean('subject', 150));
 $message = $clean('message', 5000);
 
 if ($name === '' || $subject === '' || $message === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    pmg_json(['ok' => false, 'error' => 'Uzupełnij wszystkie pola i podaj poprawny adres e-mail.'], 422);
+    $respond(['ok' => false, 'error' => 'Uzupełnij wszystkie pola i podaj poprawny adres e-mail.'], 422);
 }
 if (!pmg_rate_ok('kontakt', 5, 600)) {
-    pmg_json(['ok' => false, 'error' => 'Za dużo wiadomości w krótkim czasie. Spróbuj za kilka minut.'], 429);
+    $respond(['ok' => false, 'error' => 'Za dużo wiadomości w krótkim czasie. Spróbuj za kilka minut.'], 429);
 }
 
 $c = pmg_config();
@@ -34,4 +42,4 @@ $headers = implode("\r\n", [
 $body = $message . "\n\n—\n" . $name . "\n" . $email . "\n(wiadomość z formularza na stronie PMG)";
 $sent = mail($c['mail_to'], '=?UTF-8?B?' . base64_encode('[Strona PMG] ' . $subject) . '?=', $body, $headers);
 
-$sent ? pmg_json(['ok' => true]) : pmg_json(['ok' => false, 'error' => 'Nie udało się wysłać wiadomości.'], 500);
+$sent ? $respond(['ok' => true]) : $respond(['ok' => false, 'error' => 'Nie udało się wysłać wiadomości.'], 500);

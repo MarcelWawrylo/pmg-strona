@@ -604,6 +604,10 @@
     if (!form) return;
     var error = $('[data-form-error]', form);
     var status = $('[data-form-status]', form);
+    // powrót po zwykłym POST (bez JS): api/kontakt.php przekierowuje na kontakt.html?wyslano=1 albo ?blad=1
+    var back = new URLSearchParams(location.search);
+    if (back.get('wyslano') === '1') status.textContent = 'Dziękujemy! Wiadomość wysłana — odpowiemy jak najszybciej.';
+    else if (back.get('blad') === '1') status.textContent = 'Nie udało się wysłać wiadomości. Sprawdź pola i spróbuj ponownie albo napisz bezpośrednio na adres e-mail poniżej.';
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var fields = $$('.field__input', form);
