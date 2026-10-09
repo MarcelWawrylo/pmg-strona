@@ -256,6 +256,87 @@
     });
   }
 
+  /* ---------- PM Session „Czym jest”: taśmy tekstu w intro (style.css, .pms-intro__tape) ----------
+     Taśmy przesuwają się tylko wtedy, gdy strona się przewija (prędkość zależna od przewijania, kierunek z data-dir,
+     prędkość z data-speed). Bez GSAP: scroll + rAF; pętla działa tylko, dopóki wygładzona pozycja nie dogoni przewinięcia,
+     więc gdy przewijanie stoi, nic się nie rusza. Każda taśma składa się z tylu powtórzeń, by objęła ekran i jedno
+     powtórzenie zapasu; przesunięcie modulo szerokość powtórzenia, więc nigdy nie widać pustego końca.
+     Telefon (≤ 640 px): CSS zostawia jedną taśmę, tu wolniej. Ograniczony ruch: taśmy stoją. */
+  function initPmsTapes() {
+    var section = $('[data-pms-intro]');
+    var tapes = section ? $$('.pms-intro__tape', section) : [];
+    if (!tapes.length) return;
+    var narrow = window.matchMedia('(max-width: 640px)');
+    var texts = [];   // tekst jednego powtórzenia każdej taśmy (z HTML, czytany raz)
+    var items = [];   // zbudowane taśmy: track, szerokość powtórzenia, kierunek, prędkość
+    var pos = 0;      // wygładzona pozycja przewijania (px)
+    var raf = 0, rt = 0;
+
+    var unit = function (text) {
+      var span = document.createElement('span');
+      span.className = 'pms-intro__unit';
+      span.textContent = text;
+      return span;
+    };
+
+    var build = function () {
+      var vw = window.innerWidth || document.documentElement.clientWidth || 1280;
+      items = [];
+      tapes.forEach(function (tape, i) {
+        var track = $('.pms-intro__track', tape);
+        if (!track) return;
+        if (texts[i] === undefined) {
+          var first = $('.pms-intro__unit', track);
+          texts[i] = first ? first.textContent : '';
+        }
+        if (!texts[i]) return;
+        track.textContent = '';
+        var probe = unit(texts[i]);
+        track.appendChild(probe);
+        var unitW = probe.getBoundingClientRect().width;
+        if (!unitW) return; // taśma ukryta (telefon: tylko środkowa)
+        var n = Math.max(2, Math.ceil(vw / unitW) + 1);
+        for (var k = 1; k < n; k++) track.appendChild(unit(texts[i]));
+        var speed = parseFloat(tape.getAttribute('data-speed')) || 0.5;
+        items.push({
+          track: track, unitW: unitW, val: '',
+          dir: parseFloat(tape.getAttribute('data-dir')) < 0 ? -1 : 1,
+          speed: narrow.matches ? speed * 0.6 : speed
+        });
+      });
+    };
+
+    // przesunięcia taśm dla bieżącej pozycji (tylko transform); lewa taśma jedzie w lewo, prawa w prawo, x w [-unitW, 0]
+    var apply = function () {
+      items.forEach(function (it) {
+        var off = reduceMotion.matches ? 0 : pos * it.speed;
+        off = ((off % it.unitW) + it.unitW) % it.unitW;
+        var x = it.dir < 0 ? -off : off - it.unitW;
+        var val = 'translate3d(' + x.toFixed(2) + 'px, 0, 0)';
+        if (val !== it.val) { it.track.style.transform = val; it.val = val; }
+      });
+    };
+
+    var frame = function () {
+      raf = 0;
+      var target = window.pageYOffset || document.documentElement.scrollTop || 0;
+      if (reduceMotion.matches) { apply(); return; }
+      pos += (target - pos) * 0.3;
+      if (Math.abs(target - pos) < 0.05) pos = target;
+      apply();
+      if (pos !== target) raf = requestAnimationFrame(frame);
+    };
+    var rebuild = function () { build(); apply(); };
+
+    pos = window.pageYOffset || document.documentElement.scrollTop || 0;
+    rebuild();
+    window.addEventListener('scroll', function () { if (!raf) raf = requestAnimationFrame(frame); }, { passive: true });
+    window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(rebuild, 120); });
+    // po wczytaniu Space Grotesk szerokość powtórzenia się zmienia — składamy taśmy od nowa
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(rebuild);
+    if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', rebuild);
+  }
+
   /* ---------- PM Session: bieżąca edycja z panelu (baner, prelegenci, harmonogram, liczby przez data-set) ---------- */
   /* Fallback: brak backendu / błąd / edycja: null = strona zostaje statyczna. Prelegenci i harmonogram
      aktualizowane niezależnie od banera — pusta lista jednego z nich zostawia odpowiedni fragment statyczny. */
@@ -744,6 +825,7 @@
     initSettings();
     initTeam();
     initPmSession();
+    initPmsTapes();
     initNav();
     initSubnav();
     initToTop();
