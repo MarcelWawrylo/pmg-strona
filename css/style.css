@@ -823,10 +823,10 @@ html.nav-open body { overflow: hidden; }
 .pms-banner__lead { max-width: 720px; margin-top: 16px; text-wrap: pretty; }
 .pms-banner__lead--full { max-width: none; }
 .pms-banner__date { font: 500 15px var(--font-body); color: var(--color-text-muted); margin-top: 8px; }
-[data-page="pm-session-xiv"] .pms-banner__head { align-items: baseline; }
-[data-page="pm-session-xiv"] .pms-banner__theme { font: 400 var(--fs-lead) var(--font-head); }
-[data-page="pm-session-xiv"] .pms-banner__theme em { font-style: italic; font-weight: 700; }
-[data-page="pm-session-xiv"] .pms-banner__date { font: 500 clamp(24px, 3.9vw, 47px) var(--font-body); white-space: nowrap; margin-top: 0; }
+[data-page="pm-session-xiv"] .pms-banner__head, [data-page="pm-session-xv"] .pms-banner__head { align-items: baseline; }
+[data-page="pm-session-xiv"] .pms-banner__theme, [data-page="pm-session-xv"] .pms-banner__theme { font: 400 var(--fs-lead) var(--font-head); }
+[data-page="pm-session-xiv"] .pms-banner__theme em, [data-page="pm-session-xv"] .pms-banner__theme em { font-style: italic; font-weight: 700; }
+[data-page="pm-session-xiv"] .pms-banner__date, [data-page="pm-session-xv"] .pms-banner__date { font: 500 clamp(24px, 3.9vw, 47px) var(--font-body); white-space: nowrap; margin-top: 0; }
 .pms-about { padding: 0 0 58px; }
 .pms-about__grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 34px; align-items: center; }
 @media (max-width: 960px) { .pms-about__grid { grid-template-columns: minmax(0, 1fr); } }
@@ -868,19 +868,19 @@ html.nav-open body { overflow: hidden; }
 .speaker.is-open { transform: var(--card-lift); box-shadow: var(--card-shadow-hover); }
 .speaker__name::after { content: "▾" / ""; display: inline-block; margin-left: 6px; color: var(--color-text-muted); transition: transform var(--ease); }
 .speaker.is-open .speaker__name::after { transform: rotate(180deg); }
-[data-page="pm-session-xiv"] .speakers { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 20px; }
-[data-page="pm-session-xiv"] .speaker { padding: 16px; }
-[data-page="pm-session-xiv"] .speaker__name { display: block; margin-top: 12px; font-size: 18px; }
+[data-page="pm-session-xiv"] .speakers, [data-page="pm-session-xv"] .speakers { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 20px; }
+[data-page="pm-session-xiv"] .speaker, [data-page="pm-session-xv"] .speaker { padding: 16px; }
+[data-page="pm-session-xiv"] .speaker__name, [data-page="pm-session-xv"] .speaker__name { display: block; margin-top: 12px; font-size: 18px; }
 @media (max-width: 640px) {
-  [data-page="pm-session-xiv"] .speakers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-  [data-page="pm-session-xiv"] .speaker { padding: 10px; }
-  [data-page="pm-session-xiv"] .speaker__name { margin-top: 10px; font-size: 16px; }
+  [data-page="pm-session-xiv"] .speakers, [data-page="pm-session-xv"] .speakers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  [data-page="pm-session-xiv"] .speaker, [data-page="pm-session-xv"] .speaker { padding: 10px; }
+  [data-page="pm-session-xiv"] .speaker__name, [data-page="pm-session-xv"] .speaker__name { margin-top: 10px; font-size: 16px; }
 }
-[data-page="pm-session-xiv"] .speaker__name::after { content: none; }
+[data-page="pm-session-xiv"] .speaker__name::after, [data-page="pm-session-xv"] .speaker__name::after { content: none; }
 /* PM Session XIV: karty równej wysokości w wierszu, niezależnie od długości nazwiska */
-[data-page="pm-session-xiv"] .speakers { align-items: stretch; }
-[data-page="pm-session-xiv"] .speaker { display: flex; flex-direction: column; }
-[data-page="pm-session-xiv"] .speaker__card { display: flex; flex-direction: column; flex: 1 1 auto; }
+[data-page="pm-session-xiv"] .speakers, [data-page="pm-session-xv"] .speakers { align-items: stretch; }
+[data-page="pm-session-xiv"] .speaker, [data-page="pm-session-xv"] .speaker { display: flex; flex-direction: column; }
+[data-page="pm-session-xiv"] .speaker__card, [data-page="pm-session-xv"] .speaker__card { display: flex; flex-direction: column; flex: 1 1 auto; }
 .speaker__card { all: unset; box-sizing: border-box; display: block; width: 100%; cursor: pointer; }
 .speaker__card:focus-visible { outline: 3px solid var(--color-blue); outline-offset: 3px; border-radius: 12px; }
 @media (hover: hover) {
