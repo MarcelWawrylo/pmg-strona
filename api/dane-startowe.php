@@ -6,7 +6,7 @@
 // Plik zwraca tablicę (nie JSON): na serwerze z PHP otwarty w przeglądarce nic nie wypisuje (na GitHub Pages widać go jako tekst,
 // ale to te same, publiczne treści co w HTML). Zdjęcia: ścieżki do istniejących plików w img/
 // (strona składa adres jako katalog_strony + ścieżka, panel jako ../ + ścieżka) — nic nie jest kopiowane do uploads/.
-// Pominięte, bo ich nie ma w HTML: rekrutacja_tekst (zostaje pusty), opisy prelekcji (tylko w HTML), edycja XV.
+// Pominięte, bo ich nie ma w HTML: rekrutacja_tekst (zostaje pusty), edycja XV.
 return [
     // Ustawienia ogólne (Ustawienia strony).
     'ustawienia' => [
@@ -27,18 +27,21 @@ return [
         'pms_warsztatow' => '111',
         'pms_symulacji' => '8',
     ],
-    // Aktualności. W HTML data to „do ustalenia”, a kolumna data jest NOT NULL: null = data dnia wczytania, wpis jako SZKIC.
+    // Aktualności. W HTML data to „do ustalenia”, a kolumna data jest NOT NULL, więc daty są TYMCZASOWE (decyzja Marcela 9.10.2026:
+    // 15, 20 i 25 września 2026 w kolejności tablicy), a wpisy wczytują się jako OPUBLIKOWANE; data null = dzisiejsza data i SZKIC.
+    // lead = akapit pod tytułem w artykule; zajawka = krótki tekst na kafelku (strona główna i lista Aktualności).
     // Kolejność tablicy = kolejność wstawiania; najnowszy id (ostatni) trafia na stronie na górę, więc tablica jest odwrócona
     // względem HTML (HTML: stary-zarzad, nowy-zarzad, das). Slugi jak w kotwicach #wpis-… w HTML.
-    // kategoria nie występuje w HTML — „Życie koła” / „Wydarzenie” to propozycja do zatwierdzenia.
+    // Kategorii nie ma w HTML, a Aktualności są bez kategorii (decyzja Marcela), więc kategoria jest pusta.
     'aktualnosci' => [
         [
             'slug' => 'das',
-            'data' => null,
-            'kategoria' => 'Wydarzenie',
+            'data' => '2026-09-15',
+            'kategoria' => '',
             'kolor' => 'pink',
             'tytul' => 'DAS 2026: tak prezentowaliśmy PMG',
-            'zajawka' => '12 marca 2026 roku, jako Koło Naukowe Project Management Group, mieliśmy przyjemność wziąć udział w Dniu Aktywności Studenckiej – DAS, gdzie jak co semestr z dumą prezentowaliśmy naszą działalność.',
+            'lead' => '12 marca 2026 roku, jako Koło Naukowe Project Management Group, mieliśmy przyjemność wziąć udział w Dniu Aktywności Studenckiej – DAS, gdzie jak co semestr z dumą prezentowaliśmy naszą działalność.',
+            'zajawka' => '12 marca 2026 roku prezentowaliśmy koło na Dniu Aktywności Studenckiej. Zobacz, co przygotowaliśmy dla odwiedzających.',
             'tresc' => 'Wydarzenie cieszyło się ogromnym zainteresowaniem, a wspaniała atmosfera sprzyjała wielu inspirującym rozmowom ze studentami. Nasze stoisko wyróżniało się niebieskimi i różowymi balonami, materiałami promocyjnymi z kodami QR i uśmiechniętą ekipą, która skutecznie przyciągała uwagę odwiedzających.
 
 Chcąc zaprezentować nasze kreatywne podejście, przygotowaliśmy dla uczestników serię angażujących wyzwań marketingowych. Odwiedzający mogli spróbować swoich sił w „Bazarze Absurdu”, gdzie mieli zaledwie 30 sekund na opracowanie strategii sprzedaży dla tak nietypowych przedmiotów, jak na przykład dziurawa skarpetka. Kolejnym zadaniem był „Brainstorm 2.0”, polegający na błyskawicznym rozwiązywaniu abstrakcyjnych problemów, takich jak zaplanowanie promocji wydarzenia przy zerowym budżecie. Z kolei na osoby lubiące działać pod presją czasu czekała „Puszka Pandory”, w której za uratowanie wizerunku marki w obliczu wylosowanego kryzysu w jedyne 10 sekund nagradzaliśmy śmiałków ciastkami i cukierkami.
@@ -50,11 +53,12 @@ Serdecznie dziękujemy wszystkim za obecność, zaangażowanie i każdą owocną
         ],
         [
             'slug' => 'nowy-zarzad',
-            'data' => null,
-            'kategoria' => 'Życie koła',
+            'data' => '2026-09-20',
+            'kategoria' => '',
             'kolor' => 'purple',
             'tytul' => 'Poznaj nowy zarząd PMG, kadencja 2026/2027',
-            'zajawka' => 'Z ogromną radością i nową energią do działania prezentujemy nasz nowy zarząd Koła Naukowego Project Management Group na kadencję 2026/2027!',
+            'lead' => 'Z ogromną radością i nową energią do działania prezentujemy nasz nowy zarząd Koła Naukowego Project Management Group na kadencję 2026/2027!',
+            'zajawka' => 'Z ogromną radością i nową energią do działania prezentujemy nasz nowy zarząd na kadencję 2026/2027!',
             'tresc' => 'Na najnowszym pamiątkowym zdjęciu, stoją od lewej, reprezentują nas: Martyna Strzecha (Koordynatorka sekcji HR), Agnieszka Jachimiak (Wiceprezes), Łucja Próchnicka (Koordynatorka sekcji Marketingu), Michał Golisz (Koordynator sekcji Partnerów i Kontaktów), Jakub Porada (Prezes koła) oraz Michał Zajdel (Koordynator sekcji Finansów i Logistyki). W nowym roku akademickim oferują gotowość na podjęcie nadchodzących wyzwań i zamierzają z ogromnym zaangażowaniem kontynuować nasze dotychczasowe, flagowe projekty.
 
 Priorytetem nowego zarządu jest prężny rozwój koła oraz budowanie trwałych, wartościowych relacji – zarówno wewnątrz naszej rosnącej społeczności, jak i ze środowiskiem akademickim oraz partnerami biznesowymi. Celem jest nieustanne poszerzenie praktycznej wiedzy z zakresu zarządzania projektami, inspirowanie innych studentów do działania i udowadnianie, że wspólnymi siłami potrafimy zrealizować każdą wizję. Przed nami wyjątkowy rok pełen ambitnych celów i z pewnością dadzą z siebie wszystko, aby wynieść PMGroup na jeszcze wyższy poziom!',
@@ -64,11 +68,12 @@ Priorytetem nowego zarządu jest prężny rozwój koła oraz budowanie trwałych
         ],
         [
             'slug' => 'stary-zarzad',
-            'data' => null,
-            'kategoria' => 'Życie koła',
+            'data' => '2026-09-25',
+            'kategoria' => '',
             'kolor' => 'violet',
             'tytul' => 'Dziękujemy zarządowi kadencji 2025/2026',
-            'zajawka' => 'Pragniemy z dumą przypomnieć i jednocześnie złożyć serdeczne podziękowania zarządowi naszego koła z kadencji 2025/2026, który z ogromnym zaangażowaniem oraz profesjonalizmem prowadził naszą organizację do kolejnych sukcesów.',
+            'lead' => 'Pragniemy z dumą przypomnieć i jednocześnie złożyć serdeczne podziękowania zarządowi naszego koła z kadencji 2025/2026, który z ogromnym zaangażowaniem oraz profesjonalizmem prowadził naszą organizację do kolejnych sukcesów.',
+            'zajawka' => 'Z dumą dziękujemy zarządowi kadencji 2025/2026 za zaangażowanie, nowy projekt Podcast i kolejną edycję PM Session.',
             'tresc' => 'Na pamiątkowej fotografii stoją od lewej: Jakub Bęben (Koordynator sekcji HR), Marta Zakierska (Koordynatorka sekcji Finansów i Logistyki), Marcel Wawryło (Koordynator sekcji Partnerzy i Kontakty), Nikol Khmura (Koordynatorka sekcji Marketingu), Łukasz Kowalski (Prezes koła) oraz Magdalena Skoczek (Wiceprezes). To właśnie za czasów ich niezwykle owocnej pracy poszerzyliśmy nasze horyzonty, powołując do życia zupełnie nową inicjatywę – regularnie prowadzony projekt Podcast. Ponadto, z dbałością o najwyższe standardy, kontynuowane były nasze dotychczasowe, kluczowe projekty, w tym Mój Idealny Pracodawca (MIP) realizowany w ścisłej współpracy z Biurem Karier Politechniki Wrocławskiej, edukacyjny Case Koła oraz prestiżowa, XIV edycja konferencji PM Session.
 
 Był to okres pełen dynamicznych działań, wyzwań i niesamowitej energii, z którymi ówczesny zarząd radził sobie wzorowo, nieustannie dbając o rozwój członków oraz pozytywny wizerunek koła. W imieniu całej społeczności Koła Naukowego Project Management Group chcemy wyrazić ogromną wdzięczność za Wasz trud, poświęcony czas, wsparcie i inspirujące przywództwo. Dziękujemy za wspaniałą kadencję i życzymy Wam dalszych, równie imponujących sukcesów na nowych ścieżkach kariery!',
@@ -107,14 +112,15 @@ Był to okres pełen dynamicznych działań, wyzwań i niesamowitej energii, z k
         ['imie' => 'Jakub', 'nazwisko' => 'Bęben', 'funkcja' => '', 'sekcja' => 'HR', 'koordynator' => 0, 'email' => 'jakub.beben.pmg@gmail.com', 'linkedin' => 'https://www.linkedin.com/in/jakub-b%C4%99ben', 'zdjecie' => null, 'zdjecie_alt' => '', 'kolejnosc' => 3],
         ['imie' => 'Julia', 'nazwisko' => 'Rybka', 'funkcja' => '', 'sekcja' => 'HR', 'koordynator' => 0, 'email' => 'julia.rybka.pmg@gmail.com', 'linkedin' => '', 'zdjecie' => null, 'zdjecie_alt' => '', 'kolejnosc' => 4],
     ],
-    // PM Session: edycja XIV. Status „szkic” (nie publiczny): HTML zawiera pełne opisy prelekcji i zdjęcia 4:3,
-    // których model panelu nie przechowuje — publikacja z panelu zastąpiłaby je skróconą wersją (patrz README).
+    // PM Session: edycja XIV, status „zakończona” (publiczna). Panel przechowuje pełne biogramy (akapity oddzielone pustą linią),
+    // opisy prelekcji, zdjęcie 4:3 (img/<baza>-43-<szerokość>.jpg; kafelek bierze kwadrat img/<baza>-560.jpg po konwencji nazwy)
+    // i znaczniki harmonogramu (w HTML ich nie ma, więc punkty bez 4. elementu). plec: m = „O prelegencie”, k = „O prelegentce”.
     'edycje' => [
         [
             'numer' => 'XIV', 'temat' => 'Zarządzanie zmianą', 'data' => '2026-04-25',
             'miejsce' => 'Budynek B-4, Politechnika Wrocławska',
             'opis' => 'W dzisiejszych projektach jedyną stałą jest... zmiana. Chcieliśmy pokazać Wam, jak przez nią nawigować i jak z sukcesem przeprowadzać przez nią zespoły.',
-            'status' => 'szkic',
+            'status' => 'zakonczona',
             'prelegenci' => [
                 [
                     'imie_nazwisko' => 'Paweł Sawicki',
@@ -124,8 +130,10 @@ Był to okres pełen dynamicznych działań, wyzwań i niesamowitej energii, z k
 Związany z BPX S.A., globalną firmą konsultingową specjalizującą się w cyfrowej transformacji przedsiębiorstw oraz kompleksowym wsparciu IT.
 
 Executive Transformation & Delivery Leader | BPX S.A.',
+                    'opis' => 'Prelekcja udowodni, że dzisiejszy Project Manager to nie tylko osoba od zarządzania, ale przede wszystkim kluczowy lider i influencer zmiany. Ponieważ aż 70% projektów upada z powodu braku aktywnego przywództwa w tym obszarze, umiejętność przekonywania innych staje się kluczowa. Podczas wystąpienia uczestnicy dowiedzą się, jak skutecznie wpływać na zespół bez formalnej władzy, wykorzystując potęgę storytellingu, empatię oraz mikroprzywództwo. Omówione zostaną również psychologiczne mechanizmy oporu wobec nowości, oparte na modelach ADKAR oraz krzywej Kübler-Ross. Całość pokaże, że projekty rzadko upadają przez braki w harmonogramach Gantta, a znacznie częściej po prostu przez brak zgody na samą zmianę.',
+                    'plec' => 'm',
                     'notatka' => '',
-                    'zdjecie' => 'img/portret-05-pawel-sawicki-560.jpg',
+                    'zdjecie' => 'img/portret-05-pawel-sawicki-43-1600.jpg',
                     'zdjecie_alt' => 'Portret: Paweł Sawicki',
                     'linkedin' => 'https://www.linkedin.com/in/pawel-sawicki-6169116a/',
                     'kolejnosc' => 1,
@@ -134,8 +142,10 @@ Executive Transformation & Delivery Leader | BPX S.A.',
                     'imie_nazwisko' => 'Marcin Orocz',
                     'temat' => 'Warsztat: „Zapomnij o wszystkim, czego się nauczyłeś na studiach. Oduczanie jako Twoja supermoc w zarządzaniu projektami”',
                     'bio' => 'Doświadczony doradca biznesowy i konsultant ds. optymalizacji procesów, który przez ponad 15 lat pracował w różnych obszarach zarządzania, włączając w to zarządzanie IT, sprzedażą oraz omnichannel. Jego bogate doświadczenie obejmuje pełnienie funkcji w globalnych organizacjach oraz udział w cyfrowej transformacji firm. Marcin jest ekspertem w budowaniu skutecznych zespołów, kierowaniu zmianami i zarządzaniu wartością dla klienta. Jako mówca motywacyjny i konferansjer dzieli się swoją wiedzą i inspiruje innych do osiągania sukcesu.',
+                    'opis' => 'Przychodzisz na studia po wiedzę, ale w zarządzaniu zmianą Twoim największym atutem będzie umiejętność... pozbywania się jej. Podczas gdy inni będą mówić o wykresach Gantta i mądrych definicjach, my pogadamy o tym, dlaczego Twoja piątka z „Teorii zarządzania” może być Twoim największym hamulcem w realnym projekcie. Pokażę Ci, jak oduczyć się akademickich schematów, zanim rynek zweryfikuje je za Ciebie.',
+                    'plec' => 'm',
                     'notatka' => '',
-                    'zdjecie' => 'img/portret-03-marcin-orocz-560.jpg',
+                    'zdjecie' => 'img/portret-03-marcin-orocz-43-1200.jpg',
                     'zdjecie_alt' => 'Portret: Marcin Orocz',
                     'linkedin' => 'https://www.linkedin.com/in/marcinorocz/',
                     'kolejnosc' => 2,
@@ -158,8 +168,14 @@ Rozwija temat Lean Blockchain, zajmując się połączeniem technologii blockcha
 Współtwórca największej w Polsce konferencji Lean oraz AI.
 
 Prywatnie – tata trzech synów, pasjonat tenisa, biegania i sportów wytrzymałościowych. Ukończył wiele maratonów i półmaratonów w Polsce i za granicą.',
+                    'opis' => 'Ten warsztat koncentruje się na praktycznym przełożeniu strategii na codzienne działania w organizacji, w oparciu o podejście rozwijane w Toyota Motor Corporation. Uczestnicy poznają, jak wykorzystać Hoshin Kanri do skutecznego zarządzania zmianą – od zdefiniowania „prawdziwej północy” (True North), przez budowę spójnej wizji i misji, aż po kaskadowanie celów strategicznych na poziom roczny i operacyjny.
+
+W trakcie warsztatu przepracujemy sposób formułowania celów, zadań, mierników oraz metod działania tak, aby tworzyły one logiczny i mierzalny system zarządzania. Szczególny nacisk położymy na to, jak zapewnić realne wdrożenie strategii – wykorzystując Toyota Kata jako mechanizm codziennego uczenia się, eksperymentowania i utrwalania zmiany w organizacji.
+
+Efektem będzie zestaw konkretnych narzędzi i praktyk, które pomagają przejść od deklaracji strategicznych do trwałych rezultatów operacyjnych.',
+                    'plec' => 'm',
                     'notatka' => 'Wspólny warsztat z Wiktorem Wołoszczukiem',
-                    'zdjecie' => 'img/portret-09-bartosz-misiurek-560.jpg',
+                    'zdjecie' => 'img/portret-09-bartosz-misiurek-43-667.jpg',
                     'zdjecie_alt' => 'Portret: Bartosz Misiurek',
                     'linkedin' => 'https://www.linkedin.com/in/bartosz-misiurek/',
                     'kolejnosc' => 3,
@@ -180,8 +196,14 @@ W LeanTrix zajmuje się wdrażaniem metodologii Toyota Kata i TWI, współrealiz
 Wiktor jest również współzałożycielem Kata School Poland – pierwszej oficjalnie działającej szkoły Kata w Polsce, tworząc forum praktyków doskonalenia codziennego i coachingu Kata oraz integrując lokalną społeczność Kata.
 
 Dzięki wieloletniemu doświadczeniu operacyjnemu, psychologicznemu i trenerskiemu, łączy podejście analityczne z coachingiem ludzkiego potencjału – umożliwia liderom lepsze zrozumienie podejścia systemowego do rozwoju organizacji i budowania kultury ciągłego doskonalenia.',
+                    'opis' => 'Ten warsztat koncentruje się na praktycznym przełożeniu strategii na codzienne działania w organizacji, w oparciu o podejście rozwijane w Toyota Motor Corporation. Uczestnicy poznają, jak wykorzystać Hoshin Kanri do skutecznego zarządzania zmianą – od zdefiniowania „prawdziwej północy” (True North), przez budowę spójnej wizji i misji, aż po kaskadowanie celów strategicznych na poziom roczny i operacyjny.
+
+W trakcie warsztatu przepracujemy sposób formułowania celów, zadań, mierników oraz metod działania tak, aby tworzyły one logiczny i mierzalny system zarządzania. Szczególny nacisk położymy na to, jak zapewnić realne wdrożenie strategii – wykorzystując Toyota Kata jako mechanizm codziennego uczenia się, eksperymentowania i utrwalania zmiany w organizacji.
+
+Efektem będzie zestaw konkretnych narzędzi i praktyk, które pomagają przejść od deklaracji strategicznych do trwałych rezultatów operacyjnych.',
+                    'plec' => 'm',
                     'notatka' => 'Wspólny warsztat z Bartoszem Misiurkiem',
-                    'zdjecie' => 'img/portret-10-wiktor-woloszczuk-560.jpg',
+                    'zdjecie' => 'img/portret-10-wiktor-woloszczuk-43-731.jpg',
                     'zdjecie_alt' => 'Portret: Wiktor Wołoszczuk',
                     'linkedin' => 'https://www.linkedin.com/in/wiktorwoloszczuk/',
                     'kolejnosc' => 4,
@@ -190,8 +212,10 @@ Dzięki wieloletniemu doświadczeniu operacyjnemu, psychologicznemu i trenerskie
                     'imie_nazwisko' => 'Paweł Sukiennik',
                     'temat' => 'Prelekcja: „Dyrektywa NIS2 jako projekt zmiany w czasie transformacji energetycznej”',
                     'bio' => 'Dyrektor ds. Cyberbezpieczeństwa OT w Transition Technologies-Control Solutions odpowiedzialny za realizację projektów związanych z bezpieczeństwem systemów OT. Absolwent Wydziału Elektroniki na kierunku Automatyka i Robotyka na Politechnice Wrocławskiej. Członek stowarzyszenia w ISA oraz ISSA Polska. Certyfikowany specjalista w zakresie normy ISA/IEC 62443 dotyczącej bezpieczeństwa przemysłowych systemów automatyki i sterowania. Praktyk, posiadający 10-letni staż pracy jako integrator rozwiązań z zakresu automatyki przemysłowej oraz cyberbezpieczeństwa na wielu instalacjach infrastruktury krytycznej w Polsce i za granicą.',
+                    'opis' => 'Transformacja energetyczna w Polsce — obejmująca nowe technologie, rozproszone źródła, cyfryzację i integrację IT/OT — diametralnie zmienia sposób funkcjonowania organizacji sektora energii, zwiększając ich złożoność i wrażliwość operacyjną. Wystąpienie pokazuje, jak wymagania NIS2 wpisują się w ten proces jako wymuszona, ale potrzebna zmiana organizacyjna, redefiniująca role, odpowiedzialności i sposób zarządzania ryzykiem w nowym krajobrazie energetycznym.',
+                    'plec' => 'm',
                     'notatka' => '',
-                    'zdjecie' => 'img/portret-07-pawel-sukiennik-560.jpg',
+                    'zdjecie' => 'img/portret-07-pawel-sukiennik-43-1142.jpg',
                     'zdjecie_alt' => 'Portret: Paweł Sukiennik',
                     'linkedin' => 'https://www.linkedin.com/in/pawe%C5%82-sukiennik-242386199/',
                     'kolejnosc' => 5,
@@ -200,8 +224,10 @@ Dzięki wieloletniemu doświadczeniu operacyjnemu, psychologicznemu i trenerskie
                     'imie_nazwisko' => 'Wojciech Buła',
                     'temat' => 'Prelekcja: „21,5 miliona złotych i zero przychodów – jak zarządzać zmianą, kiedy kończy się paliwo”',
                     'bio' => 'Wojciech Buła, PhD, EMBA – z wykształcenia inżynier elektronik (Politechnika Wrocławska), z doktoratu nanotechnolog (MESA+ Institute for Nanotechnology, Uniwersytet Twente, NL), z praktyki konstruktor urządzeń analitycznych i medycznych, a z powołania – człowiek, który buduje rzeczy, których jeszcze nie ma, i czuje się w chaosie jak w domu. Przez 20 lat projektował mikroreaktory w Holandii, analizatory zanieczyszczeń wody w Hiroszimie, diagnostykę biomarkerów na platformie lab-on-a-chip do zastosowań domowych – zanim stało się to modne – w Tokio i San Francisco, nawiązując po drodze współpracę z ASICS i SpaceX – bo dlaczego nie testować zdrowia zarówno na maratonie, jak i w kosmosie? Po drodze przeszedł przez największy accelerator dla hardware’owych startupów HAX/SOSV na kampusie w Shenzhen, zebrał Gold Edison Award, wygrał CES Innovation Award i zdobył MBA w SGH z pierwszą lokatą — bo skoro już zmieniać branżę, to z przytupem (i dyplomem). Współzałożyciel dwóch (i pół, z tendencją rosnącą) startupów deep-tech, z których każdy nauczył go czegoś nowego o zarządzaniu zmianą — głównie tego, że teoria rzadko przeżywa kontakt z rzeczywistością. Na co dzień CTO Orthoget S.A., gdzie współtworzy implanty ortopedyczne do korekty wzrostu, partner w software house wprowadzający AI w procesy biznesowe, a w wolnych chwilach wykładowca SGH i członek rady programowej MBA for Startups, gdzie dzieli się ze studentami wiedzą, której sam nie miał, kiedy jej najbardziej potrzebował. Przeszedł drogę od naukowca, startupera, konsultanta do nauczyciela, świadomy, że najlepsze decyzje biznesowe podejmuje się zwykle z niepełną informacją i zimną kawą w ręku. Widział, jak nie działa akademia, nauka, startupy i wielkie korporacje przywiązane są do tego, jak się robiło rzeczy w przeszłości. Startupową krwią i potem zapłacił za zrozumienie, że jedyną stałą rzeczą w nowoczesnym świecie jest ciągła zmiana.',
+                    'opis' => 'Każdy startup przeżywa moment, w którym wizja zderza się z rzeczywistością: budżet się kurczy, inwestorzy tracą cierpliwość, a produkt wciąż nie jest gotowy. Opowiem o zarządzaniu zmianą w warunkach ograniczonych zasobów – jak podejmować decyzje o pivotach, cięciach i przebudowie strategii, kiedy stawką jest przetrwanie firmy. O nocnych telefonach z inwestorami w trzech strefach czasowych, o prototypach, które nie przeszły testów dzień przed demo day, i o tym, jak wygląda poranna kawa, kiedy na koncie zostało na trzy miesiące. Konkretne przypadki z trzech startupów deep-tech – od diagnostyki medycznej po implanty ortopedyczne: co zadziałało, co nie, i czego nie uczą na studiach z zarządzania (ale powinni).',
+                    'plec' => 'm',
                     'notatka' => '',
-                    'zdjecie' => 'img/portret-02-wojciech-bula-560.jpg',
+                    'zdjecie' => 'img/portret-02-wojciech-bula-43-1600.jpg',
                     'zdjecie_alt' => 'Portret: Wojciech Buła',
                     'linkedin' => 'https://www.linkedin.com/in/wpbula/',
                     'kolejnosc' => 6,
@@ -210,8 +236,16 @@ Dzięki wieloletniemu doświadczeniu operacyjnemu, psychologicznemu i trenerskie
                     'imie_nazwisko' => 'Yevhen Khimichuk',
                     'temat' => 'Warsztat: „Zarządzanie zmianą w formie projektu: wyznaczenie i sterowanie zakresem zmiany”',
                     'bio' => 'Yevhen Khimichuk (po polsku Eugeniusz Chimiczuk) jest kierownikiem działu finansów oraz przewodniczącym komisji rewizyjnej IPMA Young Crew, absolwentem studiów podyplomowych „Zarządzanie projektami” na Politechnice Warszawskiej oraz magistrem stosunków międzynarodowych na Uczelni Łazarskiego. Jest wieloletnim analitykiem ds. bezpieczeństwa i obronności Klubu Jagiellońskiego (od 2016 roku), ze specjalizacją przemysł i technologie obronne, oraz wieloletnim pracownikiem międzynarodowych korporacji.',
+                    'opis' => 'Warsztat obejmuje trzy części:
+
+1) Zmiana jak projekt: zarządzanie zakresem zmiany w kontekście programu/portfelu. Ćwiczenie 1: brainstorming branż i sytuacji, w których uzasadnione jest wykorzystanie takiego modelu.
+
+2) Przygotowanie się do zmiany: rozpoznanie biznesowe, zarys uzasadnienia biznesowego zmiany i wynikający z tego zakres zmiany.
+
+3) Priorytetyzacja zmian – zarządzanie kaskadowe vs iteracyjne w zarządzaniu projektem. Przybliżenie zagadnienia zarządzania tolerancją w harmonogramie zmiany. Ćwiczenie 2: Przygotowanie kolejności zmian. Ćwiczenie 3: Przygotowanie harmonogramu projektu zmian i transformacji.',
+                    'plec' => 'm',
                     'notatka' => '',
-                    'zdjecie' => 'img/portret-04-yevhen-khimichuk-560.jpg',
+                    'zdjecie' => 'img/portret-04-yevhen-khimichuk-43-1600.jpg',
                     'zdjecie_alt' => 'Portret: Yevhen Khimichuk',
                     'linkedin' => 'https://www.linkedin.com/in/yevhen-khimichuk-272198b2/',
                     'kolejnosc' => 7,
@@ -226,8 +260,26 @@ Specjalizuje się w usprawnianiu pracy zespołów, automatyzacji i wykorzystywan
 Po godzinach (a czasem i w godzinach) Marek zamienia się w warsztatowego ninja – prowadzi szkolenia z AI, Design Thinking, etyki technologii i szeroko pojętego „jak ogarnąć ten chaos wokół nas”. Na koncie ma setki przeszkolonych osób: od studentów, przez specjalistów, po liderów. Występował na konferencjach, prowadził warsztaty dla dzieci, młodzieży i dorosłych – czasem w jednej grupie (true story).
 
 Lubi tłumaczyć skomplikowane rzeczy w prosty sposób, najlepiej z odrobiną humoru i przykładami, które zostają w głowie dłużej niż poniedziałkowe stand-upy. Wierzy, że AI nie zastąpi ludzi – ale może bardzo pomóc tym, którzy wiedzą, jak z niego korzystać.',
+                    'opis' => 'Czy zdarzyło Ci się kiedyś planować zmianę w organizacji tak długo, że w momencie wdrożenia świat wyglądał już zupełnie inaczej, a połowa zespołu zdążyła zapomnieć, o co w ogóle chodziło? Witaj w klubie. Tradycyjne zarządzanie zmianą bywa jak próba zawrócenia kontenerowca za pomocą wiosła – niby się da, ale pot i łzy są gwarantowane.
+
+W 2026 roku nie mamy na to czasu. Na tym warsztacie odstawimy na boczny tor nudne wykłady i zajmiemy się konkretami. Pokażę Ci, jak zaprząc AI do roboty, której nikt nie lubi: mozolnej analizy interesariuszy, pisania dziesiątek komunikatów i przewidywania, kto tym razem powie, że stare było lepsze.
+
+Co Cię czeka?
+
+Zamiast teorii wrzucimy Cię na głęboką wodę w projekcie Aurora (nazwa może ulec zmianie :) ). To logistyczny koszmar, w którym autonomiczne roboty i agenci AI wywracają życie pracowników do góry nogami. Twoim zadaniem będzie uratować ten okręt, zanim zatonie w morzu oporu i frustracji.
+
+Czego nie będzie?
+
+Nie będziemy udawać, że AI rozwiąże za Ciebie konflikty przy ekspresie do kawy albo przytuli smutnego managera. Technologia zajmie się strukturą i danymi, żebyś Ty mógł w końcu zająć się ludźmi.
+
+Dlaczego warto?
+
+Bo wyjdziesz z gotowym zestawem narzędzi (promptów), które możesz przetestować w pracy już w poniedziałek rano. Dowiesz się, jak skrócić planowanie o 70 procent i jak sprawić, by komunikacja zmiany przestała brzmieć jak generowany przez bota korpo-bełkot, nawet jeśli... faktycznie wygenerował ją bot.
+
+Przyjdź, jeśli chcesz dowiedzieć się, jak zostać architektem zmiany, który zamiast walczyć z wiatrakami, po prostu montuje na nich turbiny. AI nie zabierze Ci pracy, ale może sprawić, że w końcu zaczniesz ją lubić.',
+                    'plec' => 'm',
                     'notatka' => '',
-                    'zdjecie' => 'img/portret-06-marek-malinowski-560.jpg',
+                    'zdjecie' => 'img/portret-06-marek-malinowski-43-1600.jpg',
                     'zdjecie_alt' => 'Portret: Marek Malinowski',
                     'linkedin' => 'https://www.linkedin.com/in/malinowski-marek/',
                     'kolejnosc' => 8,
@@ -242,8 +294,10 @@ Posiada bogate, ponad 18-letnie doświadczenie w obszarze HR, rekrutacji i rozwo
 Obecnie łączy praktykę z nauką, prowadząc wykłady na Uniwersytecie SWPS we Wrocławiu, gdzie dzieli się swoją wiedzą i doświadczeniem. Kontynuuje także działalność jako konsultantka, realizując projekty rozwojowe dla firm i pracowników, a także prowadząc badania naukowe, których celem jest lepsze zrozumienie mechanizmów zaangażowania w pracę.
 
 Jej podejście opiera się na integracji wiedzy akademickiej z realiami biznesu, co pozwala na tworzenie skutecznych i opartych na dowodach rozwiązań dla organizacji.',
+                    'opis' => 'Projekty rzadko upadają przez błędy w harmonogramie – znacznie częściej ich sukces zależy od odporności psychicznej ludzi i ich gotowości na zmianę. Podczas spotkania przyjrzymy się kapitałowi psychologicznemu jako kluczowemu zasobowi, który pozwala liderom i zespołom zachować skuteczność oraz odporność w obliczu transformacyjnego chaosu. Pokażę, jak w oparciu o psychologię biznesu budować trwałe zaangażowanie i zarządzać „ludzką stroną projektu” tam, gdzie techniczne narzędzia przestają wystarczać.',
+                    'plec' => 'k',
                     'notatka' => '',
-                    'zdjecie' => 'img/portret-08-aleksandra-penza-560.jpg',
+                    'zdjecie' => 'img/portret-08-aleksandra-penza-43-800.jpg',
                     'zdjecie_alt' => 'Portret: Aleksandra Penza',
                     'linkedin' => 'https://www.linkedin.com/in/aleksandrapenza/',
                     'kolejnosc' => 9,
@@ -262,8 +316,18 @@ Wspiera organizacje w głębokich, zwinnych transformacjach.
 Pomaga małym i średnim firmom zrozumieć wyzwania współczesnego biznesu i rozwijać się niezależnie od zewnętrznej koniunktury.
 
 Twórca programu „Wewnętrzna Siła”, będącego inspiracją dla ludzi stojących na różnego rodzaju zakrętach życia i kariery.',
+                    'opis' => 'Ta prelekcja zamknie tegoroczną edycję Project Management Session. Przeznaczona tylko dla wytrwałych. Tych, co nie boją się zadać sobie ważnych pytań i mają w sobie odwagę wziąć los w swoje ręce – nawet tam, gdzie robi się naprawdę stromo.
+
+Istnieją dziesiątki skutecznych metodologii, jak przechodzić przez zmianę i jak przeprowadzać przez nią innych. A jednak niezwykle trudno jest utrzymać dyscyplinę w zmianie – zwłaszcza wtedy, gdy perspektywa wyników jest bardzo odległa w czasie.
+
+Sam nie mam patentu, jak uniknąć upadków i przejść przez zmianę suchą nogą. Zabiorę Cię za to w mój świat. Budowany przez długie lata na bardzo solidnych podstawach. I choć to nie ma prawa runąć, to jednak pewnego dnia budzisz się w środku niczego. I kiedy nie masz już prawie nic, zostaje Ci to, co najważniejsze – Ty, Twoje przekonania i ograniczenia. I to od nich zależy, czy zwycięży bezradność, czy zakiełkuje odwaga, by odbudować wszystko zupełnie inaczej.
+
+Koniecznie miej ze sobą coś do pisania. Słowa, które zapiszesz, staną się Twoim GPS, na wypadek, gdyby wszystkie inne mapy i drogowskazy zawiodły.
+
+Zapraszam Cię bardzo serdecznie!',
+                    'plec' => 'm',
                     'notatka' => '',
-                    'zdjecie' => 'img/portret-01-andrzej-klose-560.jpg',
+                    'zdjecie' => 'img/portret-01-andrzej-klose-43-1600.jpg',
                     'zdjecie_alt' => 'Portret: Andrzej Klose',
                     'linkedin' => 'https://www.linkedin.com/in/andrzej-klose/',
                     'kolejnosc' => 10,
