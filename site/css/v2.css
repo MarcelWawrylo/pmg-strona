@@ -81,14 +81,8 @@ html.lenis, html.lenis body { height: auto; }
 .v2 a[href="case-kola-pwr-racing-team.html"] .case-card__media, .v2 a[href="case-kola-debatelab.html"] .case-card__media, .v2 a[href="case-kola-qubit.html"] .case-card__media { view-transition-name: none; }
 
 /* ---------- PM Session: zdanie kolorowane słowo po słowie ---------- */
-.v2-enhanced .pms-about { padding-top: 40px; --pms-about-top: 40px; }
 .v2-enhanced .pms-about.v2-words-ready .pms-about__text { color: var(--color-ink); }
 .v2-word { color: var(--color-text-muted); transition: color .15s linear; }
-
-/* ---------- PM Session „Czym jest”: reszta zdania odsłaniana przewijaniem pod „Konferencja naukowa” (v2.js initPmsIntro) ---------- */
-/* do czasu przygotowania słów przez v2.js reszta jest niewidoczna, ale zajmuje miejsce (bez skoku układu); gdy biblioteki się nie wczytają, v2.js zdejmuje .v2-enhanced i reszta wraca */
-.v2-enhanced .pms-intro:not(.is-reveal) .pms-intro__rest { opacity: 0; }
-.pms-intro__bg { transform-origin: 50% 50%; }
 
 /* ---------- Dołącz: pozioma ścieżka procesu rekrutacji (initJoinPath w v2.js) ----------
    Tylko ≥ 961 px i bez reduced-motion (v2-enhanced): 4 kroki w jednym rzędzie, linia grubsza niż

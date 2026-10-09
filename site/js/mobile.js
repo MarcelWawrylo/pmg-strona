@@ -18,30 +18,6 @@
     return sr;
   }
 
-  /* ---------- PM Session „Czym jest”: reszta zdania odsłaniana przewijaniem ----------
-     Odpowiednik v2.js initPmsIntro bez GSAP i przypinania: „Konferencja naukowa” (.pms-intro__lead) zostaje nietknięta,
-     a „poświęcona zarządzaniu projektami” (.pms-intro__rest) dzielimy na słowa jak tam (spacje jako węzły tekstowe, bez
-     aria-hidden i bez duplikatu tekstu — textContent się nie zmienia). Odsłanianie słów po kolei robi CSS (style.css). */
-  function initPmsIntro() {
-    var section = document.querySelector('[data-pms-intro]');
-    var rest = section && section.querySelector('.pms-intro__rest');
-    if (!rest) return;
-
-    var n = 0;
-    var parts = rest.textContent.split(/(\s+)/);
-    rest.textContent = '';
-    parts.forEach(function (part) {
-      if (!part) return;
-      if (/^\s+$/.test(part)) { rest.appendChild(document.createTextNode(part)); return; }
-      var w = document.createElement('span');
-      w.className = 'pms-intro__word';
-      w.style.setProperty('--i', String(n++)); // numer słowa → przesunięcie odsłaniania w CSS
-      w.textContent = part;
-      rest.appendChild(w);
-    });
-    section.classList.add('is-words');
-  }
-
   /* ---------- PM Session: akapity ciemnieją słowo po słowie przy przewijaniu ----------
      Odpowiednik v2.js initPmsWords: tam GSAP scrub, tu CSS animation-timeline: view() na każdym słowie (style.css).
      Bez obsługi view() akapity zostają nietknięte. Klasa m-word, nie v2-word: v2.css ma dla .v2-word transition. */
@@ -66,6 +42,5 @@
     });
   }
 
-  initPmsIntro();
   initPmsWords();
 })();

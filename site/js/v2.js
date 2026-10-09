@@ -92,51 +92,6 @@
     });
   }
 
-  /* ---------- PM Session „Czym jest”: reszta zdania odsłania się pod „Konferencja naukowa” ----------
-     Na starcie widać tylko „Konferencja naukowa” (.pms-intro__lead); „poświęcona zarządzaniu projektami” (.pms-intro__rest)
-     zajmuje już swoje miejsce, ale ma krycie 0. Pierwszy ekran przewija się zwyczajnie; gdy góra leada dojdzie do 40% wysokości
-     okna, cały pierwszy ekran (.pms-intro__pin z tłem i bańkami) zostaje przypięty na 80% wysokości okna przewijania, a słowa
-     reszty pojawiają się kolejno w miejscu (tylko opacity, bez ruchu; słowo po słowie, więc działa też, gdy reszta zawija się
-     na 2 linie). Scrub w obie strony. Po odsłonięciu pin puszcza i strona przewija się dalej (pin-spacer ScrollTrigger, bez dziury).
-     Przypinany jest wrapper, a nie sam <h1>: pin-spacer w środku wrappera (flex, wyśrodkowanie) podniósłby zdanie na starcie.
-     Słowa zostają prawdziwym tekstem <h1> (spany bez aria-hidden, spacje jako węzły tekstowe), textContent się nie zmienia. */
-  function initPmsIntro() {
-    var section = document.querySelector('[data-pms-intro]');
-    var pin = section && section.querySelector('.pms-intro__pin');
-    var lead = section && section.querySelector('.pms-intro__lead');
-    var rest = section && section.querySelector('.pms-intro__rest');
-    if (!pin || !lead || !rest) return;
-    var gsap = window.gsap;
-
-    var words = [];
-    var parts = rest.textContent.split(/(\s+)/);
-    rest.textContent = '';
-    parts.forEach(function (part) {
-      if (!part) return;
-      if (/^\s+$/.test(part)) { rest.appendChild(document.createTextNode(part)); return; }
-      var w = document.createElement('span');
-      w.textContent = part;
-      rest.appendChild(w);
-      words.push(w);
-    });
-    gsap.set(words, { opacity: 0 });
-    section.classList.add('is-reveal');
-
-    // wejście tła (czasowe, raz) po otwarciu strony
-    var bg = section.querySelector('.pms-intro__bg');
-    if (bg) gsap.fromTo(bg, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 1.1, ease: 'power2.out' });
-
-    // start: góra leada na 40% okna, ale nie mniej niż 0 — na niskich ekranach lead jest od razu wyżej, wtedy pin
-    // i odsłanianie od pierwszego przewinięcia; długość zawsze 80% wysokości okna
-    var from = function () { return Math.max(0, lead.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.4); };
-    gsap.timeline({
-      scrollTrigger: {
-        trigger: lead, start: from, end: function () { return from() + window.innerHeight * 0.8; },
-        pin: pin, scrub: 0.5, invalidateOnRefresh: true
-      }
-    }).to(words, { opacity: 1, ease: 'none', duration: 1, stagger: 0.7 });
-  }
-
   /* ---------- Dołącz: pozioma ścieżka procesu rysowana przy przewijaniu, z grotem strzałki ----------
      Kroki są ułożone w jednym poziomym rzędzie (v2.css, ≥ 961 px), więc kropki leżą w jednej linii —
      ścieżka to proste odcinki kropka → kropka w kolejności z DOM. Grot to osobny trójkąt SVG,
@@ -377,7 +332,6 @@
           lenis.scrollTo(el, { offset: headerOffset(), onComplete: onComplete });
         };
       }
-      initPmsIntro();
       initPmsWords();
       initJoinPath();
       initCaseReveal();
