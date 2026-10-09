@@ -14,6 +14,12 @@ function podcast_spotify_id($v)
     return null;
 }
 
+// Podekran „Edycje podcastu” (?m=podcast&w=edycje) ma osobny plik; poniżej zostaje obsługa odcinków.
+if (($_GET['w'] ?? '') === 'edycje') {
+    require __DIR__ . '/_podcast_edycje.php';
+    return;
+}
+
 $edit = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -50,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $f['apple_url'] = trim((string) ($_POST['apple_url'] ?? ''));
         $f['youtube_url'] = trim((string) ($_POST['youtube_url'] ?? ''));
         $f['opublikowany'] = empty($_POST['opublikowany']) ? 0 : 1;
+        $f['edycja_id'] = (string) ($_POST['edycja_id'] ?? '') === '' ? null : (int) $_POST['edycja_id'];
         $old = null;
         if ($id) {
             $st = pmg_db()->prepare('SELECT * FROM pmg_odcinki WHERE id = ?');
@@ -61,6 +68,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($f['numer'] < 1 || $f['numer'] > 9999) throw new RuntimeException('Numer odcinka: liczba od 1 do 9999.');
             if (!data_ok($f['data'])) throw new RuntimeException('Podaj poprawną datę odcinka.');
             if ($f['czas_min'] !== null && ($f['czas_min'] < 1 || $f['czas_min'] > 999)) throw new RuntimeException('Czas trwania: liczba minut od 1 do 999 albo puste pole.');
+            if ($f['edycja_id'] !== null) {
+                $st = pmg_db()->prepare('SELECT COUNT(*) FROM pmg_podcast_edycje WHERE id = ?');
+                $st->execute([$f['edycja_id']]);
+                if (!(int) $st->fetchColumn()) throw new RuntimeException('Wybierz edycję podcastu z listy.');
+            } elseif ((int) pmg_db()->query('SELECT COUNT(*) FROM pmg_podcast_edycje')->fetchColumn() > 0) {
+                throw new RuntimeException('Wybierz edycję podcastu, do której należy odcinek.');
+            }
             $spotify = podcast_spotify_id($f['spotify_id']);
             if ($spotify === null) throw new RuntimeException('Spotify: wklej adres odcinka (https://open.spotify.com/episode/…) albo samo 22-znakowe ID odcinka.');
             $f['spotify_id'] = $spotify;
@@ -70,24 +84,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stareZdjecie = $old['zdjecie'] ?? null;
             $f['zdjecie'] = zdjecie('podcast', $stareZdjecie);
             if ($id && $old) {
-                $st = pmg_db()->prepare('UPDATE pmg_odcinki SET numer=?, tytul=?, data=?, czas_min=?, opis=?, prowadzacy=?, gosc=?, gosc_bio=?, spotify_id=?, apple_url=?, youtube_url=?, zdjecie=?, zdjecie_alt=?, opublikowany=? WHERE id=?');
-                $st->execute([$f['numer'], $f['tytul'], $f['data'], $f['czas_min'], $f['opis'], $f['prowadzacy'], $f['gosc'], $f['gosc_bio'], $f['spotify_id'], $f['apple_url'], $f['youtube_url'], $f['zdjecie'], $f['zdjecie_alt'], $f['opublikowany'], $id]);
+                $st = pmg_db()->prepare('UPDATE pmg_odcinki SET numer=?, tytul=?, data=?, czas_min=?, opis=?, prowadzacy=?, gosc=?, gosc_bio=?, spotify_id=?, apple_url=?, youtube_url=?, zdjecie=?, zdjecie_alt=?, opublikowany=?, edycja_id=? WHERE id=?');
+                $st->execute([$f['numer'], $f['tytul'], $f['data'], $f['czas_min'], $f['opis'], $f['prowadzacy'], $f['gosc'], $f['gosc_bio'], $f['spotify_id'], $f['apple_url'], $f['youtube_url'], $f['zdjecie'], $f['zdjecie_alt'], $f['opublikowany'], $f['edycja_id'], $id]);
                 if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
                 loguj('podcast', 'edycja', $id);
             } else {
                 $kolejnosc = (int) pmg_db()->query('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_odcinki')->fetchColumn();
-                $st = pmg_db()->prepare('INSERT INTO pmg_odcinki (numer, tytul, data, czas_min, opis, prowadzacy, gosc, gosc_bio, spotify_id, apple_url, youtube_url, zdjecie, zdjecie_alt, kolejnosc, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-                $st->execute([$f['numer'], $f['tytul'], $f['data'], $f['czas_min'], $f['opis'], $f['prowadzacy'], $f['gosc'], $f['gosc_bio'], $f['spotify_id'], $f['apple_url'], $f['youtube_url'], $f['zdjecie'], $f['zdjecie_alt'], $kolejnosc, $f['opublikowany']]);
+                $st = pmg_db()->prepare('INSERT INTO pmg_odcinki (numer, tytul, data, czas_min, opis, prowadzacy, gosc, gosc_bio, spotify_id, apple_url, youtube_url, zdjecie, zdjecie_alt, kolejnosc, opublikowany, edycja_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+                $st->execute([$f['numer'], $f['tytul'], $f['data'], $f['czas_min'], $f['opis'], $f['prowadzacy'], $f['gosc'], $f['gosc_bio'], $f['spotify_id'], $f['apple_url'], $f['youtube_url'], $f['zdjecie'], $f['zdjecie_alt'], $kolejnosc, $f['opublikowany'], $f['edycja_id']]);
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('podcast', 'dodanie', $id);
             }
             $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano.' : 'Zapisano jako szkic (niewidoczny na stronie).';
             go('?m=podcast');
+        } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
+            $error = $e->getCode() === '23000' ? 'Odcinek o tym numerze już istnieje.' : 'Błąd zapisu.';
+            $edit = array_merge($old ?: [], $f, ['id' => $id]);
         } catch (RuntimeException $e) {
             $error = $e->getMessage();
-            $edit = array_merge($old ?: [], $f, ['id' => $id]);
-        } catch (PDOException $e) {
-            $error = $e->getCode() === '23000' ? 'Odcinek o tym numerze już istnieje.' : 'Błąd zapisu.';
             $edit = array_merge($old ?: [], $f, ['id' => $id]);
         }
     }
@@ -96,7 +110,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($edit === null) {
     if (isset($_GET['nowy'])) {
         $nastepny = (int) pmg_db()->query('SELECT COALESCE(MAX(numer), 0) + 1 FROM pmg_odcinki')->fetchColumn();
-        $edit = ['id' => 0, 'numer' => $nastepny, 'data' => date('Y-m-d'), 'opublikowany' => 0];
+        // Domyślnie najnowsza edycja (pierwsza w kolejności z panelu).
+        $pierwsza = pmg_db()->query('SELECT id FROM pmg_podcast_edycje ORDER BY kolejnosc, id LIMIT 1')->fetchColumn();
+        $edit = ['id' => 0, 'numer' => $nastepny, 'data' => date('Y-m-d'), 'opublikowany' => 0, 'edycja_id' => $pierwsza === false ? null : (int) $pierwsza];
     } elseif (isset($_GET['id'])) {
         $st = pmg_db()->prepare('SELECT * FROM pmg_odcinki WHERE id = ?');
         $st->execute([(int) $_GET['id']]);
@@ -104,6 +120,9 @@ if ($edit === null) {
     }
 }
 $v = function ($k) use (&$edit) { return h($edit[$k] ?? ''); };
+$edycjePodcastu = $edit !== null
+    ? pmg_db()->query('SELECT id, numer, lata FROM pmg_podcast_edycje ORDER BY kolejnosc, id')->fetchAll()
+    : [];
 
 if ($edit !== null) {
     $pmgNaglowek = [
@@ -112,9 +131,10 @@ if ($edit !== null) {
         'wstecz' => ['href' => '?m=podcast', 'etykieta' => 'Podcast'],
     ];
 } else {
-    $odcinki = pmg_db()->query('SELECT id, numer, tytul, data, opublikowany FROM pmg_odcinki ORDER BY ' . PODCAST_ORDER)->fetchAll();
+    $odcinki = pmg_db()->query('SELECT o.id, o.numer, o.tytul, o.data, o.opublikowany, e.numer AS edycja_numer FROM pmg_odcinki o LEFT JOIN pmg_podcast_edycje e ON e.id = o.edycja_id ORDER BY o.kolejnosc, o.numer, o.id')->fetchAll();
     $pmgNaglowek = [
         'akcje' => [
+            ['href' => '?m=podcast&w=edycje', 'etykieta' => 'Edycje podcastu', 'rodzaj' => 'secondary'],
             ['href' => '?m=podcast&nowy', 'etykieta' => '+ Nowy odcinek', 'rodzaj' => 'primary'],
             ['href' => '../podcast.html', 'etykieta' => 'Zobacz stronę', 'rodzaj' => 'text', 'nowaKarta' => true],
         ],
@@ -140,6 +160,18 @@ if ($edit !== null) {
       <label for="opis">Opis odcinka</label>
       <p class="pmg-hint" id="opis_h">Akapity oddzielaj pustą linią. Bez HTML — znaczniki pokażą się jako zwykły tekst.</p>
       <textarea id="opis" name="opis" maxlength="5000" aria-describedby="opis_h" required><?= $v('opis') ?></textarea>
+    </section>
+
+    <section class="pmg-form-section" aria-labelledby="sek-edycja">
+      <h2 class="pmg-form-section__title" id="sek-edycja">Edycja podcastu</h2>
+      <label for="edycja_id">Do której edycji należy odcinek</label>
+      <p class="pmg-hint" id="edycja_h">Na stronie odcinki są pogrupowane według edycji. Edycje dodasz w <a href="?m=podcast&amp;w=edycje">Edycje podcastu</a>.</p>
+      <select id="edycja_id" name="edycja_id" aria-describedby="edycja_h"<?= $edycjePodcastu ? ' required' : '' ?>>
+        <option value=""<?= $edycjePodcastu ? ' disabled' : '' ?><?= ($edit['edycja_id'] ?? null) === null ? ' selected' : '' ?>><?= $edycjePodcastu ? 'Wybierz edycję' : 'Brak edycji — najpierw dodaj edycję podcastu' ?></option>
+        <?php foreach ($edycjePodcastu as $ep): ?>
+          <option value="<?= (int) $ep['id'] ?>"<?= (int) ($edit['edycja_id'] ?? 0) === (int) $ep['id'] ? ' selected' : '' ?>>Edycja <?= (int) $ep['numer'] ?><?= $ep['lata'] !== '' ? ' (' . h($ep['lata']) . ')' : '' ?></option>
+        <?php endforeach; ?>
+      </select>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-goscie">
@@ -206,12 +238,13 @@ if ($edit !== null) {
   <div class="pmg-table-wrap">
     <table class="pmg-table pmg-table--klikalna">
       <caption class="pmg-vh">Odcinki podcastu</caption>
-      <thead><tr><th scope="col" class="pmg-num">Nr</th><th scope="col">Tytuł</th><th scope="col">Data</th><th scope="col">Status</th><th scope="col">Kolejność</th></tr></thead>
+      <thead><tr><th scope="col" class="pmg-num">Nr</th><th scope="col">Tytuł</th><th scope="col">Edycja</th><th scope="col">Data</th><th scope="col">Status</th><th scope="col">Kolejność</th></tr></thead>
       <tbody>
       <?php foreach ($odcinki as $i => $r): ?>
         <tr>
           <td class="pmg-num" data-label="Nr"><?= (int) $r['numer'] ?></td>
           <td class="pmg-td-main" data-label="Tytuł"><a class="pmg-row-link" href="?m=podcast&id=<?= (int) $r['id'] ?>"><?= h($r['tytul']) ?></a></td>
+          <td class="pmg-num" data-label="Edycja"><?= $r['edycja_numer'] === null ? '—' : (int) $r['edycja_numer'] ?></td>
           <td class="pmg-num" data-label="Data"><time datetime="<?= h($r['data']) ?>"><?= h($r['data']) ?></time></td>
           <td data-label="Status"><?php if ($r['opublikowany']): ?><span class="pmg-chip pmg-chip--success">Opublikowany</span><?php else: ?><span class="pmg-chip pmg-chip--neutral">Szkic</span><?php endif; ?></td>
           <td class="pmg-td-actions" data-label="Kolejność">
@@ -224,7 +257,7 @@ if ($edit !== null) {
         </tr>
       <?php endforeach; ?>
       <?php if (!$odcinki): ?>
-        <tr><td colspan="5" class="pmg-empty">Nie ma jeszcze odcinków.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=podcast&nowy">+ Dodaj pierwszy odcinek</a></td></tr>
+        <tr><td colspan="6" class="pmg-empty">Nie ma jeszcze odcinków.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=podcast&nowy">+ Dodaj pierwszy odcinek</a></td></tr>
       <?php endif; ?>
       </tbody>
     </table>
