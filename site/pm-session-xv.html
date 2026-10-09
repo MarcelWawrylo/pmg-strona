@@ -16,7 +16,7 @@
 <script src="js/v2.js" defer></script>
 <script src="js/mobile.js" defer></script>
 </head>
-<body class="v2-page" data-page="pm-session-xv">
+<body class="v2-page" data-page="pm-session-xv" data-edycja="XV">
 <a class="skip-link" href="#main">Przejdź do treści</a>
 <div class="page">
 
@@ -60,11 +60,41 @@
       <div class="container rise">
         <div class="pms-banner__head">
           <h1 class="pms-banner__title">PM Session XV</h1>
+          <p class="pms-banner__date" hidden><time datetime=""></time></p>
         </div>
+        <p class="pms-banner__theme" hidden></p>
+        <p class="lead pms-banner__lead pms-banner__lead--full" hidden></p>
       </div>
     </section>
 
-    <div class="pms-next">
+    <div class="pms-main bg-surface" data-pms-wrap hidden>
+      <section id="harmonogram" class="pms-block container" aria-labelledby="h-schedule" data-pms-dynamic hidden>
+        <h2 id="h-schedule" class="pms-h2" data-reveal>Harmonogram</h2>
+        <div class="schedule-table-wrap" data-reveal>
+        <table class="schedule-table">
+          <caption class="visually-hidden">Harmonogram PM Session XV</caption>
+          <thead>
+            <tr><th scope="col">Godzina</th><th scope="col">Punkt programu</th><th scope="col">Prowadzący</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        </div>
+      </section>
+
+      <section id="prelegenci" class="pms-block container" aria-labelledby="h-speakers" data-pms-dynamic hidden>
+        <h2 id="h-speakers" class="pms-h2" data-reveal>Prelegenci</h2>
+        <ul class="speakers"></ul>
+
+        <dialog class="pod-modal pod-modal--speaker" aria-labelledby="speaker-modal-title" data-speaker-modal>
+          <div class="pod-modal__panel">
+            <button class="pod-modal__close" type="button" data-dialog-close aria-label="Zamknij okno prelegenta"><span aria-hidden="true">✕</span></button>
+            <div class="pod-modal__body" data-speaker-modal-content data-lenis-prevent tabindex="0" role="region" aria-labelledby="speaker-modal-title"></div>
+          </div>
+        </dialog>
+      </section>
+    </div>
+
+    <div class="pms-next" data-pms-soon>
       <div class="container" data-reveal>
         <div class="pms-next__box">
           <div class="pms-next__icon"><picture><source type="image/webp" srcset="img/logo-pm-session-sygnet-56.webp 56w, img/logo-pm-session-sygnet-112.webp 112w" sizes="56px"><img src="img/logo-pm-session-sygnet-56.png" srcset="img/logo-pm-session-sygnet-56.png 56w, img/logo-pm-session-sygnet-112.png 112w" sizes="56px" width="112" height="111" alt="Logo PM Session"></picture></div>
