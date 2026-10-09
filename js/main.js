@@ -641,6 +641,28 @@
     });
   }
 
+  /* ---------- Kontakt: mapa Google wczytywana dopiero po kliknięciu (bez JS zostaje link do Map Google) ---------- */
+  function initMap() {
+    var box = $('[data-map]');
+    var btn = box && $('[data-map-load]', box);
+    if (!btn) return;
+    btn.hidden = false;
+    btn.addEventListener('click', function () {
+      var frame = document.createElement('iframe');
+      frame.title = box.getAttribute('data-title') || 'Mapa Google';
+      frame.src = box.getAttribute('data-src');
+      frame.loading = 'lazy';
+      frame.referrerPolicy = 'strict-origin-when-cross-origin';
+      frame.allowFullscreen = true;
+      var link = $('.map-consent__link', box);
+      var keep = link ? link.cloneNode(true) : null;
+      box.textContent = '';
+      box.appendChild(frame);
+      if (keep) { keep.classList.add('map-consent__link--after'); box.insertAdjacentElement('afterend', keep); }
+      frame.focus();
+    });
+  }
+
   /* ---------- „Zgłoś błąd” w stopce → formularz kontaktowy z tematem i adresem strony ---------- */
   /* Link dostaje &strona=<ścieżka bieżącej strony> (sama ścieżka, bez parametrów i danych osobowych).
      Na kontakt.html?temat=blad pusty temat i wiadomość są wstępnie wypełniane. */
@@ -850,6 +872,7 @@
     initScrollers();
     initLightbox();
     initContactForm();
+    initMap();
     initReportBug();
     initGrass();
     // pusty listener na touchstart włącza stany :active w Safari na iOS
