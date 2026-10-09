@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 5;
+const PMG_SCHEMA = 6;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -116,7 +116,7 @@ function pmg_migrate()
             email VARCHAR(150) NOT NULL UNIQUE,
             haslo VARCHAR(255) NULL,
             rola ENUM('admin','redaktor') NOT NULL DEFAULT 'redaktor',
-            moduly SET('aktualnosci','czlonkowie','pmsession','podcast') NOT NULL DEFAULT '',
+            moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case') NOT NULL DEFAULT '',
             aktywny TINYINT(1) NOT NULL DEFAULT 1,
             token_hash CHAR(64) NULL UNIQUE,
             token_do DATETIME NULL,
@@ -231,10 +231,42 @@ function pmg_migrate()
             kolejnosc SMALLINT NOT NULL DEFAULT 0,
             widoczna TINYINT(1) NOT NULL DEFAULT 1
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    // Schemat 6: Case Koła. Jedna edycja = jedna karta w hubie i jedna podstrona (case-kola-edycja.html?nr=N albo istniejący
+    // plik z adres_strony). Teksty sekcji to zwykły tekst z akapitami oddzielonymi pustą linią. Zdjęcia: ścieżki względem katalogu
+    // strony (img/… z repozytorium albo uploads/case/… z panelu). pelne = osobny plik do powiększenia w galerii (NULL = ten sam).
+    $tabele[] = "CREATE TABLE IF NOT EXISTS pmg_case_edycje (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            numer SMALLINT NOT NULL UNIQUE,
+            nazwa VARCHAR(80) NOT NULL,
+            tytul_karty VARCHAR(80) NOT NULL DEFAULT '',
+            naglowek VARCHAR(120) NOT NULL DEFAULT '',
+            adres_strony VARCHAR(100) NOT NULL DEFAULT '',
+            opis_meta VARCHAR(300) NOT NULL DEFAULT '',
+            logo VARCHAR(200) NULL,
+            logo_styl VARCHAR(20) NOT NULL DEFAULT 'ciemne',
+            hero VARCHAR(200) NULL,
+            hero_alt VARCHAR(200) NOT NULL DEFAULT '',
+            o_partnerze TEXT NOT NULL,
+            wyzwanie TEXT NOT NULL,
+            co_zrobilismy TEXT NOT NULL,
+            rezultat TEXT NOT NULL,
+            w_toku VARCHAR(300) NOT NULL DEFAULT '',
+            kolejnosc SMALLINT NOT NULL DEFAULT 0,
+            widoczna TINYINT(1) NOT NULL DEFAULT 1
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    $tabele[] = "CREATE TABLE IF NOT EXISTS pmg_case_galeria (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            edycja_id INT NOT NULL,
+            zdjecie VARCHAR(200) NOT NULL,
+            pelne VARCHAR(200) NULL,
+            podpis VARCHAR(200) NOT NULL,
+            kolejnosc SMALLINT NOT NULL DEFAULT 0,
+            FOREIGN KEY (edycja_id) REFERENCES pmg_case_edycje(id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     foreach ($tabele as $sql) $pdo->exec($sql);
 
-    // Bazy utworzone wcześniej: nowy moduł w SET uprawnień i kolumna opisu edycji PM Session.
-    $pdo->exec("ALTER TABLE pmg_uzytkownicy MODIFY moduly SET('aktualnosci','czlonkowie','pmsession','podcast') NOT NULL DEFAULT ''");
+    // Bazy utworzone wcześniej: nowy moduł w SET uprawnień (schemat 6: 'case') i kolumna opisu edycji PM Session.
+    $pdo->exec("ALTER TABLE pmg_uzytkownicy MODIFY moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case') NOT NULL DEFAULT ''");
     // Schemat 3: biogram prelegenta do 2500 znaków (dane startowe PM Session XIV mają biogramy dłuższe niż 1500).
     $pdo->exec("ALTER TABLE pmg_prelegenci MODIFY bio VARCHAR(2500) NOT NULL DEFAULT ''");
     if ($pdo->query("SHOW COLUMNS FROM pmg_edycje LIKE 'opis'")->fetchColumn() === false) {
@@ -309,6 +341,39 @@ function pmg_podcast_grupuj($edycje, $odcinki)
     $plaska = [];
     foreach ($grupy as $g) foreach ($g['odcinki'] as $o) $plaska[] = $o;
     return [$grupy, $plaska];
+}
+
+// Karta edycji Case Koła w hubie (api/case-kola.php bez parametru). url = istniejący plik (adres_strony) albo wspólna podstrona.
+// logo_styl: 'ciemne' (jasne logo na ciemnej karcie), 'jasne' (kolorowe logo na białej płytce), 'jasne-wysokie' (j.w., wyższe logo).
+function pmg_case_karta($e, $root = null)
+{
+    return [
+        'numer' => (int) $e['numer'], 'nazwa' => $e['nazwa'],
+        'tytul' => $e['tytul_karty'] !== '' ? $e['tytul_karty'] : $e['nazwa'],
+        'adres_strony' => $e['adres_strony'],
+        'url' => $e['adres_strony'] !== '' ? $e['adres_strony'] : 'case-kola-edycja.html?nr=' . (int) $e['numer'],
+        'logo' => $e['logo'], 'logo_obraz' => pmg_obraz($e['logo'], $root), 'logo_styl' => $e['logo_styl'],
+    ];
+}
+
+// Pełna edycja Case Koła (api/case-kola.php?nr=N): karta + treść podstrony. hero_tryb: 'zdjecie' (zdjęcie główne), 'logo'
+// (brak zdjęcia, a logo jest jasne — pokazujemy je na ciemnym tle jak w Solvro) albo 'brak' (sekcja pominięta).
+// Puste teksty zostają pustymi napisami — strona pomija sekcję. $galeria = wiersze pmg_case_galeria w kolejności.
+function pmg_case_pelna($e, $galeria, $root = null)
+{
+    $d = pmg_case_karta($e, $root);
+    $d['naglowek'] = $e['naglowek'] !== '' ? $e['naglowek'] : $e['nazwa'];
+    $d['opis_meta'] = $e['opis_meta'];
+    $d['hero'] = $e['hero'];
+    $d['hero_obraz'] = pmg_obraz($e['hero'], $root);
+    $d['hero_alt'] = $e['hero_alt'];
+    $d['hero_tryb'] = !empty($e['hero']) ? 'zdjecie' : (!empty($e['logo']) && $e['logo_styl'] === 'ciemne' ? 'logo' : 'brak');
+    foreach (['o_partnerze', 'wyzwanie', 'co_zrobilismy', 'rezultat', 'w_toku'] as $k) $d[$k] = $e[$k];
+    $d['galeria'] = [];
+    foreach ($galeria as $g) {
+        $d['galeria'][] = ['zdjecie' => $g['zdjecie'], 'obraz' => pmg_obraz($g['zdjecie'], $root), 'pelne' => $g['pelne'], 'podpis' => $g['podpis']];
+    }
+    return $d;
 }
 
 // Warianty szerokości zdjęcia z katalogu img/ do <picture>. Dla ścieżki img/<baza>-<szerokość>.<jpg|png> szuka plików
