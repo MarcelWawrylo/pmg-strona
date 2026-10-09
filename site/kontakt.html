@@ -6,9 +6,6 @@
 <title>Kontakt | Project Management Group</title>
 <meta name="description" content="Kontakt z kołem naukowym Project Management Group: pmgroup.kontakt@gmail.com, Łukasiewicza 5, 50-370 Wrocław, Wydział Zarządzania PWr.">
 <link rel="icon" type="image/png" href="img/logo-90.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/v2.css">
 <script>document.documentElement.classList.add('js')</script>
@@ -64,7 +61,7 @@
 
     <section class="contact">
       <div class="container container--flush contact__grid">
-        <form class="contact-form" id="formularz" data-contact-form data-mailto="pmgroup.kontakt@gmail.com" novalidate>
+        <form class="contact-form" id="formularz" method="post" action="api/kontakt.php" data-contact-form data-mailto="pmgroup.kontakt@gmail.com" novalidate>
           <div class="contact-form__row">
             <div class="field">
               <label class="field__label" for="cf-name">Imię i nazwisko</label>
@@ -101,8 +98,12 @@
           <div>
             <h2 class="contact__label">Gdzie nas znajdziesz</h2>
             <address class="contact__address">Łukasiewicza 5, 50-370 Wrocław<br>Wydział Zarządzania Politechniki Wrocławskiej</address>
-            <div class="contact__map">
-              <iframe title="Mapa Google: Wydział Zarządzania Politechniki Wrocławskiej, Łukasiewicza 5, Wrocław" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1053.22701997909!2d17.064670200913767!3d51.10827323383208!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x470fe82a18c6c6ff%3A0xc364051a29cc6265!2sWydzia%C5%82%20Zarz%C4%85dzania%20Politechniki%20Wroc%C5%82awskiej!5e0!3m2!1spl!2spl!4v1784553207485!5m2!1spl!2spl" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            <div class="contact__map" data-map data-src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1053.22701997909!2d17.064670200913767!3d51.10827323383208!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x470fe82a18c6c6ff%3A0xc364051a29cc6265!2sWydzia%C5%82%20Zarz%C4%85dzania%20Politechniki%20Wroc%C5%82awskiej!5e0!3m2!1spl!2spl!4v1784553207485!5m2!1spl!2spl" data-title="Mapa Google: Wydział Zarządzania Politechniki Wrocławskiej, Łukasiewicza 5, Wrocław">
+              <div class="map-consent" data-map-consent>
+                <p class="map-consent__text" id="map-info">Mapa Google wczytuje się dopiero po kliknięciu. Po wczytaniu Google może zapisać na Twoim urządzeniu pliki cookie (<a href="polityka-prywatnosci.html#pp-mapa">szczegóły w polityce prywatności</a>). Wyboru nie zapamiętujemy.</p>
+                <button class="btn btn--dark map-consent__btn" type="button" data-map-load aria-describedby="map-info" hidden>Wczytaj mapę Google</button>
+                <a class="map-consent__link" href="https://www.google.com/maps/search/?api=1&amp;query=Wydzia%C5%82%20Zarz%C4%85dzania%20Politechniki%20Wroc%C5%82awskiej%2C%20%C5%81ukasiewicza%205%2C%2050-370%20Wroc%C5%82aw" target="_blank" rel="noopener">Otwórz w Mapach Google<span class="visually-hidden"> (otwiera się w nowej karcie)</span></a>
+              </div>
             </div>
           </div>
         </div>
@@ -130,7 +131,7 @@
         <a class="site-footer__uni-link" href="https://wz.pwr.edu.pl/" target="_blank" rel="noopener"><picture><source type="image/webp" srcset="img/logo-wz-96.webp 96w, img/logo-wz-192.webp 192w" sizes="96px"><img src="img/logo-wz-96.png" srcset="img/logo-wz-96.png 96w, img/logo-wz-192.png 192w" sizes="96px" width="192" height="113" alt="Wydział Zarządzania Politechniki Wrocławskiej" loading="lazy"></picture><span class="visually-hidden"> (otwiera się w nowej karcie)</span></a>
       </div>
       <div class="site-footer__bottom">
-        <p>© 2026 Project Management Group. All rights reserved. <a class="site-footer__switch" href="polityka-prywatnosci.html">Polityka prywatności</a> <a class="site-footer__switch" href="deklaracja-dostepnosci.html">Deklaracja dostępności</a> <a class="site-footer__switch" href="kontakt.html?temat=blad#formularz" data-report-bug>Zgłoś błąd</a></p>
+        <p>© 2026 Project Management Group. <span lang="en">All rights reserved.</span> <a class="site-footer__switch" href="polityka-prywatnosci.html">Polityka prywatności</a> <a class="site-footer__switch" href="deklaracja-dostepnosci.html">Deklaracja dostępności</a> <a class="site-footer__switch" href="kontakt.html?temat=blad#formularz" data-report-bug>Zgłoś błąd</a></p>
         <p class="site-footer__credits">Strona opracowana przez:<br><a href="https://www.linkedin.com/in/agnieszka-jachimiak" target="_blank" rel="noopener">Agnieszka Jachimiak<span class="visually-hidden"> (LinkedIn, otwiera się w nowej karcie)</span></a><br><a href="https://www.linkedin.com/in/marcel-wawry%C5%82o" target="_blank" rel="noopener">Marcel Wawryło<span class="visually-hidden"> (LinkedIn, otwiera się w nowej karcie)</span></a></p>
       </div>
       <div class="site-footer__totop"><button class="btn btn--light" type="button" data-totop>Wróć na górę <span aria-hidden="true">↑</span></button></div>

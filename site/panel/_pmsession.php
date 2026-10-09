@@ -5,14 +5,19 @@ defined('PMG_PANEL') || exit;
 const PMS_LICZBY = ['pms_edycji' => 'Edycji', 'pms_prelekcji' => 'Prelekcji', 'pms_prelegentow' => 'Prelegentów', 'pms_uczestnikow' => 'Uczestników', 'pms_warsztatow' => 'Warsztatów', 'pms_symulacji' => 'Symulacji'];
 
 // Jedyne miejsce ustawiania statusu 'biezaca' — w transakcji: obecna bieżąca -> zakończona, wybrana -> bieżąca.
+// Zwraca false (bez żadnych zmian), gdy edycja o tym id nie istnieje — inaczej stara bieżąca zostałaby zdjęta, a nowej nie byłoby.
 function ustaw_biezaca($id)
 {
     $pdo = pmg_db();
+    $st = $pdo->prepare('SELECT 1 FROM pmg_edycje WHERE id = ?');
+    $st->execute([$id]);
+    if (!$st->fetchColumn()) return false;
     $pdo->beginTransaction();
     $pdo->exec("UPDATE pmg_edycje SET status = 'zakonczona' WHERE status = 'biezaca'");
     $pdo->prepare("UPDATE pmg_edycje SET status = 'biezaca' WHERE id = ?")->execute([$id]);
     $pdo->commit();
     loguj('pmsession', 'biezaca', $id);
+    return true;
 }
 
 $error = '';
@@ -26,9 +31,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---------- Edycje ----------
     if ($action === 'edycja_biezaca') {
         $id = (int) ($_POST['id'] ?? 0);
-        ustaw_biezaca($id);
-        $_SESSION['flash'] = 'Ustawiono jako bieżącą edycję.';
-        go('?m=pmsession');
+        if (!ustaw_biezaca($id)) {
+            $error = 'Nie znaleziono edycji.';
+        } else {
+            $_SESSION['flash'] = 'Ustawiono jako bieżącą edycję.';
+            go('?m=pmsession');
+        }
 
     } elseif ($action === 'edycja_usun') {
         $id = (int) ($_POST['id'] ?? 0);
@@ -57,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'temat' => mb_substr(trim((string) ($_POST['temat'] ?? '')), 0, 200),
             'data' => (string) ($_POST['data'] ?? ''),
             'miejsce' => mb_substr(trim((string) ($_POST['miejsce'] ?? '')), 0, 200),
+            'opis' => mb_substr(trim(str_replace("\r\n", "\n", (string) ($_POST['opis'] ?? ''))), 0, 600),
         ];
         // Formularz udostępnia tylko szkic/zakonczona; nieprawidłowa wartość -> szkic.
         $status = ($_POST['status'] ?? '') === 'zakonczona' ? 'zakonczona' : 'szkic';
@@ -73,19 +82,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Numer edycji: użyj tylko cyfr rzymskich (I, V, X, L, C), np. XIV.';
         } elseif ($f['temat'] === '') {
             $error = 'Podaj temat edycji.';
-        } elseif (!preg_match('~^\d{4}-\d{2}-\d{2}$~', $f['data'])) {
+        } elseif (!data_ok($f['data'])) {
             $error = 'Podaj poprawną datę.';
         } elseif ($f['miejsce'] === '') {
             $error = 'Podaj miejsce.';
         } else {
             try {
                 if ($id) {
-                    pmg_db()->prepare('UPDATE pmg_edycje SET numer=?, temat=?, data=?, miejsce=?, status=? WHERE id=?')
-                        ->execute([$f['numer'], $f['temat'], $f['data'], $f['miejsce'], $status, $id]);
+                    pmg_db()->prepare('UPDATE pmg_edycje SET numer=?, temat=?, data=?, miejsce=?, opis=?, status=? WHERE id=?')
+                        ->execute([$f['numer'], $f['temat'], $f['data'], $f['miejsce'], $f['opis'], $status, $id]);
                     loguj('pmsession', 'edycja', $id);
                 } else {
-                    pmg_db()->prepare('INSERT INTO pmg_edycje (numer, temat, data, miejsce, status) VALUES (?,?,?,?,?)')
-                        ->execute([$f['numer'], $f['temat'], $f['data'], $f['miejsce'], $status]);
+                    pmg_db()->prepare('INSERT INTO pmg_edycje (numer, temat, data, miejsce, opis, status) VALUES (?,?,?,?,?,?)')
+                        ->execute([$f['numer'], $f['temat'], $f['data'], $f['miejsce'], $f['opis'], $status]);
                     $id = (int) pmg_db()->lastInsertId();
                     loguj('pmsession', 'dodanie', $id);
                 }
@@ -98,6 +107,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($error !== '') $editEdycja = array_merge($f, ['id' => $id, 'status' => $obecnyStatus ?: $status]);
 
     // ---------- Prelegenci ----------
+    } elseif ($action === 'prelegent_gora' || $action === 'prelegent_dol') {
+        $id = (int) ($_POST['id'] ?? 0);
+        $edycjaId = (int) ($_POST['edycja_id'] ?? 0);
+        if (przesun('pmg_prelegenci', 'kolejnosc, id', $id, $action === 'prelegent_gora' ? 'gora' : 'dol', 'edycja_id', $edycjaId)) loguj('pmsession', 'kolejnosc', $id);
+        go('?m=pmsession&e=' . $edycjaId);
+
     } elseif ($action === 'prelegent_usun') {
         $id = (int) ($_POST['id'] ?? 0);
         $edycjaId = (int) ($_POST['edycja_id'] ?? 0);
@@ -230,7 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // ---------- Widoki z GET, gdy nie ma już $edit z POST powyżej ----------
 if ($editEdycja === null && isset($_GET['edycja'])) {
     if ($_GET['edycja'] === 'nowa') {
-        $editEdycja = ['id' => 0, 'numer' => '', 'temat' => '', 'data' => '', 'miejsce' => '', 'status' => 'szkic'];
+        $editEdycja = ['id' => 0, 'numer' => '', 'temat' => '', 'data' => '', 'miejsce' => '', 'opis' => '', 'status' => 'szkic'];
     } else {
         $st = pmg_db()->prepare('SELECT * FROM pmg_edycje WHERE id = ?');
         $st->execute([(int) $_GET['edycja']]);
@@ -249,7 +264,9 @@ if ($eid && $editEdycja === null) {
 if ($edycjaWidok !== null) {
     if ($editPrelegent === null && isset($_GET['p'])) {
         if ($_GET['p'] === 'nowy') {
-            $editPrelegent = ['id' => 0, 'edycja_id' => $eid, 'imie_nazwisko' => '', 'temat' => '', 'bio' => '', 'notatka' => '', 'linkedin' => '', 'zdjecie_alt' => '', 'kolejnosc' => 0];
+            $stN = pmg_db()->prepare('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_prelegenci WHERE edycja_id = ?');
+            $stN->execute([$eid]);
+            $editPrelegent = ['id' => 0, 'edycja_id' => $eid, 'imie_nazwisko' => '', 'temat' => '', 'bio' => '', 'notatka' => '', 'linkedin' => '', 'zdjecie_alt' => '', 'kolejnosc' => (int) $stN->fetchColumn()];
         } else {
             $st = pmg_db()->prepare('SELECT * FROM pmg_prelegenci WHERE id = ? AND edycja_id = ?');
             $st->execute([(int) $_GET['p'], $eid]);
@@ -330,7 +347,7 @@ if ($editPrelegent !== null) {
       <p class="pmg-hint" id="notatka_h">Np. „Wspólny warsztat z Anną Nowak”. Widoczna nad tematem na stronie.</p>
       <input type="text" id="notatka" name="notatka" maxlength="200" value="<?= $v('notatka') ?>" aria-describedby="notatka_h">
       <label for="kolejnosc">Kolejność</label>
-      <p class="pmg-hint" id="kolejnosc_h">Mniejsza liczba = wyżej na liście.</p>
+      <p class="pmg-hint" id="kolejnosc_h">Mniejsza liczba = wyżej na liście. Wygodniej zmieniać kolejność strzałkami na liście prelegentów.</p>
       <input type="number" id="kolejnosc" name="kolejnosc" value="<?= (int) ($editPrelegent['kolejnosc'] ?? 0) ?>" aria-describedby="kolejnosc_h">
     </section>
 
@@ -409,6 +426,9 @@ if ($editPrelegent !== null) {
     <input type="date" id="data" name="data" value="<?= $v('data') ?>" required>
     <label for="miejsce">Miejsce</label>
     <input type="text" id="miejsce" name="miejsce" maxlength="200" value="<?= $v('miejsce') ?>" required>
+    <label for="opis">Opis pod nagłówkiem strony <span class="pmg-opt">(opcjonalnie)</span></label>
+    <p class="pmg-hint" id="opis_h">1–3 zdania pod tematem na stronie tej edycji. Puste pole = zostaje tekst wpisany w stronie. Maks. 600 znaków.</p>
+    <textarea id="opis" name="opis" maxlength="600" aria-describedby="opis_h" data-pmg-licznik><?= $v('opis') ?></textarea>
     <?php if (($editEdycja['status'] ?? '') === 'biezaca'): ?>
       <div class="pmg-alert pmg-alert--info" role="status"><?= pmg_ikona('info') ?><p>To jest bieżąca edycja — status zmienia się przyciskiem „Ustaw jako bieżącą” na liście edycji, nie w tym formularzu.</p></div>
     <?php else: ?>
@@ -444,14 +464,20 @@ if ($editPrelegent !== null) {
     <div class="pmg-table-wrap pmg-table-wrap--flush">
       <table class="pmg-table pmg-table--klikalna">
         <caption class="pmg-vh">Prelegenci — Edycja <?= h($edycjaWidok['numer']) ?></caption>
-        <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Temat</th><th scope="col" class="pmg-num">Kolejność</th></tr></thead>
+        <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Temat</th><th scope="col">Kolejność</th></tr></thead>
         <tbody>
         <?php $stP = pmg_db()->prepare('SELECT * FROM pmg_prelegenci WHERE edycja_id = ? ORDER BY kolejnosc, id'); $stP->execute([$eid]); $prelegenci = $stP->fetchAll(); ?>
-        <?php foreach ($prelegenci as $p): ?>
+        <?php foreach ($prelegenci as $i => $p): ?>
           <tr>
             <td class="pmg-td-main" data-label="Imię i nazwisko"><a class="pmg-row-link" href="?m=pmsession&e=<?= $eid ?>&p=<?= (int) $p['id'] ?>"><?= h($p['imie_nazwisko']) ?></a></td>
             <td data-label="Temat"><?= h($p['temat']) ?></td>
-            <td class="pmg-num" data-label="Kolejność"><?= (int) $p['kolejnosc'] ?></td>
+            <td class="pmg-td-actions" data-label="Kolejność">
+              <form method="post">
+                <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>"><input type="hidden" name="edycja_id" value="<?= $eid ?>">
+                <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="prelegent_gora"<?= $i === 0 ? ' disabled' : '' ?> aria-label="Przesuń wyżej: <?= h($p['imie_nazwisko']) ?>"><span aria-hidden="true">↑</span></button>
+                <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="prelegent_dol"<?= $i === count($prelegenci) - 1 ? ' disabled' : '' ?> aria-label="Przesuń niżej: <?= h($p['imie_nazwisko']) ?>"><span aria-hidden="true">↓</span></button>
+              </form>
+            </td>
           </tr>
         <?php endforeach; ?>
         <?php if (!$prelegenci): ?>

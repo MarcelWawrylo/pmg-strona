@@ -337,14 +337,18 @@
     if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', rebuild);
   }
 
-  /* ---------- PM Session: bieżąca edycja z panelu (baner, prelegenci, harmonogram, liczby przez data-set) ---------- */
-  /* Fallback: brak backendu / błąd / edycja: null = strona zostaje statyczna. Prelegenci i harmonogram
-     aktualizowane niezależnie od banera — pusta lista jednego z nich zostawia odpowiedni fragment statyczny. */
+  /* ---------- PM Session: edycja z panelu (baner, prelegenci, harmonogram, liczby przez data-set) ---------- */
+  /* Strona pm-session-xiv.html ma <body data-edycja="XIV">, pm-session-xv.html — "XV": pobieramy dokładnie tę edycję
+     (api/pmsession.php?numer=…), nigdy „bieżącą” z innej strony. Bez data-edycja API zwraca bieżącą edycję.
+     Fallback: brak backendu / błąd / edycja: null (nieznana albo szkic) = strona zostaje statyczna.
+     Prelegenci i harmonogram aktualizowane niezależnie od banera — pusta lista jednego z nich zostawia
+     odpowiedni fragment statyczny. Sekcje z [data-pms-dynamic] (ukryte w HTML) pokazują się dopiero po wypełnieniu. */
   function initPmSession() {
     var speakersList = $('.speakers');
     var scheduleTableBody = $('.schedule-table tbody');
     var scheduleList = $('.schedule'); // stary <ol> — tylko robocza v3
-    if (!speakersList && !scheduleTableBody && !scheduleList) return;
+    var pageEdition = (document.body.getAttribute('data-edycja') || '').toUpperCase();
+    if (!speakersList && !scheduleTableBody && !scheduleList && !pageEdition) return;
     // nowy markup (xiv+): kafelek-przycisk + wspólny dialog [data-speaker-modal]. Stary (v3): expand-toggle inline.
     var newSpeakerMarkup = !!$('[data-speaker-modal]');
 
@@ -406,9 +410,10 @@
       }).join('');
     };
 
-    api('pmsession.php').then(function (data) {
+    api('pmsession.php' + (/^[IVXLC]{1,10}$/.test(pageEdition) ? '?numer=' + pageEdition : '')).then(function (data) {
       if (!data || !data.edycja) return;
       var ed = data.edycja;
+      if (pageEdition && ed.numer !== pageEdition) return; // zła edycja w odpowiedzi (np. stara pamięć podręczna) — nie nakładamy
 
       var titleEl = $('.pms-banner__title');
       if (titleEl) titleEl.textContent = 'PM Session ' + ed.numer;
@@ -428,10 +433,21 @@
         themeEm.textContent = ed.temat;
         themeEl.appendChild(themeEm);
       }
+      var leadEl = $('.pms-banner__lead');
+      if (leadEl && ed.opis) { leadEl.textContent = ed.opis; leadEl.hidden = false; }
+      $$('.pms-banner__date, .pms-banner__theme').forEach(function (el) { el.hidden = false; });
       document.title = document.title.replace(/PM Session \S+/, 'PM Session ' + ed.numer);
+      var reveal = function (list) { // sekcja ukryta w HTML (xv) pokazuje się, gdy ma dane z panelu
+        var sec = list && list.closest('[data-pms-dynamic]');
+        if (sec) sec.hidden = false;
+        var wrap = list && list.closest('[data-pms-wrap]');
+        if (wrap) wrap.hidden = false;
+        $$('[data-pms-soon]').forEach(function (el) { el.hidden = true; }); // „wkrótce” znika, gdy są już dane
+      };
 
       if (speakersList && data.prelegenci && data.prelegenci.length) {
         speakersList.innerHTML = data.prelegenci.map(speakerCard).join('');
+        reveal(speakersList);
         if (newSpeakerMarkup) {
           var tplContainer = speakersList.parentNode;
           $$('template[id^="spk-"]', tplContainer).forEach(function (t) { t.remove(); });
@@ -446,7 +462,7 @@
           var last = groups[groups.length - 1];
           if (last && last[0].godzina === h.godzina) last.push(h); else groups.push([h]);
         });
-        if (scheduleTableBody) scheduleTableBody.innerHTML = groups.map(scheduleTableRows).join('');
+        if (scheduleTableBody) { scheduleTableBody.innerHTML = groups.map(scheduleTableRows).join(''); reveal(scheduleTableBody); }
         else scheduleList.innerHTML = groups.map(scheduleRow).join('');
       }
     });
@@ -563,7 +579,7 @@
       if (closeBtn) closeBtn.focus();
     };
   }
-  window.PMG = { wireDialog: wireDialog, $: $, $$: $$, reduceMotion: reduceMotion, root: siteRoot, loadNews: loadNews, esc: esc, fmtDate: fmtDate };
+  window.PMG = { wireDialog: wireDialog, $: $, $$: $$, reduceMotion: reduceMotion, root: siteRoot, loadNews: loadNews, esc: esc, fmtDate: fmtDate, api: api };
 
   /* ---------- Lightbox galerii ---------- */
   function initLightbox() {
@@ -588,6 +604,10 @@
     if (!form) return;
     var error = $('[data-form-error]', form);
     var status = $('[data-form-status]', form);
+    // powrót po zwykłym POST (bez JS): api/kontakt.php przekierowuje na kontakt.html?wyslano=1 albo ?blad=1
+    var back = new URLSearchParams(location.search);
+    if (back.get('wyslano') === '1') status.textContent = 'Dziękujemy! Wiadomość wysłana — odpowiemy jak najszybciej.';
+    else if (back.get('blad') === '1') status.textContent = 'Nie udało się wysłać wiadomości. Sprawdź pola i spróbuj ponownie albo napisz bezpośrednio na adres e-mail poniżej.';
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var fields = $$('.field__input', form);
@@ -622,6 +642,28 @@
             '?subject=' + encodeURIComponent(v('subject')) + '&body=' + encodeURIComponent(bodyText);
         }
       });
+    });
+  }
+
+  /* ---------- Kontakt: mapa Google wczytywana dopiero po kliknięciu (bez JS zostaje link do Map Google) ---------- */
+  function initMap() {
+    var box = $('[data-map]');
+    var btn = box && $('[data-map-load]', box);
+    if (!btn) return;
+    btn.hidden = false;
+    btn.addEventListener('click', function () {
+      var frame = document.createElement('iframe');
+      frame.title = box.getAttribute('data-title') || 'Mapa Google';
+      frame.src = box.getAttribute('data-src');
+      frame.loading = 'lazy';
+      frame.referrerPolicy = 'strict-origin-when-cross-origin';
+      frame.allowFullscreen = true;
+      var link = $('.map-consent__link', box);
+      var keep = link ? link.cloneNode(true) : null;
+      box.textContent = '';
+      box.appendChild(frame);
+      if (keep) { keep.classList.add('map-consent__link--after'); box.insertAdjacentElement('afterend', keep); }
+      frame.focus();
     });
   }
 
@@ -834,6 +876,7 @@
     initScrollers();
     initLightbox();
     initContactForm();
+    initMap();
     initReportBug();
     initGrass();
     // pusty listener na touchstart włącza stany :active w Safari na iOS
@@ -1044,33 +1087,84 @@
       if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', function () { if (reduceMotion.matches) reset(); drift(); });
     }
 
+    /* ---------- Odcinki z panelu (api/podcast.php) ---------- */
+    /* Fallback: brak backendu / błąd / pusta tabela w bazie = lista i okna zostają statyczne z podcast.html.
+       Gdy tabela ma rekordy (także szkice), lista pochodzi z bazy — nawet pusta. Okno odcinka obsługuje
+       delegacja zdarzeń poniżej, więc działa i dla kafelków statycznych, i dla wyrenderowanych. */
+    var episodesList = $('.pod-episodes');
+    if (episodesList && PMG.api) {
+      var esc = PMG.esc;
+      var httpsUrl = function (u, re) { return typeof u === 'string' && u.indexOf('https://') === 0 && re.test(u); };
+      var podDate = function (iso) { var p = String(iso).split('-'); return esc(p[2] + '/' + p[1] + '/' + p[0]); };
+      var podImg = function (o, cls) {
+        if (!o.zdjecie) return '';
+        return '<img class="' + cls + '" src="' + esc(PMG.root + o.zdjecie) + '" width="1600" height="900" alt="' + esc(o.zdjecie_alt) + '" loading="lazy" decoding="async">';
+      };
+      var podCard = function (o) {
+        var spotify = /^[A-Za-z0-9]{22}$/.test(o.spotify_id || '');
+        var embed = spotify ? ' data-embed="' + esc('https://open.spotify.com/embed/episode/' + o.spotify_id + '?utm_source=generator&theme=0') + '"' : '';
+        var media = o.zdjecie ? '<div class="pod-ep__media">' + podImg(o, 'pod-ep__img') + '</div>' : '';
+        return '<li class="pod-ep" data-pod-episode="' + o.numer + '"' + embed + ' data-title="' + esc(o.tytul) + '">' + media +
+          '<div class="pod-ep__body"><p class="pod-ep__meta">odcinek #' + o.numer + ' | ' + podDate(o.data) + '</p>' +
+          '<h3 class="pod-ep__title"><button class="pod-ep__btn" type="button" aria-haspopup="dialog">' + esc(o.tytul) + '<span class="visually-hidden"> — otwórz odcinek #' + o.numer + '</span></button></h3>' +
+          '<p class="pod-ep__more" aria-hidden="true">Otwórz odcinek ▸</p></div></li>';
+      };
+      var newTab = '<span aria-hidden="true">→</span><span class="visually-hidden"> (otwiera się w nowej karcie)</span>';
+      var podTemplate = function (o) {
+        var spotify = /^[A-Za-z0-9]{22}$/.test(o.spotify_id || '');
+        var meta = 'odcinek #' + o.numer + ' | ' + podDate(o.data) + (o.czas_min ? ' | ' + o.czas_min + ' min' : '');
+        var people = '';
+        if (o.prowadzacy) people += '<div><dt>Prowadzący</dt><dd>' + esc(o.prowadzacy) + '</dd></div>';
+        if (o.gosc) people += '<div><dt>Gość</dt><dd>' + esc(o.gosc) + '</dd></div>';
+        var links = '';
+        if (spotify) links += '<a class="pod-btn pod-btn--spotify" href="' + esc('https://open.spotify.com/episode/' + o.spotify_id) + '" target="_blank" rel="noopener">Posłuchaj na Spotify ' + newTab + '</a>';
+        if (httpsUrl(o.apple_url, /^https:\/\/podcasts\.apple\.com\//)) links += ' <a class="pod-btn pod-btn--ghost" href="' + esc(o.apple_url) + '" target="_blank" rel="noopener">Posłuchaj na Apple Podcasts ' + newTab + '</a>';
+        if (httpsUrl(o.youtube_url, /^https:\/\/(www\.|music\.)?(youtube\.com|youtu\.be)\//)) links += ' <a class="pod-btn pod-btn--ghost" href="' + esc(o.youtube_url) + '" target="_blank" rel="noopener">Obejrzyj na YouTube ' + newTab + '</a>';
+        var desc = String(o.opis || '').split(/\n\s*\n/).map(function (par) { return par.trim() ? '<p class="pod-modal__desc">' + esc(par.trim()) + '</p>' : ''; }).join('');
+        var guest = o.gosc_bio ? '<div class="pod-modal__guest"><p class="pod-modal__guest-label">O gościu</p><p class="pod-modal__guest-bio">' + esc(o.gosc_bio) + '</p></div>' : '';
+        return '<template id="pod-ep-' + o.numer + '"><div class="pod-modal__head">' + podImg(o, 'pod-modal__img') +
+          '<div class="pod-modal__heading"><p class="pod-modal__num">' + meta + '</p><h2 class="pod-modal__title" id="pod-modal-title">' + esc(o.tytul) + '</h2></div></div>' +
+          '<div class="pod-modal__body">' + (people ? '<dl class="pod-modal__people">' + people + '</dl>' : '') +
+          (spotify ? '<div class="pod-modal__player" data-pod-player></div>' : '') +
+          (links ? '<p class="pod-modal__links">' + links + '</p>' : '') + desc + guest + '</div></template>';
+      };
+      PMG.api('podcast.php').then(function (data) {
+        if (!data || !data.odcinki || !data.wszystkich) return;
+        $$('template[id^="pod-ep-"]').forEach(function (t) { t.remove(); });
+        episodesList.innerHTML = data.odcinki.length
+          ? data.odcinki.map(podCard).join('')
+          : '<li class="pod-ep"><div class="pod-ep__body"><p class="pod-ep__meta">Wkrótce nowe odcinki.</p></div></li>';
+        episodesList.insertAdjacentHTML('afterend', data.odcinki.map(podTemplate).join(''));
+      });
+    }
+
     /* ---------- Modal odcinka ---------- */
     var dialog = $('[data-pod-modal]');
     if (dialog) {
       var content = $('[data-pod-modal-content]', dialog);
       var open = PMG.wireDialog(dialog, function () { content.textContent = ''; });  // usuwa też iframe Spotify
-      $$('[data-pod-episode]').forEach(function (card) {
-        var btn = $('.pod-ep__btn', card);
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.pod-ep__btn');
+        var card = btn && btn.closest('[data-pod-episode]');
+        if (!card) return;
         var tpl = document.getElementById('pod-ep-' + card.getAttribute('data-pod-episode'));
-        if (!btn || !tpl) return;
-        btn.addEventListener('click', function () {
-          content.textContent = '';
-          content.appendChild(tpl.content.cloneNode(true));
-          var player = $('[data-pod-player]', content);
-          if (player) {
-            var iframe = document.createElement('iframe');
-            iframe.src = card.getAttribute('data-embed');
-            iframe.title = 'Odtwarzacz Spotify: ' + card.getAttribute('data-title');
-            iframe.width = '100%';
-            iframe.height = '152';
-            iframe.setAttribute('allow', 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture');
-            iframe.setAttribute('allowfullscreen', '');
-            iframe.loading = 'lazy';
-            player.appendChild(iframe);
-          }
-          open(btn);
-          dialog.scrollTop = 0;
-        });
+        if (!tpl) return;
+        content.textContent = '';
+        content.appendChild(tpl.content.cloneNode(true));
+        var player = $('[data-pod-player]', content);
+        if (player && card.getAttribute('data-embed')) {
+          var iframe = document.createElement('iframe');
+          iframe.src = card.getAttribute('data-embed');
+          iframe.title = 'Odtwarzacz Spotify: ' + card.getAttribute('data-title');
+          iframe.width = '100%';
+          iframe.height = '152';
+          iframe.setAttribute('allow', 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture');
+          iframe.setAttribute('allowfullscreen', '');
+          iframe.loading = 'lazy';
+          player.appendChild(iframe);
+        }
+        open(btn);
+        dialog.scrollTop = 0;
       });
     }
 
