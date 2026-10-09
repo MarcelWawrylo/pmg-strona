@@ -934,6 +934,7 @@ html.nav-open body { overflow: hidden; }
 .schedule-table th { font: 600 10px var(--font-body); letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-muted); padding-bottom: 8px; border-top: 0; }
 /* tylko godzina: wiersze pod rowspan zaczynają się od punktu programu */
 .schedule-table td:first-child:nth-last-child(3) { font: 600 14px var(--font-head); color: var(--color-pink-text); white-space: nowrap; }
+.schedule-table__tag { display: block; font: 600 10.5px/1.4 var(--font-body); letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-muted); margin-top: 5px; white-space: normal; }
 @media (max-width: 640px) {
   .schedule__row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .schedule__tag br { display: none; }

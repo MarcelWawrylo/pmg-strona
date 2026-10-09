@@ -22,6 +22,29 @@
   };
   var esc = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML.replace(/"/g, '&quot;'); };
   var fmtDate = function (iso) { var p = String(iso).split('-'); return p[2] + '.' + p[1] + '.' + p[0]; };
+  // Obraz z API: obraz = {src, srcset, webp, w, h} (warianty z img/, jak w HTML) -> <picture> z WebP; obraz = null (zdjęcie wgrane
+  // z panelu albo brak wariantów) -> zwykły <img> z pliku `path`. o = {cls, sizes, w, h, alt, lazy}; sizes/cls pochodzą z kodu, nie z danych.
+  var pictureHtml = function (obraz, path, o) {
+    var w = o.w || (obraz && obraz.w) || o.fw || 0, h = o.h || (obraz && obraz.h) || o.fh || 0;
+    var cls = o.cls ? ' class="' + o.cls + '"' : '';
+    var sizes = o.sizes ? ' sizes="' + o.sizes + '"' : '';
+    var dim = w && h ? ' width="' + w + '" height="' + h + '"' : '';
+    var tail = ' alt="' + esc(o.alt || '') + '"' + (o.lazy ? ' loading="lazy"' : '') + ' decoding="async">';
+    var pic = o.pictureCls ? ' class="' + o.pictureCls + '"' : '';
+    if (!obraz) {
+      var plain = '<img' + cls + ' src="' + esc(siteRoot + path) + '"' + dim + tail;
+      return o.pictureCls ? '<picture' + pic + '>' + plain + '</picture>' : plain;
+    }
+    var abs = function (set) { return set.split(', ').map(function (e) { return siteRoot + e; }).join(', '); };
+    return '<picture' + pic + '>' + (obraz.webp ? '<source type="image/webp" srcset="' + esc(abs(obraz.webp)) + '"' + sizes + '>' : '') +
+      '<img' + cls + ' src="' + esc(siteRoot + obraz.src) + '" srcset="' + esc(abs(obraz.srcset)) + '"' + sizes + dim + tail + '</picture>';
+  };
+  // Tekst wieloakapitowy z panelu (akapity oddzielone pustą linią) -> <p class="cls"> na akapit
+  var paragraphsHtml = function (text, cls) {
+    return String(text == null ? '' : text).split(/\n\s*\n/).map(function (b) { return b.trim(); }).filter(Boolean).map(function (b) {
+      return '<p class="' + cls + '">' + esc(b) + '</p>';
+    }).join('');
+  };
   // Polska odmiana liczebników: 1 -> one, 2-4 (poza 12-14) -> few, reszta -> many.
   var plural = function (n, one, few, many) {
     if (n === 1) return one;
@@ -357,7 +380,7 @@
       var id = 'spk-' + (i + 1);
       if (newSpeakerMarkup) {
         var img2 = p.zdjecie
-          ? '<img class="speaker__img" src="' + esc(siteRoot + p.zdjecie) + '" width="560" height="560" alt="" loading="lazy" decoding="async">'
+          ? pictureHtml(p.obraz_karta || p.obraz_modal, p.zdjecie, { cls: 'speaker__img', sizes: '(max-width: 640px) calc(50vw - 40px), 220px', w: 560, h: 560, lazy: true })
           : '<div class="speaker__img" aria-hidden="true"></div>';
         return '<li class="speaker"><button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="' + id + '">' + img2 +
           '<span class="speaker__name">' + name + '</span></button></li>';
@@ -382,9 +405,12 @@
       var linkedin = (p.linkedin && p.linkedin.indexOf('https://') === 0)
         ? '<a class="chip-link speaker-modal__linkedin" href="' + esc(p.linkedin) + '" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — ' + name + ' (otwiera się w nowej karcie)</span></a>'
         : '';
-      return '<template id="spk-' + (i + 1) + '"><div class="speaker-modal__head"><h2 class="pod-modal__title" id="speaker-modal-title">' + name + '</h2>' + linkedin + '</div>' + note +
-        (p.bio ? '<h3 class="speaker-modal__label">O prelegencie</h3><p class="pod-modal__desc">' + esc(p.bio) + '</p>' : '') +
-        '<h3 class="pod-modal__num">' + esc(p.temat) + '</h3></template>';
+      var photo = p.zdjecie
+        ? pictureHtml(p.obraz_modal, p.zdjecie, { pictureCls: 'speaker-modal__media', cls: 'speaker-modal__img', sizes: '(max-width: 640px) calc(100vw - 24px), (max-width: 768px) calc(100vw - 48px), 595px', fw: 1600, fh: 1200 })
+        : '';
+      return '<template id="spk-' + (i + 1) + '">' + photo + '<div class="speaker-modal__head"><h2 class="pod-modal__title" id="speaker-modal-title">' + name + '</h2>' + linkedin + '</div>' + note +
+        (p.bio ? '<h3 class="speaker-modal__label">' + (p.plec === 'k' ? 'O prelegentce' : 'O prelegencie') + '</h3>' + paragraphsHtml(p.bio, 'pod-modal__desc') : '') +
+        '<h3 class="pod-modal__num">' + esc(p.temat) + '</h3>' + paragraphsHtml(p.opis, 'pod-modal__desc') + '</template>';
     };
 
     var scheduleRow = function (items) {
@@ -403,7 +429,10 @@
 
     var scheduleTableRows = function (items) {
       var time = items[0].godzina;
-      var tag = items.length > 1 ? '<span class="schedule-table__tag">' + items.length + ' ' + plural(items.length, 'sesja', 'sesje', 'sesji') + ' równoległe</span>' : '';
+      // znacznik pod godziną (np. „3 sesje równoległe”) tylko wtedy, gdy wpisano go w panelu przy którymś punkcie tej godziny
+      var tagText = '';
+      items.forEach(function (it) { tagText = tagText || it.znacznik || ''; });
+      var tag = tagText ? '<span class="schedule-table__tag">' + esc(tagText) + '</span>' : '';
       return items.map(function (it, i) {
         var first = i === 0 ? '<td' + (items.length > 1 ? ' rowspan="' + items.length + '"' : '') + '>' + esc(time) + tag + '</td>' : '';
         return '<tr>' + first + '<td>' + esc(it.tytul) + '</td><td>' + (it.prelegent ? esc(it.prelegent) : '–') + '</td></tr>';
@@ -579,7 +608,7 @@
       if (closeBtn) closeBtn.focus();
     };
   }
-  window.PMG = { wireDialog: wireDialog, $: $, $$: $$, reduceMotion: reduceMotion, root: siteRoot, loadNews: loadNews, esc: esc, fmtDate: fmtDate, api: api };
+  window.PMG = { picture: pictureHtml, wireDialog: wireDialog, $: $, $$: $$, reduceMotion: reduceMotion, root: siteRoot, loadNews: loadNews, esc: esc, fmtDate: fmtDate, api: api };
 
   /* ---------- Lightbox galerii ---------- */
   function initLightbox() {
@@ -707,12 +736,12 @@
     loadNews().then(function (posts) {
       if (!posts) return;
       grid.innerHTML = posts.slice(0, 3).map(function (p) {
-        var img = p.zdjecie ? '<img src="' + esc(siteRoot + p.zdjecie) + '" alt="" width="1600" height="900" loading="lazy">' : '<span>[ zdjęcie 16:9 ]</span>';
+        var img = p.zdjecie ? pictureHtml(p.obraz, p.zdjecie, { sizes: '(max-width: 640px) calc(100vw - 40px), (max-width: 960px) calc(50vw - 30px), 400px', w: 1600, h: 900, lazy: true }) : '<span>[ zdjęcie 16:9 ]</span>';
         var href = 'aktualnosci.html#wpis-' + esc(p.slug);
         return '<li class="news-tile"><div class="news-tile__img news-tile__img--' + esc(p.kolor) + '" aria-hidden="true">' + img + '</div>' +
           '<div class="news-tile__body"><p class="news-tile__date"><time datetime="' + esc(p.data) + '">' + esc(fmtDate(p.data)) + '</time></p>' +
           '<h3 class="news-tile__title"><a class="news-tile__link" href="' + href + '">' + esc(p.tytul) + '</a></h3>' +
-          '<p class="news-tile__more">' + esc(p.zajawka) + '</p>' +
+          '<p class="news-tile__more">' + esc(p.zajawka || p.lead) + '</p>' +
           '<span class="news-tile__cta" aria-hidden="true">Czytaj więcej →</span></div></li>';
       }).join('');
     });
@@ -904,10 +933,15 @@
     function render(posts) {
       var esc = PMG.esc, fmt = PMG.fmtDate;
       var ph = { pink: 'pms', purple: 'podcast', blue: 'case', violet: 'integracja' };
-      var img = function (p, cls, withAlt) {
+      var SIZES = {
+        featured: '(max-width: 960px) calc(100vw - 40px), 640px',
+        card: '(max-width: 640px) calc(100vw - 40px), (max-width: 960px) calc(50vw - 30px), 560px',
+        article: '(max-width: 860px) calc(100vw - 40px), 820px'
+      };
+      var img = function (p, cls, sizes, withAlt) {
         var alt = withAlt && p.zdjecie_alt;
         return '<div class="blog-ph blog-ph--' + (ph[p.kolor] || 'pms') + ' ' + cls + '"' + (p.zdjecie && alt ? '' : ' aria-hidden="true"') + '>' +
-          (p.zdjecie ? '<img src="' + esc(PMG.root + p.zdjecie) + '" alt="' + (alt ? esc(p.zdjecie_alt) : '') + '" width="1600" height="900">' : '[ zdjęcie 16:9 ]') + '</div>';
+          (p.zdjecie ? PMG.picture(p.obraz, p.zdjecie, { sizes: sizes, w: 1600, h: 900, alt: alt ? p.zdjecie_alt : '', lazy: true }) : '[ zdjęcie 16:9 ]') + '</div>';
       };
       var meta = function (p, cls) {
         return '<div class="blog-meta' + (cls || '') + '">' +
@@ -923,11 +957,11 @@
         return '<' + tag + ' class="' + cls + '"><a class="blog-link" href="#wpis-' + esc(p.slug) + '">' + esc(p.tytul) + '</a></' + tag + '>';
       };
       var f = posts[0];
-      $('.blog-featured', list).innerHTML = img(f, 'blog-featured__img') + '<div class="blog-featured__body">' + meta(f) + link(f, 'h2', 'blog-featured__title') +
-        '<p class="blog-featured__excerpt">' + esc(f.zajawka) + '</p><p class="blog-more blog-more--' + esc(f.kolor) + '" aria-hidden="true">Czytaj więcej →</p></div>';
+      $('.blog-featured', list).innerHTML = img(f, 'blog-featured__img', SIZES.featured) + '<div class="blog-featured__body">' + meta(f) + link(f, 'h2', 'blog-featured__title') +
+        '<p class="blog-featured__excerpt">' + esc(f.zajawka || f.lead) + '</p><p class="blog-more blog-more--' + esc(f.kolor) + '" aria-hidden="true">Czytaj więcej →</p></div>';
       $('.blog-grid', list).innerHTML = posts.slice(1).map(function (p) {
-        return '<li class="blog-card" data-blog-card>' + img(p, 'blog-card__img') + '<div class="blog-card__body">' + meta(p) + link(p, 'h3', 'blog-card__title') +
-          '<p class="blog-card__excerpt">' + esc(p.zajawka) + '</p><p class="blog-more blog-more--' + esc(p.kolor) + '" aria-hidden="true">Czytaj więcej →</p></div></li>';
+        return '<li class="blog-card" data-blog-card>' + img(p, 'blog-card__img', SIZES.card) + '<div class="blog-card__body">' + meta(p) + link(p, 'h3', 'blog-card__title') +
+          '<p class="blog-card__excerpt">' + esc(p.zajawka || p.lead) + '</p><p class="blog-more blog-more--' + esc(p.kolor) + '" aria-hidden="true">Czytaj więcej →</p></div></li>';
       }).join('');
       $('.blog-posts', list).hidden = posts.length < 2;
       wrap.innerHTML = posts.map(function (p) {
@@ -935,7 +969,7 @@
         return '<article id="' + id + '" class="blog-article" aria-labelledby="' + id + '-title">' +
           meta(p, ' blog-meta--article') +
           '<h1 class="blog-article__title" id="' + id + '-title" tabindex="-1">' + esc(p.tytul) + '</h1>' +
-          '<p class="blog-article__lead">' + esc(p.zajawka) + '</p>' + img(p, 'blog-article__img', true) +
+          '<p class="blog-article__lead">' + esc(p.lead || p.zajawka) + '</p>' + img(p, 'blog-article__img', SIZES.article, true) +
           '<div class="blog-article__body">' + body(p.tresc) + '</div>' +
           (p.autor ? '<div class="blog-article__foot"><p class="blog-article__author">Autor: <b>' + esc(p.autor) + '</b></p></div>' : '') +
           '</article>';
