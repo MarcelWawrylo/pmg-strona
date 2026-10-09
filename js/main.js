@@ -674,26 +674,120 @@
     });
   }
 
-  /* ---------- Kontakt: mapa Google wczytywana dopiero po kliknięciu (bez JS zostaje link do Map Google) ---------- */
+  /* ---------- Zgoda na mapę Google: pasek przy pierwszej wizycie, wybór w localStorage (nie w ciasteczku) ---------- */
+  /* Mapa na podstronie „Kontakt” wczytuje się sama tylko po zgodzie ('tak'). Przy 'nie' albo braku decyzji
+     zostaje przycisk „Wczytaj mapę Google” (jednorazowo). Przy braku dostępu do localStorage działa jak brak decyzji. */
+  var CONSENT_KEY = 'pmg-zgoda-mapa';
+  var consentMemory = null;
+  function getConsent() {
+    try {
+      var raw = window.localStorage.getItem(CONSENT_KEY);
+      var v = raw ? JSON.parse(raw).v : null;
+      return v === 'tak' || v === 'nie' ? v : null;
+    } catch (e) { return consentMemory; }
+  }
+  function setConsent(v) {
+    consentMemory = v;
+    try { window.localStorage.setItem(CONSENT_KEY, JSON.stringify({ v: v, data: new Date().toISOString().slice(0, 10) })); } catch (e) { /* bez zapisu: decyzja obowiązuje do końca tej strony */ }
+  }
+
+  var mapApi = null;
   function initMap() {
     var box = $('[data-map]');
-    var btn = box && $('[data-map-load]', box);
-    if (!btn) return;
-    btn.hidden = false;
-    btn.addEventListener('click', function () {
+    if (!box || !$('[data-map-load]', box)) return;
+    var original = box.innerHTML;
+    var loaded = false;
+    function removeAfterLink() {
+      var next = box.nextElementSibling;
+      if (next && next.classList.contains('map-consent__link--after')) next.remove();
+    }
+    function loadFrame() {
+      if (loaded) return;
+      loaded = true;
       var frame = document.createElement('iframe');
       frame.title = box.getAttribute('data-title') || 'Mapa Google';
       frame.src = box.getAttribute('data-src');
       frame.loading = 'lazy';
       frame.referrerPolicy = 'strict-origin-when-cross-origin';
       frame.allowFullscreen = true;
-      var link = $('.map-consent__link', box);
+      var link = $('.map-consent__link[href]', box);
       var keep = link ? link.cloneNode(true) : null;
       box.textContent = '';
       box.appendChild(frame);
       if (keep) { keep.classList.add('map-consent__link--after'); box.insertAdjacentElement('afterend', keep); }
-      frame.focus();
+    }
+    function showConsent() {
+      loaded = false;
+      removeAfterLink();
+      box.innerHTML = original;
+      var btn = $('[data-map-load]', box);
+      btn.hidden = false;
+      btn.addEventListener('click', function () { loadFrame(); var f = $('iframe', box); if (f) f.focus(); });
+      $$('[data-cookie-settings]', box).forEach(function (el) { el.hidden = false; });
+    }
+    showConsent();
+    mapApi = {
+      apply: function (decision) {
+        if (decision === 'tak') loadFrame();
+        else if (loaded) showConsent();
+      }
+    };
+    if (getConsent() === 'tak') loadFrame();
+  }
+
+  function initConsentBar() {
+    var policy = $('.site-footer a[href$="polityka-prywatnosci.html"]');
+    var href = (policy ? policy.getAttribute('href') : 'polityka-prywatnosci.html') + '#pp-mapa';
+    var bar = null;
+    function pad() { document.body.style.paddingBottom = bar && !bar.hidden ? bar.offsetHeight + 'px' : ''; }
+    function hide() {
+      if (!bar) return;
+      bar.classList.remove('is-in');
+      bar.hidden = true;
+      pad();
+    }
+    function build() {
+      bar = document.createElement('div');
+      bar.className = 'cookie-bar';
+      bar.setAttribute('role', 'region');
+      bar.setAttribute('aria-label', 'Zgoda na mapę Google');
+      bar.hidden = true;
+      bar.innerHTML = '<p class="cookie-bar__text">Na stronie „Kontakt” używamy mapy Google, która zapisuje pliki cookie Google. ' +
+        'Możesz zgodzić się na jej automatyczne wczytywanie albo odmówić. ' +
+        '<a href="' + href + '">Polityka prywatności</a></p>' +
+        '<div class="cookie-bar__actions">' +
+        '<button class="cookie-bar__btn" type="button" data-cookie-choice="tak">Akceptuję</button>' +
+        '<button class="cookie-bar__btn" type="button" data-cookie-choice="nie">Odrzucam</button></div>';
+      document.body.appendChild(bar);
+      bar.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('[data-cookie-choice]') : null;
+        if (!b) return;
+        var choice = b.getAttribute('data-cookie-choice');
+        var hadFocus = bar.contains(document.activeElement);
+        setConsent(choice);
+        hide();
+        if (mapApi) mapApi.apply(choice);
+        if (hadFocus) {
+          var back = $('.site-footer [data-cookie-settings]');
+          if (back) back.focus();
+        }
+      });
+      window.addEventListener('resize', pad);
+    }
+    function show(focusFirst) {
+      if (!bar) build();
+      bar.hidden = false;
+      pad();
+      requestAnimationFrame(function () { bar.classList.add('is-in'); });
+      if (focusFirst) { var first = $('button', bar); if (first) first.focus(); }
+    }
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest ? e.target.closest('[data-cookie-settings]') : null;
+      if (!t) return;
+      e.preventDefault();
+      show(true);
     });
+    if (!getConsent()) show(false);
   }
 
   /* ---------- „Zgłoś błąd” w stopce → formularz kontaktowy z tematem i adresem strony ---------- */
@@ -906,6 +1000,7 @@
     initLightbox();
     initContactForm();
     initMap();
+    initConsentBar();
     initReportBug();
     initGrass();
     // pusty listener na touchstart włącza stany :active w Safari na iOS

@@ -1755,3 +1755,36 @@ body.has-dialog { overflow: hidden; }
 .site-nav__toggle:active, .site-nav__subtoggle:active, .dialog-close:active, .pod-modal__close:active, .chip-link:active {
   transform: var(--btn-press); transition-duration: var(--press-dur); transition-timing-function: var(--press-ease);
 }
+
+/* ---------- Pasek zgody na mapę Google + przyciski „Ustawienia plików cookie” ---------- */
+button.site-footer__switch--btn, button.map-consent__settings {
+  background: none; border: 0; padding: 0; font: inherit; cursor: pointer;
+}
+button.map-consent__settings { font: 500 13.5px/1.55 var(--font-body); }
+button.map-consent__settings[hidden] { display: none; }
+.cookie-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
+  padding: 16px var(--gutter); background: var(--color-surface); color: var(--color-ink);
+  border-top: 1px solid var(--color-border); box-shadow: 0 -6px 24px rgba(0, 0, 0, .08);
+  opacity: 0; transform: translateY(12px); transition: opacity .25s ease, transform .25s ease;
+}
+.cookie-bar[hidden] { display: none; }
+.cookie-bar.is-in { opacity: 1; transform: none; }
+.cookie-bar__text { margin: 0; flex: 1 1 360px; max-width: 760px; font: 400 14px/1.55 var(--font-body); color: var(--color-text); }
+.cookie-bar__text a { color: var(--color-blue); text-decoration: underline; text-underline-offset: 3px; }
+.cookie-bar__actions { display: flex; gap: 10px; flex: 0 0 auto; }
+.cookie-bar__btn {
+  min-width: 128px; min-height: 44px; padding: 10px 20px; cursor: pointer;
+  font: 600 14px/1.2 var(--font-body); color: var(--color-ink);
+  background: var(--color-surface); border: 2px solid var(--color-ink); border-radius: 999px;
+}
+.cookie-bar__btn:hover { background: var(--color-ink); color: #fff; }
+.cookie-bar__btn:focus-visible, .cookie-bar a:focus-visible { outline: 3px solid var(--color-blue); outline-offset: 3px; }
+@media (max-width: 640px) {
+  .cookie-bar__actions { width: 100%; }
+  .cookie-bar__btn { flex: 1 1 0; min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cookie-bar { transition: none; transform: none; }
+}
