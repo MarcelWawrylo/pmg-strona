@@ -42,5 +42,6 @@
     });
   }
 
-  initPmsWords();
+  // akapity mogą mieć tekst z panelu (main.js, data-tresc): dzielimy na słowa dopiero po jego podmianie
+  if (window.PMG && window.PMG.tresciReady) window.PMG.tresciReady.then(initPmsWords); else initPmsWords();
 })();
