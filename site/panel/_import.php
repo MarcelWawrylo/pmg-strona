@@ -1,6 +1,6 @@
 <?php
 // Wczytywanie treści, które do tej pory były wpisane na sztywno w HTML (api/dane-startowe.php), do PUSTYCH tabel.
-// Tylko administrator; przycisk „Wczytaj treści ze strony” pokazują moduły Aktualności, Członkowie, PM Session, Case Koła i Ustawienia.
+// Tylko administrator; przycisk „Wczytaj treści ze strony” pokazują moduły Aktualności, Członkowie, PM Session, Case Koła, Treści stron i Ustawienia.
 // Wołany z modułów (pmg_import_blok w widoku listy, pmg_import_wykonaj w obsłudze POST a=import). Nie jest modułem do wywołania z ?m=.
 defined('PMG_PANEL') || exit;
 
@@ -11,6 +11,7 @@ const IMPORT_TABELE = [
     'czlonkowie' => ['pmg_osoby', 'pmg_sekcje'],
     'pmsession' => ['pmg_edycje'],
     'case' => ['pmg_case_edycje', 'pmg_case_galeria'],
+    'tresci' => ['pmg_tresci'],
 ];
 
 function import_dane()
@@ -64,6 +65,7 @@ function pmg_import_blok($modul)
         'czlonkowie' => 'Osoby i sekcje z pliku O nas (osób: ' . count($d['osoby']) . ', sekcji: ' . count($d['sekcje']) . ') nie są jeszcze w bazie, dlatego panel ich nie pokazuje. Po wczytaniu strona O nas będzie pokazywać dane z panelu (wygląda tak samo) i będzie można je tu edytować.',
         'pmsession' => 'Edycja ' . $e['numer'] . ' z plików strony (prelegentów: ' . count($e['prelegenci']) . ', punktów harmonogramu: ' . count($e['harmonogram']) . ') oraz liczby „PM Session w liczbach” nie są jeszcze w bazie. Edycja zostanie wczytana jako zakończona (publiczna) z pełnymi biogramami i opisami prelekcji, a strona pokaże ją z panelu w tym samym wyglądzie. Edycji XV nie wczytujemy.',
         'case' => 'Edycje Case Koła z plików strony (' . count($d['case']) . ': karty w hubie oraz treść podstron, w tym galerie) nie są jeszcze w bazie, dlatego panel ich nie pokazuje. Po wczytaniu hub pokaże karty z panelu, a każda karta otworzy wspólną podstronę edycji (wygląda tak samo jak dotychczasowe), więc treść wszystkich edycji będzie można tu zmieniać. Stare adresy podstron (np. case-kola-solvro.html) nadal działają, ale pokazują wersję z pliku.',
+        'tresci' => 'To nie jest konieczne: strona pokazuje teksty z HTML, dopóki pole jest puste, a przy każdym polu jest przycisk „Wstaw tekst ze strony”. Jeśli wolisz mieć wszystkie pola od razu wypełnione obecnymi tekstami (' . count($d['tresci']) . '), wczytaj je tutaj. Strona wygląda tak samo, ale zapisane teksty zastępują HTML: późniejsza zmiana tekstu w plikach strony będzie widoczna dopiero po „Przywróć tekst ze strony”.',
         'ustawienia' => 'Linki do mediów społecznościowych, e-mail i link rekrutacyjny są dziś wpisane w HTML, a formularz poniżej jest pusty. Wczytaj ich obecne wartości, żeby je tu zobaczyć i zmieniać. Strona wygląda tak samo.',
     ];
     echo '<form class="pmg-card" method="post"><input type="hidden" name="csrf" value="' . h(csrf()) . '"><input type="hidden" name="a" value="import">'
@@ -134,6 +136,11 @@ function import_wstaw($modul, $d)
             }
         }
         $komunikat = 'Wczytano ' . pmg_odmiana(count($d['case']), 'edycję', 'edycje', 'edycji') . ' Case Koła (zdjęć w galeriach: ' . $zdj . '). Hub pokazuje teraz karty z panelu (w ciągu 5 minut), a karty prowadzą do wspólnej podstrony edycji. Stare adresy podstron (case-kola-solvro.html itd.) nadal działają, ale pokazują wersję z pliku.';
+    } elseif ($modul === 'tresci') {
+        $st = $pdo->prepare('REPLACE INTO pmg_tresci (klucz, wartosc, data_zmiany, kto) VALUES (?,?,NOW(),?)');
+        $kto = (string) ($GLOBALS['me']['imie_nazwisko'] ?? '');
+        foreach ($d['tresci'] as $klucz => $tekst) $st->execute([$klucz, $tekst, $kto]);
+        $komunikat = 'Wczytano ' . pmg_odmiana(count($d['tresci']), 'tekst', 'teksty', 'tekstów') . ' ze strony. Strona wygląda tak samo, a teksty można teraz zmieniać w zakładkach.';
     } elseif ($modul === 'ustawienia') {
         $ile = import_ustawienia($d['ustawienia']);
         $komunikat = 'Wczytano ' . pmg_odmiana($ile, 'ustawienie', 'ustawienia', 'ustawień') . '. Strona wygląda tak samo, a wartości można tu teraz zmieniać.';
