@@ -8,6 +8,7 @@
 // (strona składa adres jako katalog_strony + ścieżka, panel jako ../ + ścieżka) — nic nie jest kopiowane do uploads/.
 // Pominięte, bo ich nie ma w HTML: rekrutacja_tekst (zostaje pusty), edycja XV.
 // Case Koła: 4 edycje (karty z case-kola.html, treść z case-kola-*.html).
+// Treści stron: klucz => tekst domyślny z HTML (lista pól wygenerowana w tresci-pola.php).
 return [
     // Ustawienia ogólne (Ustawienia strony).
     'ustawienia' => [
@@ -434,4 +435,13 @@ Zapraszam Cię bardzo serdecznie!',
             ],
         ],
     ],
+    // Treści stron (moduł „Treści stron”): wszystkie pola z tresci-pola.php z tekstem takim, jak w HTML.
+    'tresci' => (function () {
+        $d = [];
+        $lista = require __DIR__ . '/tresci-pola.php';
+        foreach ($lista['zakladki'] as $z) {
+            foreach ($z['pola'] as $k => $p) $d[$k] = $p['domyslny'];
+        }
+        return $d;
+    })(),
 ];
