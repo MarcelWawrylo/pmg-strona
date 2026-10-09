@@ -640,8 +640,9 @@ html.nav-open body { overflow: hidden; }
   border: 0; border-bottom: 1.5px solid rgba(20,20,20,.35); border-radius: 0; background: transparent;
   font: 400 19px var(--font-head); color: var(--color-ink); padding: 10px 2px; width: 100%; transition: border-color var(--hover-t);
 }
-.field__input::placeholder { color: rgba(20,20,20,.5); }
+.field__input::placeholder { color: rgba(20,20,20,.66); }
 .field__input:focus { outline: none; border-bottom-color: var(--color-ink); box-shadow: 0 2px 0 0 var(--color-blue); }
+.field__input:focus-visible { outline: 2px solid var(--color-blue); outline-offset: 2px; }
 .field__input--area { resize: vertical; line-height: 1.5; }
 .field__input[aria-invalid="true"] { border-bottom-color: var(--color-pink-text); }
 .contact-form__error { font: 600 14px var(--font-body); color: var(--color-pink-text); margin-top: -10px; }
