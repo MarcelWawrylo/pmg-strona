@@ -1095,7 +1095,7 @@
     if (episodesList && PMG.api) {
       var esc = PMG.esc;
       var httpsUrl = function (u, re) { return typeof u === 'string' && u.indexOf('https://') === 0 && re.test(u); };
-      var podDate = function (iso) { var p = String(iso).split('-'); return p[2] + '/' + p[1] + '/' + p[0]; };
+      var podDate = function (iso) { var p = String(iso).split('-'); return esc(p[2] + '/' + p[1] + '/' + p[0]); };
       var podImg = function (o, cls) {
         if (!o.zdjecie) return '';
         return '<img class="' + cls + '" src="' + esc(PMG.root + o.zdjecie) + '" width="1600" height="900" alt="' + esc(o.zdjecie_alt) + '" loading="lazy" decoding="async">';
