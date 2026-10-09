@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 6;
+const PMG_SCHEMA = 7;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -263,10 +263,17 @@ function pmg_migrate()
             kolejnosc SMALLINT NOT NULL DEFAULT 0,
             FOREIGN KEY (edycja_id) REFERENCES pmg_case_edycje(id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    // Schemat 7: teksty stron nadpisane w panelu (moduł „Treści stron”). Klucz = wartość data-tresc z HTML; brak wiersza = tekst z HTML.
+    $tabele[] = "CREATE TABLE IF NOT EXISTS pmg_tresci (
+            klucz VARCHAR(80) NOT NULL PRIMARY KEY,
+            wartosc TEXT NOT NULL,
+            data_zmiany DATETIME NOT NULL,
+            kto VARCHAR(100) NOT NULL DEFAULT ''
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     foreach ($tabele as $sql) $pdo->exec($sql);
 
-    // Bazy utworzone wcześniej: nowy moduł w SET uprawnień (schemat 6: 'case') i kolumna opisu edycji PM Session.
-    $pdo->exec("ALTER TABLE pmg_uzytkownicy MODIFY moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case') NOT NULL DEFAULT ''");
+    // Bazy utworzone wcześniej: nowy moduł w SET uprawnień (schemat 6: 'case', schemat 7: 'tresci') i kolumna opisu edycji PM Session.
+    $pdo->exec("ALTER TABLE pmg_uzytkownicy MODIFY moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case','tresci') NOT NULL DEFAULT ''");
     // Schemat 3: biogram prelegenta do 2500 znaków (dane startowe PM Session XIV mają biogramy dłuższe niż 1500).
     $pdo->exec("ALTER TABLE pmg_prelegenci MODIFY bio VARCHAR(2500) NOT NULL DEFAULT ''");
     if ($pdo->query("SHOW COLUMNS FROM pmg_edycje LIKE 'opis'")->fetchColumn() === false) {
