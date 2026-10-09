@@ -1,9 +1,10 @@
 /* PMG — animacje strony („płynna” wersja). Rozszerza js/main.js.
-   Tryb pełny tylko ≥ 961 px i bez prefers-reduced-motion: wtedy doładowuje Lenis + GSAP + ScrollTrigger (CDN, SRI).
+   Tryb pełny tylko ≥ 961 px i bez prefers-reduced-motion: wtedy doładowuje Lenis + GSAP + ScrollTrigger (lokalne pliki z js/vendor/, bez CDN).
    Na mobile i przy ograniczonym ruchu nic się nie ładuje — strona działa na samym main.js. */
 (function () {
   'use strict';
 
+  var vendorBase = new URL('vendor/', document.currentScript.src).href; // obok v2.js, także w podkatalogu i na 404.html
   var desktop = window.matchMedia('(min-width: 961px)');
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
   if (!desktop.matches || reduce.matches) return;
@@ -24,18 +25,12 @@
     io.observe(logo);
   })();
 
-  var LIBS = [
-    ['https://cdn.jsdelivr.net/npm/lenis@1.3.4/dist/lenis.min.js', 'sha384-FKTX0CNJ8ngN1oGMBReVu7mvjTJyjFiD5etb1NKnYxc+8eFI2O0KWnksTN+oTFcu'],
-    ['https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js', 'sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc'],
-    ['https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js', 'sha384-P8VzCVnT9NBUkMrpcIZrJbA7EBjJvh/fJS6PmP+4nLIM284DtsImIv8D0fFjIkeh']
-  ];
+  var LIBS = ['lenis.min.js', 'gsap.min.js', 'ScrollTrigger.min.js'];
 
   function loadLibs(i, done) {
     if (i >= LIBS.length) return done();
     var s = document.createElement('script');
-    s.src = LIBS[i][0];
-    s.integrity = LIBS[i][1];
-    s.crossOrigin = 'anonymous';
+    s.src = vendorBase + LIBS[i];
     s.onload = function () { loadLibs(i + 1, done); };
     s.onerror = function () { done(true); }; // bez bibliotek strona zostaje w trybie v1
     document.head.appendChild(s);
