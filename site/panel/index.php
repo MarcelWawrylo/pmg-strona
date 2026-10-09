@@ -30,7 +30,7 @@ header('Referrer-Policy: no-referrer');
 pmg_migrate();
 
 const KOLORY = ['pink' => 'Różowy', 'purple' => 'Fioletowy', 'blue' => 'Niebieski', 'violet' => 'Liliowy'];
-const ZDJECIA = ['aktualnosci' => [16 / 9, 1600], 'czlonkowie' => [1, 800], 'pmsession' => [1, 800], 'podcast' => [16 / 9, 1600]];
+const ZDJECIA = ['aktualnosci' => [16 / 9, 1600], 'czlonkowie' => [1, 800], 'pmsession' => [4 / 3, 1600], 'podcast' => [16 / 9, 1600]];
 const MODULY = [
     'aktualnosci' => 'aktualnosci', 'czlonkowie' => 'czlonkowie', 'pmsession' => 'pmsession', 'podcast' => 'podcast',
     'konta' => 'admin', 'dziennik' => 'admin', 'ustawienia' => 'admin', 'kopia' => 'admin',
@@ -175,7 +175,7 @@ function save_image($file, $modul)
     list($w, $hgt) = $info;
     if ($w * $hgt > 12000000) throw new RuntimeException('Zdjęcie ma za dużą rozdzielczość (maks. ok. 12 megapikseli) — zmniejsz je przed wgraniem.');
     if (abs($w / $hgt - $proporcja) > 0.03) {
-        $opis = abs($proporcja - 1) < 0.001 ? '1:1 (kwadrat)' : '16:9';
+        $opis = abs($proporcja - 1) < 0.001 ? '1:1 (kwadrat)' : (abs($proporcja - 4 / 3) < 0.001 ? '4:3' : '16:9');
         throw new RuntimeException('Zdjęcie musi mieć proporcje ' . $opis . ' (wgrane: ' . $w . '×' . $hgt . ' px).');
     }
     $dir = __DIR__ . '/../uploads/' . $modul . '/';
