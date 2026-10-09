@@ -5,22 +5,47 @@
 ini_set('display_errors', '0');
 ini_set('zend.exception_ignore_args', '1'); // stack trace w logu bez argumentów (np. hasła z new PDO)
 ini_set('log_errors', '1');
+date_default_timezone_set('Europe/Warsaw'); // spójnie z NOW() w bazie i z nazwami plików
 set_exception_handler(function ($e) {
     error_log((string) $e);
     http_response_code(500);
     echo 'Błąd serwera. Spróbuj za chwilę.';
 });
 
+// Lista miejsc, w których szukamy pliku konfiguracji (pierwszy istniejący wygrywa):
+//  1. zmienna środowiskowa PMG_CONFIG (np. SetEnv w konfiguracji Apache / panelu hostingu) — pełna ścieżka do pliku,
+//  2. pmg-config.php w katalogu NAD katalogiem głównym domeny (np. ~/pmg-config.php, gdy strona jest w ~/public_html),
+//  3. pmg-config.php nad katalogiem site/ (gdy strona leży w podkatalogu domeny),
+//  4. dotychczasowy api/config.php (leży w webroot, chroniony tylko przez api/.htaccess — rozwiązanie awaryjne).
+// Pliki 2–3 są poza webroot, więc nie da się ich pobrać z przeglądarki nawet przy błędzie .htaccess.
+// Katalog nad webrootem to zwykle katalog domowy konta, który mieści się w open_basedir; ścieżki spoza
+// open_basedir są po cichu pomijane (@), a nie kończą się błędem.
+function pmg_config_kandydaci()
+{
+    $k = [];
+    $env = getenv('PMG_CONFIG');
+    if (($env === false || $env === '') && !empty($_SERVER['PMG_CONFIG'])) $env = $_SERVER['PMG_CONFIG']; // SetEnv z Apache
+    if (is_string($env) && $env !== '') $k[] = $env;
+    if (!empty($_SERVER['DOCUMENT_ROOT'])) $k[] = dirname(rtrim($_SERVER['DOCUMENT_ROOT'], '/\\')) . '/pmg-config.php';
+    $k[] = dirname(__DIR__, 2) . '/pmg-config.php';
+    $k[] = __DIR__ . '/config.php';
+    return array_values(array_unique($k));
+}
+
 function pmg_config()
 {
     static $cfg = null;
     if ($cfg === null) {
-        $file = __DIR__ . '/config.php';
-        if (!is_file($file)) {
-            http_response_code(503);
-            exit('Brak api/config.php');
+        foreach (pmg_config_kandydaci() as $file) {
+            if (@is_file($file) && @is_readable($file)) {
+                $c = require $file;
+                if (is_array($c)) { $cfg = $c; break; }
+            }
         }
-        $cfg = require $file;
+        if ($cfg === null) {
+            http_response_code(503);
+            exit('Brak pliku konfiguracji (pmg-config.php poza katalogiem strony albo api/config.php).');
+        }
     }
     return $cfg;
 }
