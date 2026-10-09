@@ -7,6 +7,7 @@
 // ale to te same, publiczne treści co w HTML). Zdjęcia: ścieżki do istniejących plików w img/
 // (strona składa adres jako katalog_strony + ścieżka, panel jako ../ + ścieżka) — nic nie jest kopiowane do uploads/.
 // Pominięte, bo ich nie ma w HTML: rekrutacja_tekst (zostaje pusty), edycja XV.
+// Case Koła: 4 edycje (karty z case-kola.html, treść z case-kola-*.html).
 return [
     // Ustawienia ogólne (Ustawienia strony).
     'ustawienia' => [
@@ -82,6 +83,87 @@ Był to okres pełen dynamicznych działań, wyzwań i niesamowitej energii, z k
             'autor' => 'Sekcja Marketingu',
         ],
     ],
+    // Case Koła: 4 edycje z case-kola.html (karty) i case-kola-*.html (treść podstron). Źródło: HTML z 9.10.2026.
+    // adres_strony jest pusty: karty prowadzą do wspólnej podstrony case-kola-edycja.html?nr=N, żeby zmiany z panelu były widoczne
+    // (dotychczasowe pliki case-kola-solvro/qubit/debatelab/pwr-racing-team.html zostają pod starymi adresami i nadal działają).
+    // pelne = osobny plik do powiększenia w galerii, gdy różni się od największego .webp tego zdjęcia (null = ten sam).
+    // Teksty: akapity oddzielone pustą linią. Pominięte, bo ich nie ma w HTML: skład zespołu PMG, monogram partnera, wyniki.
+    'case' => [
+        [
+            'numer' => 4, 'nazwa' => 'Solvro', 'tytul_karty' => 'Solvro', 'naglowek' => 'KN Solvro',
+            'adres_strony' => '',
+            'opis_meta' => 'Case Koła: trwająca współpraca PMG z KN Solvro — faza diagnostyczna.',
+            'logo' => 'img/logo-solvro-white-192.png', 'logo_styl' => 'ciemne',
+            'hero' => null, 'hero_alt' => '',
+            'o_partnerze' => 'Solvro to Strategiczne Koło Naukowe Politechniki Wrocławskiej, które od 2018 roku łączy wiedzę akademicką z praktycznymi projektami IT, takimi jak aplikacje ToPWR, Testownik czy Eventownik. Członkowie uczą się przez realizację projektów, które mają realny wpływ na uczelnię: od aplikacji mobilnych, przez sztuczną inteligencję, po web development. Koło mówi o sobie, że funkcjonuje „jak dynamiczny software house, ale bez sztywnych garniturów i bez korpo logiki”. Liczy około 150 członków i sześcioosobowy zarząd, a pracuje w strukturze macierzowej: każdy działa jednocześnie w sekcji i w projekcie.',
+            'wyzwanie' => '',
+            'co_zrobilismy' => '',
+            'rezultat' => '',
+            'w_toku' => 'Rozwiązanie powstanie w kolejnym etapie współpracy.',
+            'galeria' => [
+            ],
+            'kolejnosc' => 1, 'widoczna' => 1,
+        ],
+        [
+            'numer' => 3, 'nazwa' => 'Qubit', 'tytul_karty' => 'QUBIT', 'naglowek' => 'KN Qubit',
+            'adres_strony' => '',
+            'opis_meta' => 'Case Koła: współpraca PMG z KN Qubit (27 maja – 28 czerwca 2025) — pierwsza spisana struktura organizacyjna koła.',
+            'logo' => 'img/case-kola-logo-qubit-154.png', 'logo_styl' => 'jasne-wysokie',
+            'hero' => 'img/case-kola-qubit-hero-960.jpg', 'hero_alt' => 'Zdjęcie grupowe zespołu PMG i przedstawicieli KN Qubit',
+            'o_partnerze' => 'Qubit to koło naukowe Politechniki Wrocławskiej działające przy Wydziale Informatyki i Telekomunikacji, które łączy informatykę kwantową, sztuczną inteligencję i zaawansowane systemy obliczeniowe; społeczność buduje od 2025 roku. Organizuje badania, projekty i warsztaty, a członkom zapewnia dostęp do Odry 5 — według koła „pierwszego komputera kwantowego w Polsce i Europie Wschodniej”. W momencie rozpoczęcia współpracy liczyło około 30 aktywnych członków, a na prelekcje przychodziło jeszcze około 40 wolnych słuchaczy. Ważną częścią działalności jest nauczanie: członkowie sekcji edukacyjnej prowadzą prelekcje dla reszty koła.',
+            'wyzwanie' => 'Koło działało bez spisanej struktury organizacyjnej i bez wypracowanej kultury organizacyjnej. Zarząd liczył trzy osoby, przy czym funkcja skarbnika pozostawała nieobsadzona. Sekcje rozwijały się bardzo nierówno: marketing miał jedną osobę i nie działał, a sekcja informatyzacji nie miała czym się zajmować.
+
+Członkowie spotykali się właściwie tylko na prelekcjach, co nie budowało poczucia wspólnoty — jak ujęto na spotkaniu diagnostycznym: „słaba komunikacja, brak przynależności, brak obowiązku, brak świadomości co jest ważne w kole, a co nie”. Otwartą kwestią pozostawało też, czy wolni słuchacze powinni w ogóle liczyć się jako członkowie koła.',
+            'co_zrobilismy' => 'Zaprojektowaliśmy dla Qubitu pierwszą spisaną strukturę organizacyjną, rozpisaliśmy obowiązki każdej roli w zarządzie i w sekcjach, ustaliliśmy rytm spotkań oraz przygotowaliśmy instrukcję wdrożenia zmian — z naciskiem na to, że sama prezentacja pomysłu niczego nie zmieni, jeśli ustalenia nie zostaną spisane.',
+            'rezultat' => 'Qubit otrzymał kompletną propozycję struktury organizacyjnej opartą na dwóch wymiarach. Pionowo — trzy stałe sekcje: PR, InfoLog i Szkoła, każda z opiekunem z zarządu; sekcja jest „codziennym zespołem” członka, w którym rozwija umiejętności na stałe. Poziomo — projekty łączące osoby z różnych sekcji pod kierownikiem projektu.
+
+Do tego rozpisano obowiązki każdej roli w zarządzie i ustalono rytm spotkań: ogólne co dwa tygodnie z agendą i sprawdzaniem obecności, sekcyjne po 15–30 minut, projektowe według uznania koordynatora. Całość zamknięto rekomendacjami — jak najwięcej integracji, tworzenie know-how w każdej sekcji, monitorowanie aktywności członków przez koordynatorów i uruchamianie większej liczby projektów, żeby uniknąć przestojów.',
+            'w_toku' => '',
+            'galeria' => [
+            ],
+            'kolejnosc' => 2, 'widoczna' => 1,
+        ],
+        [
+            'numer' => 2, 'nazwa' => 'PWR Racing Team', 'tytul_karty' => 'PWR Racing Team', 'naglowek' => 'PWR Racing Team',
+            'adres_strony' => '',
+            'opis_meta' => 'Case Koła: współpraca PMG z PWR Racing Team (27 stycznia – 17 czerwca 2024) — narzędzie do przydzielania zadań i śledzenia postępu prac.',
+            'logo' => 'img/case-kola-logo-pwr-racing-team-288.png', 'logo_styl' => 'ciemne',
+            'hero' => 'img/case-kola-pwr-racing-team-hero-960.jpg', 'hero_alt' => 'Zdjęcie grupowe zespołu PMG i przedstawicieli PWR Racing Team na kampusie',
+            'o_partnerze' => 'PWR Racing Team to Strategiczne Koło Naukowe Politechniki Wrocławskiej działające przy Wydziale Mechanicznym — według własnego opisu najstarszy i najbardziej utytułowany polski zespół Formuły Student. Od 2009 roku co sezon buduje od podstaw nowy bolid; powstało ich już 16, w tym cztery elektryczne z systemami jazdy autonomicznej. Zespół tworzy około 90 studentów wrocławskich uczelni w siedmiu działach, z których każdy odpowiada za inną część bolidu. Praca nad autem dzieli się na cztery etapy (koncept, design, wykonawczy i testowy), a sam dział Projekty liczył 20–30 osób pracujących w modelu wodospadowym.',
+            'wyzwanie' => 'Punkt wyjścia okazał się ruchomy. Na spotkaniu wstępnym partner zgłaszał kolejno różne potrzeby — spisanie procesów w notacji BPMN, przegląd struktury działu Projekty — aż wspólnie doszliśmy do sedna: brakowało jednego, uporządkowanego narzędzia do przydzielania zadań i śledzenia postępu prac.
+
+Zespół próbował już wcześniej wdrażać podobne rozwiązania. Jak podsumowano na spotkaniu kończącym, w poprzednich latach testowali, ale się nie sprawdzało — głównie przez rotację członków.',
+            'co_zrobilismy' => 'Spisaliśmy proces powstawania bolidu w podziale na cztery etapy, porównaliśmy dostępne na rynku narzędzia do zarządzania projektami i — zamiast rekomendować gotowy system — zaprojektowaliśmy narzędzie dopasowane do realnych możliwości zespołu. Do tego przygotowaliśmy instrukcję wdrożenia i wskazaliśmy punkt kontaktowy na czas po zakończeniu współpracy.',
+            'rezultat' => 'Partner otrzymał gotowy arkusz do harmonogramowania i przypisywania zadań, instrukcję wdrożenia ze zrzutami ekranu i szczegółowymi wyjaśnieniami — na tyle prostą, by narzędzie mogła obsługiwać osoba bez doświadczenia w zarządzaniu projektami — oraz punkt kontaktowy do dalszych pytań. Na spotkaniu kończącym zespół potwierdził, że narzędzie testuje i jest z niego zadowolony.',
+            'w_toku' => '',
+            'galeria' => [
+                ['img/case-kola-pwr-racing-team-g1-600.jpg', 'Przedstawiciele PMG i PWR Racing Team z plakatem zespołu', 'img/case-kola-pwr-racing-team-g1-pelne-1200.webp'],
+                ['img/case-kola-pwr-racing-team-g2-600.jpg', 'Zespoły PMG i PWR Racing Team', null],
+                ['img/case-kola-pwr-racing-team-g3-600.jpg', 'Zespoły PMG i PWR Racing Team na spotkaniu podsumowującym', null],
+            ],
+            'kolejnosc' => 3, 'widoczna' => 1,
+        ],
+        [
+            'numer' => 1, 'nazwa' => 'Debate Lab', 'tytul_karty' => 'Debate Lab', 'naglowek' => 'KN Debate Lab',
+            'adres_strony' => '',
+            'opis_meta' => 'Case Koła: współpraca PMG z KN Debate Lab (28 lutego – 7 marca 2025) — materiał o źródłach finansowania działalności koła.',
+            'logo' => 'img/case-kola-logo-debatelab-331.png', 'logo_styl' => 'jasne',
+            'hero' => 'img/case-kola-debatelab-hero-960.jpg', 'hero_alt' => 'Zdjęcie grupowe zespołu PMG i przedstawicieli KN Debate Lab na kampusie',
+            'o_partnerze' => 'DebateLab to koło naukowe debat oksfordzkich działające przy Wydziale Zarządzania Politechniki Wrocławskiej, którego opiekunką jest dr Anna Kamińska.',
+            'wyzwanie' => 'Koło potrzebowało uporządkowanej wiedzy o tym, skąd i na jakich zasadach pozyskiwać środki na działalność. Finanse kół naukowych są rozbite pomiędzy dwa źródła o zupełnie różnej charakterystyce — dotacje z Politechniki i środki Fundacji Manus — a bez wspólnego rejestru łatwo zgubić rozliczenia rozproszone między nimi.',
+            'co_zrobilismy' => 'Przygotowaliśmy materiał porządkujący całość tematu: przegląd źródeł finansowania — dotacje PWr, Fundacja Manus, granty zewnętrzne, przychody własne — porównanie ich charakterystyki, rekomendację zarządzania płynnością, wzór rejestru wydatków oraz instrukcję pisania wniosków o dofinansowanie.',
+            'rezultat' => 'Debate Lab otrzymał komplet materiału o finansowaniu działalności koła: porównanie źródeł finansowania wraz z ich mocnymi i słabymi stronami — środki z Politechniki mają małą elastyczność i są przyznawane raz w roku, w okolicach marca i kwietnia, ale w sporej puli; środki Fundacji Manus są elastyczne i dostępne przez cały rok, choć zazwyczaj w mniejszej kwocie.
+
+Do tego rekomendację podziału budżetu — duże, planowane z wyprzedzeniem projekty finansować z PWr, a bieżącą działalność i rezerwę na nieprzewidziane wydatki z Fundacji Manus — gotowy wzór rejestru wpływów i wydatków w arkuszu oraz instrukcję pisania wniosków o dofinansowanie krok po kroku.',
+            'w_toku' => '',
+            'galeria' => [
+                ['img/case-kola-debatelab-g1-600.jpg', 'Zespoły PMG i Debate Lab', null],
+                ['img/case-kola-debatelab-g2-600.jpg', 'Zespoły PMG i Debate Lab', 'img/case-kola-debatelab-g2-pelne-900.webp'],
+            ],
+            'kolejnosc' => 4, 'widoczna' => 1,
+        ],
+    ],
+
     // Członkowie: sekcje (kolejność jak na stronie) i osoby (sekcja = nazwa sekcji albo null dla zarządu).
     'sekcje' => [
         ['nazwa' => 'Finanse i Logistyka', 'kolor' => 'pink', 'opis' => 'Zajmujemy się finansami koła, bilansami i ofertami, a także organizacją wydarzeń, przygotowaniem materiałów i obsługą komunikatorów. Dbamy, by projekty były dopięte na ostatni guzik.', 'kolejnosc' => 1],
