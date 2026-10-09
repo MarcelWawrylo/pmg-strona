@@ -59,9 +59,9 @@ function pmg_import_blok($modul)
     $d = import_dane();
     $e = $d['edycje'][0];
     $opisy = [
-        'aktualnosci' => 'Wpisy z plików strony (' . count($d['aktualnosci']) . ') nie są jeszcze w bazie, dlatego panel ich nie pokazuje. Wczytaj je jako szkice: po ustawieniu prawdziwej daty będzie można je edytować i opublikować. Do tego czasu strona pokazuje wersję z HTML.',
+        'aktualnosci' => 'Wpisy z plików strony (' . count($d['aktualnosci']) . ') nie są jeszcze w bazie, dlatego panel ich nie pokazuje. Po wczytaniu będą opublikowane z tymczasowymi datami (15, 20 i 25 września 2026) i strona zacznie je pokazywać z panelu, w tym samym wyglądzie (zamiast „data do ustalenia” zobaczysz datę). Prawdziwe daty ustawisz przy każdym wpisie.',
         'czlonkowie' => 'Osoby i sekcje z pliku O nas (osób: ' . count($d['osoby']) . ', sekcji: ' . count($d['sekcje']) . ') nie są jeszcze w bazie, dlatego panel ich nie pokazuje. Po wczytaniu strona O nas będzie pokazywać dane z panelu (wygląda tak samo) i będzie można je tu edytować.',
-        'pmsession' => 'Edycja ' . $e['numer'] . ' z plików strony (prelegentów: ' . count($e['prelegenci']) . ', punktów harmonogramu: ' . count($e['harmonogram']) . ') oraz liczby „PM Session w liczbach” nie są jeszcze w bazie. Edycja zostanie wczytana jako szkic, więc strona nadal pokazuje swoją wersję z HTML (z pełnymi opisami prelekcji). Edycji XV nie wczytujemy.',
+        'pmsession' => 'Edycja ' . $e['numer'] . ' z plików strony (prelegentów: ' . count($e['prelegenci']) . ', punktów harmonogramu: ' . count($e['harmonogram']) . ') oraz liczby „PM Session w liczbach” nie są jeszcze w bazie. Edycja zostanie wczytana jako zakończona (publiczna) z pełnymi biogramami i opisami prelekcji, a strona pokaże ją z panelu w tym samym wyglądzie. Edycji XV nie wczytujemy.',
         'ustawienia' => 'Linki do mediów społecznościowych, e-mail i link rekrutacyjny są dziś wpisane w HTML, a formularz poniżej jest pusty. Wczytaj ich obecne wartości, żeby je tu zobaczyć i zmieniać. Strona wygląda tak samo.',
     ];
     echo '<form class="pmg-card" method="post"><input type="hidden" name="csrf" value="' . h(csrf()) . '"><input type="hidden" name="a" value="import">'
@@ -75,16 +75,16 @@ function import_wstaw($modul, $d)
 {
     $pdo = pmg_db();
     if ($modul === 'aktualnosci') {
-        $st = $pdo->prepare('INSERT INTO pmg_aktualnosci (slug, data, kategoria, kolor, tytul, zajawka, tresc, zdjecie, zdjecie_alt, autor, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+        $st = $pdo->prepare('INSERT INTO pmg_aktualnosci (slug, data, kategoria, kolor, tytul, lead, zajawka, tresc, zdjecie, zdjecie_alt, autor, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
         $szkice = 0;
         foreach ($d['aktualnosci'] as $a) {
             $szkic = $a['data'] === null; // data „do ustalenia” w HTML: wpis zostaje szkicem z datą dnia wczytania
             $szkice += $szkic ? 1 : 0;
-            $st->execute([$a['slug'], $szkic ? date('Y-m-d') : $a['data'], $a['kategoria'], $a['kolor'], $a['tytul'], $a['zajawka'], $a['tresc'], $a['zdjecie'], $a['zdjecie_alt'], $a['autor'], $szkic ? 0 : 1]);
+            $st->execute([$a['slug'], $szkic ? date('Y-m-d') : $a['data'], $a['kategoria'], $a['kolor'], $a['tytul'], $a['lead'], $a['zajawka'], $a['tresc'], $a['zdjecie'], $a['zdjecie_alt'], $a['autor'], $szkic ? 0 : 1]);
         }
         $ile = count($d['aktualnosci']);
         $komunikat = 'Wczytano ' . pmg_odmiana($ile, 'wpis', 'wpisy', 'wpisów') . ($szkice ? ' jako szkice' : '') . '.'
-            . ($szkice ? ' W HTML ich data to „do ustalenia”, więc mają datę dzisiejszą: ustaw prawdziwą datę, sprawdź kategorię i opublikuj. Do tego czasu strona pokazuje wersję z HTML.' : '');
+            . ($szkice ? ' W HTML ich data to „do ustalenia”, więc mają datę dzisiejszą: ustaw prawdziwą datę i opublikuj. Do tego czasu strona pokazuje wersję z HTML.' : ' Daty są tymczasowe (w HTML było „do ustalenia”) — ustaw prawdziwe w każdym wpisie. Strona pokazuje teraz wpisy z panelu (w ciągu 5 minut).');
     } elseif ($modul === 'czlonkowie') {
         $stS = $pdo->prepare('INSERT INTO pmg_sekcje (nazwa, kolor, opis, kolejnosc) VALUES (?,?,?,?)');
         $idSekcji = [];
@@ -101,25 +101,24 @@ function import_wstaw($modul, $d)
         $prel = 0;
         $pkt = 0;
         $stE = $pdo->prepare('INSERT INTO pmg_edycje (numer, temat, data, miejsce, opis, status) VALUES (?,?,?,?,?,?)');
-        $stP = $pdo->prepare('INSERT INTO pmg_prelegenci (edycja_id, imie_nazwisko, temat, bio, notatka, zdjecie, zdjecie_alt, linkedin, kolejnosc) VALUES (?,?,?,?,?,?,?,?,?)');
-        $stH = $pdo->prepare('INSERT INTO pmg_harmonogram (edycja_id, godzina, tytul, prelegent) VALUES (?,?,?,?)');
+        $stP = $pdo->prepare('INSERT INTO pmg_prelegenci (edycja_id, imie_nazwisko, temat, bio, opis, plec, notatka, zdjecie, zdjecie_alt, linkedin, kolejnosc) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+        $stH = $pdo->prepare('INSERT INTO pmg_harmonogram (edycja_id, godzina, tytul, prelegent, znacznik) VALUES (?,?,?,?,?)');
         foreach ($d['edycje'] as $e) {
             $stE->execute([$e['numer'], $e['temat'], $e['data'], $e['miejsce'], $e['opis'], $e['status']]);
             $eid = (int) $pdo->lastInsertId();
             foreach ($e['prelegenci'] as $p) {
-                $stP->execute([$eid, $p['imie_nazwisko'], $p['temat'], $p['bio'], $p['notatka'], $p['zdjecie'], $p['zdjecie_alt'], $p['linkedin'], $p['kolejnosc']]);
+                $stP->execute([$eid, $p['imie_nazwisko'], $p['temat'], $p['bio'], $p['opis'], $p['plec'], $p['notatka'], $p['zdjecie'], $p['zdjecie_alt'], $p['linkedin'], $p['kolejnosc']]);
                 $prel++;
             }
             foreach ($e['harmonogram'] as $h) {
                 $g = explode(':', $h[0]);
-                $stH->execute([$eid, sprintf('%02d:%02d:00', (int) $g[0], (int) $g[1]), $h[1], $h[2]]);
+                $stH->execute([$eid, sprintf('%02d:%02d:00', (int) $g[0], (int) $g[1]), $h[1], $h[2], $h[3] ?? '']);
                 $pkt++;
             }
         }
         $liczby = import_ustawienia($d['ustawienia_pms']);
-        $komunikat = 'Wczytano edycję ' . $d['edycje'][0]['numer'] . ' jako szkic (prelegentów: ' . $prel . ', punktów harmonogramu: ' . $pkt . ')'
-            . ($liczby ? ' oraz liczby „PM Session w liczbach” (' . $liczby . ')' : '') . '. Strona nadal pokazuje wersję z HTML.'
-            . ' Nie zmieniaj statusu na „Zakończona”, jeśli strona ma zachować pełne opisy prelekcji: panel ich nie przechowuje.';
+        $komunikat = 'Wczytano edycję ' . $d['edycje'][0]['numer'] . ' jako ' . ($d['edycje'][0]['status'] === 'zakonczona' ? 'zakończoną' : 'szkic') . ' (prelegentów: ' . $prel . ', punktów harmonogramu: ' . $pkt . ')'
+            . ($liczby ? ' oraz liczby „PM Session w liczbach” (' . $liczby . ')' : '') . '. Strona pokazuje teraz tę edycję z panelu (w ciągu 5 minut).';
     } elseif ($modul === 'ustawienia') {
         $ile = import_ustawienia($d['ustawienia']);
         $komunikat = 'Wczytano ' . pmg_odmiana($ile, 'ustawienie', 'ustawienia', 'ustawień') . '. Strona wygląda tak samo, a wartości można tu teraz zmieniać.';
