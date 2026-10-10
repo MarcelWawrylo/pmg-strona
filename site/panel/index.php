@@ -68,6 +68,26 @@ function pmg_odmiana($n, $jeden, $kilka, $wiele)
     return $n . ' ' . (($r10 >= 2 && $r10 <= 4 && ($r100 < 12 || $r100 > 14)) ? $kilka : $wiele);
 }
 
+// Błędy przy polach formularza (id pola => komunikat). Moduł zbiera tu wszystkie błędy naraz;
+// błąd niezwiązany z żadnym polem (baza, limit prób) zostaje w $error.
+$bledyPol = [];
+
+// Atrybuty do wstawienia w <input>/<textarea>/<select>: aria-describedby (podpowiedź i/lub komunikat błędu)
+// oraz aria-invalid, gdy pole ma błąd. Bez podpowiedzi i bez błędu zwraca ''.
+function blad_pola($id, $podpowiedz = '')
+{
+    global $bledyPol;
+    $opis = trim((string) $podpowiedz . (isset($bledyPol[$id]) ? ' ' . $id . '_blad' : ''));
+    return ($opis !== '' ? ' aria-describedby="' . h($opis) . '"' : '') . (isset($bledyPol[$id]) ? ' aria-invalid="true"' : '');
+}
+
+// Komunikat pod polem (wstaw zaraz za polem); '' gdy pole nie ma błędu.
+function komunikat_pola($id)
+{
+    global $bledyPol;
+    return isset($bledyPol[$id]) ? '<p class="pmg-field-error" id="' . h($id) . '_blad">' . h($bledyPol[$id]) . '</p>' : '';
+}
+
 // Ikony inline SVG (viewBox 20x20, stroke 1,5) — bez bibliotek, bez CDN.
 function pmg_ikona($nazwa)
 {
@@ -184,17 +204,22 @@ function url_ok($v)
     return $v === '' || (strpos($v, 'https://') === 0 && filter_var($v, FILTER_VALIDATE_URL) !== false);
 }
 
+// Wyjątki do przypięcia błędu do pola. BladPliku: nie udało się wgrać/przetworzyć zdjęcia (komunikat trafia pod pole pliku).
+// BladPol: pola mają już błędy w $bledyPol — przerwij zapis i pokaż formularz (bez własnego komunikatu).
+class BladPliku extends RuntimeException {}
+class BladPol extends RuntimeException {}
+
 // Zapis zdjęcia dla modułu $modul (proporcje i szerokość z ZDJECIA). Zwraca ścieżkę względną albo rzuca komunikat.
 function save_image($file, $modul)
 {
     list($proporcja, $maxSzer) = ZDJECIA[$modul];
-    if ($file['error'] !== UPLOAD_ERR_OK) throw new RuntimeException('Nie udało się wgrać pliku (kod ' . (int) $file['error'] . ').');
-    if ($file['size'] > 10 * 1024 * 1024) throw new RuntimeException('Zdjęcie jest większe niż 10 MB.');
+    if ($file['error'] !== UPLOAD_ERR_OK) throw new BladPliku('Nie udało się wgrać pliku (kod ' . (int) $file['error'] . ').');
+    if ($file['size'] > 10 * 1024 * 1024) throw new BladPliku('Zdjęcie jest większe niż 10 MB.');
     $info = @getimagesize($file['tmp_name']);
     $types = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
-    if (!$info || !isset($types[$info[2]])) throw new RuntimeException('Dozwolone formaty: JPG, PNG, WebP.');
+    if (!$info || !isset($types[$info[2]])) throw new BladPliku('Dozwolone formaty: JPG, PNG, WebP.');
     list($w, $hgt) = $info;
-    if ($w * $hgt > 12000000) throw new RuntimeException('Zdjęcie ma za dużą rozdzielczość (maks. ok. 12 megapikseli) — zmniejsz je przed wgraniem.');
+    if ($w * $hgt > 12000000) throw new BladPliku('Zdjęcie ma za dużą rozdzielczość (maks. ok. 12 megapikseli) — zmniejsz je przed wgraniem.');
     $dir = __DIR__ . '/../uploads/' . $modul . '/';
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     $name = date('Ymd') . '-' . bin2hex(random_bytes(6));
@@ -202,9 +227,9 @@ function save_image($file, $modul)
     // Zdjęcie zawsze przechodzi przez GD: zmniejszamy do maxSzer px i zapisujemy jako nowy JPG (bez EXIF, GPS i
     // ewentualnego kodu doklejonego do pliku). Bez GD nie zapisujemy oryginału — odmowa.
     $open = ['jpg' => 'imagecreatefromjpeg', 'png' => 'imagecreatefrompng', 'webp' => 'imagecreatefromwebp'][$types[$info[2]]];
-    if (!function_exists($open) || !function_exists('imagejpeg')) throw new RuntimeException('Serwer nie obsługuje przetwarzania zdjęć (brak biblioteki GD) — zgłoś to administratorowi strony.');
+    if (!function_exists($open) || !function_exists('imagejpeg')) throw new BladPliku('Serwer nie obsługuje przetwarzania zdjęć (brak biblioteki GD) — zgłoś to administratorowi strony.');
     $src = @$open($file['tmp_name']);
-    if ($src === false) throw new RuntimeException('Nie udało się odczytać zdjęcia — plik jest uszkodzony. Spróbuj zapisać go ponownie (np. jako JPG).');
+    if ($src === false) throw new BladPliku('Nie udało się odczytać zdjęcia — plik jest uszkodzony. Spróbuj zapisać go ponownie (np. jako JPG).');
     // Wycinek źródła: domyślnie całe zdjęcie. Gdy proporcje odbiegają od wymaganych o więcej niż 0,03, bierzemy
     // największy wyśrodkowany prostokąt o wymaganych proporcjach (np. 4000×3000 na 16:9 → 4000×2250, ucięte 375 px u góry i u dołu).
     $sx = 0;
@@ -234,7 +259,7 @@ function save_image($file, $modul)
     $zapisano = $logo ? imagepng($dst, $dir . $name . '.png', 6) : imagejpeg($dst, $dir . $name . '.jpg', 82);
     imagedestroy($src);
     imagedestroy($dst);
-    if (!$zapisano) throw new RuntimeException('Nie udało się zapisać zdjęcia na serwerze (brak miejsca albo uprawnień do katalogu uploads).');
+    if (!$zapisano) throw new BladPliku('Nie udało się zapisać zdjęcia na serwerze (brak miejsca albo uprawnień do katalogu uploads).');
     return 'uploads/' . $modul . '/' . $name . ($logo ? '.png' : '.jpg');
 }
 
@@ -249,8 +274,15 @@ function zdjecie($modul, $old)
 {
     $alt = trim((string) ($_POST['zdjecie_alt'] ?? ''));
     $upload = !empty($_FILES['zdjecie']['name']);
-    if (($upload || $old) && $alt === '') throw new RuntimeException('Dodaj opis zdjęcia (dla osób niewidomych).');
+    if (($upload || $old) && $alt === '') throw new BladPliku('Dodaj opis zdjęcia (dla osób niewidomych).');
     return $upload ? save_image($_FILES['zdjecie'], $modul) : $old;
+}
+
+// Ta sama reguła co w zdjecie(), ale jako błąd przy polu „Opis zdjęcia” (wołaj przy walidacji pól, przed zapisem).
+function blad_opisu_zdjecia($old)
+{
+    global $bledyPol;
+    if ((!empty($_FILES['zdjecie']['name']) || $old) && trim((string) ($_POST['zdjecie_alt'] ?? '')) === '') $bledyPol['zdjecie_alt'] = 'Dodaj opis zdjęcia (dla osób niewidomych).';
 }
 
 // ---------- Etykiety i opisy modułów (nad routerem — moduły ich potrzebują) ----------
@@ -486,9 +518,13 @@ $tytulBledu = ['pierwsze' => 'Nie udało się założyć konta', 'haslo' => 'Nie
 // ekranu i automatyczne testy dostawały dokładnie treść $error — tytuł ($tytulBledu) zostaje w nagłówku
 // tej samej karty, czytelny przy przejściu fokusu (tabindex/data-pmg-fokus na zewnętrznym kontenerze).
 ob_start();
-if ($error) {
+if ($error || $bledyPol) {
+    $lista = '';
+    foreach ($bledyPol as $idPola => $komunikat) $lista .= '<li><a href="#' . h($idPola) . '">' . h($komunikat) . '</a></li>';
     echo '<div class="pmg-alert pmg-alert--error" tabindex="-1" data-pmg-fokus>' . pmg_ikona('blad')
-        . '<div><h2 class="pmg-alert__title">' . h($tytulBledu) . '</h2><p role="alert">' . h($error) . '</p></div></div>';
+        . '<div><h2 class="pmg-alert__title">' . h($bledyPol ? 'Popraw ' . pmg_odmiana(count($bledyPol), 'pole', 'pola', 'pól') : $tytulBledu) . '</h2>'
+        . ($lista !== '' ? '<ul class="pmg-alert__list">' . $lista . '</ul>' : '')
+        . ($error ? '<p role="alert">' . h($error) . '</p>' : '') . '</div></div>';
 }
 if ($flash) {
     echo '<div class="pmg-alert pmg-alert--success" role="status">' . pmg_ikona('sukces') . '<p>' . h($flash) . '</p></div>';
@@ -526,7 +562,7 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title><?= h(($error !== '' ? 'Błąd: ' : '') . $ng['tytul'] . ($etykieta !== '' && $ng['tytul'] !== $etykieta ? ' · ' . $etykieta : '') . ' — Panel PMG') ?></title>
+<title><?= h(($error !== '' || $bledyPol ? 'Błąd: ' : '') . $ng['tytul'] . ($etykieta !== '' && $ng['tytul'] !== $etykieta ? ' · ' . $etykieta : '') . ' — Panel PMG') ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap">

@@ -19,10 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
     $wartosci = $wejscie; // formularz zachowuje wpisane wartości, jeśli coś jest nie tak
 
-    if (!url_ok($wejscie['rekrutacja_link'])) $error = 'Link do formularza rekrutacyjnego: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
-    elseif (mb_strlen($wejscie['rekrutacja_tekst']) > 300) $error = 'Tekst o rekrutacji może mieć maksymalnie 300 znaków.';
+    if (!url_ok($wejscie['rekrutacja_link'])) $bledyPol['rekrutacja_link'] = 'Link do formularza rekrutacyjnego: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+    if (mb_strlen($wejscie['rekrutacja_tekst']) > 300) $bledyPol['rekrutacja_tekst'] = 'Tekst o rekrutacji może mieć maksymalnie 300 znaków.';
 
-    if ($error === '') {
+    if (!$bledyPol) {
         $pdo = pmg_db();
         $pdo->beginTransaction();
         $upd = $pdo->prepare('REPLACE INTO pmg_ustawienia (klucz, wartosc) VALUES (?,?)');
@@ -49,11 +49,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <label for="rekrutacja_link">Link do formularza rekrutacyjnego</label>
   <p class="pmg-hint" id="rekrutacja_link_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-  <input type="text" id="rekrutacja_link" name="rekrutacja_link" value="<?= h($wartosci['rekrutacja_link']) ?>" aria-describedby="rekrutacja_link_h">
+  <input type="text" id="rekrutacja_link" name="rekrutacja_link" value="<?= h($wartosci['rekrutacja_link']) ?>"<?= blad_pola('rekrutacja_link', 'rekrutacja_link_h') ?>><?= komunikat_pola('rekrutacja_link') ?>
 
   <label for="rekrutacja_tekst">Krótki tekst o rekrutacji</label>
   <p class="pmg-hint" id="rekrutacja_tekst_h">Maksymalnie 300 znaków. Puste pole = strona pokazuje obecny tekst.</p>
-  <textarea id="rekrutacja_tekst" name="rekrutacja_tekst" maxlength="300" aria-describedby="rekrutacja_tekst_h" data-pmg-licznik><?= h($wartosci['rekrutacja_tekst']) ?></textarea>
+  <textarea id="rekrutacja_tekst" name="rekrutacja_tekst" maxlength="300"<?= blad_pola('rekrutacja_tekst', 'rekrutacja_tekst_h') ?> data-pmg-licznik><?= h($wartosci['rekrutacja_tekst']) ?></textarea><?= komunikat_pola('rekrutacja_tekst') ?>
 
   <div class="pmg-form-actions">
     <button class="pmg-btn pmg-btn--primary" type="submit">Zapisz</button>
