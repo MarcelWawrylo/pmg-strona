@@ -162,7 +162,7 @@ if ($sub === 'dziennik') {
     $pmgAkcjeDziennika = [
         'dodanie' => 'Dodanie', 'edycja' => 'Edycja', 'usuniecie' => 'Usunięcie',
         'zaproszenie' => 'Zaproszenie', 'blokada' => 'Blokada', 'odblokowanie' => 'Odblokowanie',
-        'reset' => 'Reset hasła', 'biezaca' => 'Ustawienie bieżącej edycji', 'pobranie' => 'Pobranie kopii', 'kolejnosc' => 'Zmiana kolejności', 'import' => 'Wczytanie treści ze strony', 'przywrocenie' => 'Przywrócenie tekstu ze strony',
+        'reset' => 'Reset hasła', 'haslo' => 'Zmiana własnego hasła', 'biezaca' => 'Ustawienie bieżącej edycji', 'pobranie' => 'Pobranie kopii', 'kolejnosc' => 'Zmiana kolejności', 'import' => 'Wczytanie treści ze strony', 'przywrocenie' => 'Przywrócenie tekstu ze strony',
     ];
     ?>
     <div class="pmg-table-wrap">
@@ -194,6 +194,7 @@ if ($sub !== 'konta') { echo '<div class="pmg-alert pmg-alert--error" role="aler
 
 $error = '';
 const MODULY_REDAKTORA = ['aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła', 'tresci' => 'Treści stron'];
+const KONTO_WLASNE = 'Nie możesz zmienić roli, zablokować ani zresetować własnego konta. Hasło zmienisz w „Moje konto”.';
 
 // Ilu jest innych aktywnych administratorów z ustawionym hasłem (poza kontem $id) — chroni ostatniego admina.
 function inni_aktywni_admini($id)
@@ -211,15 +212,24 @@ function link_zaproszenia($token)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['a'] ?? '';
     $id = (int) ($_POST['id'] ?? 0);
+    // Własnego konta nie można zablokować, zresetować ani zmienić mu roli (admin zablokowałby sam siebie).
+    $ja = $id === (int) $me['id'];
 
-    if ($action === 'zapros' || $action === 'edytuj') {
+    if ($ja && in_array($action, ['blokuj', 'odblokuj', 'reset'], true)) {
+        $error = KONTO_WLASNE;
+    } elseif ($action === 'zapros' || $action === 'edytuj') {
         $imie = mb_substr(trim((string) ($_POST['imie_nazwisko'] ?? '')), 0, 100);
         $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
         $rola = ($_POST['rola'] ?? '') === 'admin' ? 'admin' : 'redaktor';
         $moduly = implode(',', array_intersect((array) ($_POST['moduly'] ?? []), array_keys(MODULY_REDAKTORA)));
+        // Przy własnym koncie pola roli i modułów są wyłączone (nie przychodzą w POST); rola i moduły zostają bez zmian.
+        $zmianaWlasnejRoli = $ja && isset($_POST['rola']) && $rola !== $me['rola'];
+        if ($ja) { $rola = $me['rola']; $moduly = $me['moduly']; }
 
         if ($imie === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = 'Podaj imię i nazwisko oraz poprawny e-mail.';
+        } elseif ($zmianaWlasnejRoli) {
+            $error = KONTO_WLASNE;
         } elseif ($action === 'zapros') {
             try {
                 $token = bin2hex(random_bytes(32));
@@ -337,15 +347,16 @@ if ($edit !== null) {
     <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" value="<?= h($edit['imie_nazwisko']) ?>" required>
     <label for="email">E-mail (login)</label>
     <input type="email" id="email" name="email" maxlength="150" value="<?= h($edit['email']) ?>" required>
-    <fieldset class="pmg-fieldset">
+    <?php $wlasne = (int) $edit['id'] === (int) $me['id']; ?>
+    <fieldset class="pmg-fieldset"<?= $wlasne ? ' disabled' : '' ?>>
       <legend class="pmg-legend">Rola</legend>
-      <p class="pmg-hint" id="rola_h">Administrator ma dostęp do wszystkich modułów oraz do kont, dziennika i kopii bazy.</p>
+      <p class="pmg-hint" id="rola_h"><?= $wlasne ? 'To Twoje konto: roli i modułów nie zmienisz sam(a). Może to zrobić inny administrator.' : 'Administrator ma dostęp do wszystkich modułów oraz do kont, dziennika i kopii bazy.' ?></p>
       <div class="pmg-options">
         <label class="pmg-option"><input type="radio" name="rola" value="redaktor" aria-describedby="rola_h"<?= $edit['rola'] === 'redaktor' ? ' checked' : '' ?>><span>Redaktor</span></label>
         <label class="pmg-option"><input type="radio" name="rola" value="admin" aria-describedby="rola_h"<?= $edit['rola'] === 'admin' ? ' checked' : '' ?>><span>Administrator</span></label>
       </div>
     </fieldset>
-    <fieldset class="pmg-fieldset">
+    <fieldset class="pmg-fieldset"<?= $wlasne ? ' disabled' : '' ?>>
       <legend class="pmg-legend">Moduły (dla redaktora)</legend>
       <p class="pmg-hint" id="moduly_h">Dotyczy tylko roli Redaktor.</p>
       <div class="pmg-options">
@@ -397,17 +408,22 @@ if ($edit !== null) {
           <td class="pmg-td-main" data-label="Imię i nazwisko">
             <a class="pmg-row-link" href="?m=konta&id=<?= (int) $k['id'] ?>"><?= h($k['imie_nazwisko']) ?></a>
             <span class="pmg-row-sub"><?= h($k['email']) ?></span>
+            <?php if ((int) $k['id'] === (int) $me['id']): ?><span class="pmg-chip pmg-chip--accent">To Ty</span><?php endif; ?>
           </td>
           <td data-label="Rola"><?= $k['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?></td>
           <td data-label="Moduły"><?= h($modulyTekst) ?></td>
           <td data-label="Status"><span class="pmg-chip <?= $statusKlasa ?>"><?= $statusTekst ?></span></td>
           <td class="pmg-td-actions" data-label="Akcje">
             <a class="pmg-btn pmg-btn--text pmg-btn--sm" href="?m=konta&id=<?= (int) $k['id'] ?>">Edytuj<span class="pmg-vh"> <?= h($k['imie_nazwisko']) ?></span></a>
+            <?php if ((int) $k['id'] === (int) $me['id']): ?>
+              <a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=konto">Moje konto</a>
+            <?php else: ?>
             <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="reset"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit"><?= $k['haslo'] === null ? 'Link zaproszenia' : 'Resetuj hasło' ?></button></form>
             <?php if ($k['aktywny']): ?>
               <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="blokuj"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="pmg-btn pmg-btn--danger-outline pmg-btn--sm" type="submit">Zablokuj</button></form>
             <?php else: ?>
               <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="odblokuj"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit">Odblokuj</button></form>
+            <?php endif; ?>
             <?php endif; ?>
           </td>
         </tr>
