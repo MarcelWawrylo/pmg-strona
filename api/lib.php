@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 11;
+const PMG_SCHEMA = 12;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -286,6 +286,18 @@ function pmg_migrate()
             podpis VARCHAR(200) NOT NULL,
             kolejnosc SMALLINT NOT NULL DEFAULT 0,
             FOREIGN KEY (wpis_id) REFERENCES pmg_aktualnosci(id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    // Schemat 12: wiadomości z formularza kontaktowego (api/kontakt.php), ekran „Wiadomości” w panelu (tylko administrator).
+    // Bez adresu IP. Retencja: wiersze starsze niż 12 miesięcy usuwa panel przy wejściu na ten ekran.
+    $tabele[] = "CREATE TABLE IF NOT EXISTS pmg_wiadomosci (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            utworzono DATETIME NOT NULL,
+            imie VARCHAR(100) NOT NULL,
+            email VARCHAR(150) NOT NULL,
+            temat VARCHAR(150) NOT NULL,
+            tresc TEXT NOT NULL,
+            przeczytana TINYINT(1) NOT NULL DEFAULT 0,
+            wyslano_mailem TINYINT(1) NOT NULL DEFAULT 0
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     foreach ($tabele as $sql) $pdo->exec($sql);
 
