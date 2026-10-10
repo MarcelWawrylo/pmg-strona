@@ -60,24 +60,20 @@
 
     // Chowanie headera: w dół poza jego wysokością chowa (transform), w górę (próg 8 px, bez drgania) pokazuje.
     // Wymuszone pokazanie (menu/podmenu otwarte, fokus w nav, otwarty dialog) robi CSS (.site-nav.is-hidden…).
+    // Miejsce, które header zajmuje w układzie strony, nie zmienia się przy is-scrolled (CSS), więc przeglądarka
+    // nie przesuwa przewinięcia; histereza progu (włącz > 32 px, wyłącz < 8 px) — drobne ruchy przy górze nie przełączają.
     var lastY = window.scrollY || document.documentElement.scrollTop || 0;
-    var lastH = nav.offsetHeight, shift = 0;
     var onScroll = function () {
       var y = window.scrollY || document.documentElement.scrollTop || 0;
-      nav.classList.toggle('is-scrolled', y > 24);
+      if (y > 32) nav.classList.add('is-scrolled');
+      else if (y < 8) nav.classList.remove('is-scrolled');
       if (themeSwitch) {
         // Dołącz: ciemny nav nad ciemnym hero, jasny po zjechaniu z hero
         var bottom = themeSwitch.getBoundingClientRect().bottom;
         nav.classList.toggle('site-nav--dark', bottom > nav.offsetHeight);
       }
-      // header zmniejsza się (is-scrolled), a przeglądarka przesuwa przewinięcie w górę o tę różnicę (scroll anchoring,
-      // w tym samym albo następnym zdarzeniu) — taki ruch w górę, najwyżej o zmianę wysokości, to nie ruch użytkownika
-      var h = nav.offsetHeight, hChanged = h !== lastH;
-      shift += h - lastH; lastH = h;
       var delta = y - lastY;
-      if (shift < 0 && delta < 0) { var c = Math.max(delta, shift); shift -= c; lastY += c; delta -= c; }
-      if (!hChanged) shift = 0;
-      if (y <= h) { nav.classList.remove('is-hidden'); lastY = y; }
+      if (y <= nav.offsetHeight) { nav.classList.remove('is-hidden'); lastY = y; }
       else if (delta > 8) { nav.classList.add('is-hidden'); lastY = y; }
       else if (delta < -8) { nav.classList.remove('is-hidden'); lastY = y; }
     };
