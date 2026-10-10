@@ -247,7 +247,7 @@
     });
   }
 
-  // „Wstaw tekst ze strony” (Treści stron): kopiuje obecny tekst ze strony do pola, żeby go poprawić zamiast pisać od zera.
+  // „Wstaw tekst ze strony” (zakładka „Teksty na stronie”): kopiuje obecny tekst ze strony do pola, żeby go poprawić zamiast pisać od zera.
   function wstawTekstZeStrony() {
     document.querySelectorAll('[data-pmg-wstaw]').forEach(function (btn) {
       var pole = document.getElementById(btn.getAttribute('data-pmg-wstaw'));
