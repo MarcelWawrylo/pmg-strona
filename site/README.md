@@ -77,6 +77,21 @@ Gdy jedyny administrator zapomni hasła, panel nie pomoże. Potrzebna jest osoba
 
 Procedura wynika z kodu i nie była jeszcze uruchamiana na serwerze.
 
+### Reset hasła mailem
+
+Domyślnie wyłączony. Do czasu włączenia zapomniane hasło resetuje administrator: **Konta → Resetuj hasło** i nowy link.
+
+Jak włączyć (gdy działa skrzynka nadawcy): w `pmg-config.php` na serwerze ustaw trzy klucze:
+- `'reset_hasla_mailem' => true`,
+- `'mail_from'` — adres nadawcy w domenie serwera (np. `kontakt@pmgroup.pwr.edu.pl`),
+- `'adres_panelu'` — pełny adres panelu, np. `'https://pmgroup.pwr.edu.pl/panel/'`.
+
+Brakuje któregoś z nich = funkcja wyłączona (i ostrzeżenie w logu serwera). Wtedy pod logowaniem zostaje tekst „Nie masz hasła? Poproś administratora o link.”
+
+Jak działa: pod logowaniem pojawia się link „Nie pamiętasz hasła?”. Po wpisaniu e-maila panel zawsze pokazuje ten sam komunikat (nie zdradza, czy konto istnieje). Mail z linkiem ważnym 1 godzinę dostaje tylko aktywne konto, które ma już hasło; obecne hasło działa, dopóki ktoś nie ustawi nowego. Konto bez hasła (świeże zaproszenie, reset przez administratora) dostaje link tylko od administratora. Limit: 5 prób na 15 minut z jednego adresu IP i 3 maile na godzinę na konto. W dzienniku: **Reset hasła — prośba o reset hasła mailem**.
+
+Jak sprawdzić po włączeniu: wyloguj się, kliknij „Nie pamiętasz hasła?”, wpisz swój e-mail z panelu, sprawdź skrzynkę (i spam), otwórz link, ustaw nowe hasło i zaloguj się nim. Potem wpisz adres bez konta: komunikat ma być taki sam, a mail nie może przyjść. Mail nie przyszedł: sprawdź log serwera („reset hasła mailem”) i ustawienia SPF domeny nadawcy.
+
 ### Lista kontrolna przed uruchomieniem produkcji
 
 Odhaczaj po sprawdzeniu na serwerze PWr (nie w repozytorium).

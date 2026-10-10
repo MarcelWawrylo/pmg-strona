@@ -31,4 +31,8 @@ return [
     // Formularz kontaktowy
     'mail_to'   => 'kontakt@pmgroup.pwr.edu.pl', // skrzynka koła na serwerach WCSS; do czasu jej założenia wpisz tymczasowo dotychczasowy adres
     'mail_from' => 'kontakt@pmgroup.pwr.edu.pl', // adres w domenie serwera (SPF), inaczej poczta odrzuca jako spam
+
+    // „Nie pamiętasz hasła?” w panelu (link do nowego hasła mailem). Włącz, gdy działa skrzynka nadawcy (mail_from)
+    // i link do panelu jest wpisany w 'adres_panelu'. Bez tych dwóch funkcja i tak się nie włączy.
+    'reset_hasla_mailem' => false,
 ];
