@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('aktualnosci', 'dodanie', $id);
             }
-            $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano.' : 'Zapisano jako szkic (niewidoczny na stronie).';
+            $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano jako szkic (niewidoczny na stronie).';
             go('?m=aktualnosci');
         } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
             error_log('aktualnosci zapis: ' . $e->getMessage());
@@ -190,8 +190,20 @@ if ($edit !== null) {
         'opis' => $edit['id'] ? (string) $edit['tytul'] : 'Wpis bez zaznaczenia „Opublikuj” zostaje szkicem.',
         'wstecz' => ['href' => '?m=aktualnosci', 'etykieta' => 'Aktualności'],
     ];
+    // Link do wpisu na stronie tylko dla zapisanego, opublikowanego wpisu (szkic nie jest widoczny publicznie).
+    if (!empty($edit['id']) && !empty($edit['opublikowany']) && !empty($edit['slug'])) {
+        $pmgNaglowek['akcje'] = [['href' => '../aktualnosci.html#wpis-' . rawurlencode((string) $edit['slug']), 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
+    }
 } else {
-    $wpisy = pmg_db()->query('SELECT id, data, tytul, opublikowany FROM pmg_aktualnosci ORDER BY data DESC, id DESC')->fetchAll();
+    // Szukanie po tytule: q przycięte do 100 znaków, a znaki specjalne LIKE (% _ \) są traktowane jak zwykły tekst.
+    $q = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 100);
+    if ($q !== '') {
+        $st = pmg_db()->prepare('SELECT id, data, tytul, opublikowany FROM pmg_aktualnosci WHERE tytul LIKE ? ESCAPE \'\\\\\' ORDER BY data DESC, id DESC');
+        $st->execute(['%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q) . '%']);
+        $wpisy = $st->fetchAll();
+    } else {
+        $wpisy = pmg_db()->query('SELECT id, data, tytul, opublikowany FROM pmg_aktualnosci ORDER BY data DESC, id DESC')->fetchAll();
+    }
     $pmgNaglowek = [
         'akcje' => [
             ['href' => '?m=aktualnosci&nowy', 'etykieta' => '+ Nowy wpis', 'rodzaj' => 'primary'],
@@ -308,6 +320,15 @@ if ($edit !== null) {
 
 <?php else: ?>
   <?php pmg_import_blok('aktualnosci'); ?>
+  <form class="pmg-card" method="get" role="search">
+    <input type="hidden" name="m" value="aktualnosci">
+    <label for="szukaj">Szukaj po tytule</label>
+    <input type="search" id="szukaj" name="q" maxlength="100" value="<?= h($q) ?>">
+    <div class="pmg-form-actions">
+      <button class="pmg-btn pmg-btn--secondary" type="submit">Szukaj</button>
+      <?php if ($q !== ''): ?><a class="pmg-btn pmg-btn--secondary" href="?m=aktualnosci">Wyczyść</a><?php endif; ?>
+    </div>
+  </form>
   <div class="pmg-table-wrap">
     <table class="pmg-table pmg-table--klikalna">
       <caption class="pmg-vh">Wpisy Aktualności</caption>
@@ -320,7 +341,9 @@ if ($edit !== null) {
           <td data-label="Status"><?php if ($r['opublikowany']): ?><span class="pmg-chip pmg-chip--success">Opublikowany</span><?php else: ?><span class="pmg-chip pmg-chip--neutral">Szkic</span><?php endif; ?></td>
         </tr>
       <?php endforeach; ?>
-      <?php if (!$wpisy): ?>
+      <?php if (!$wpisy && $q !== ''): ?>
+        <tr><td colspan="3" class="pmg-empty">Nie znaleziono wpisów dla „<?= h($q) ?>”.</td></tr>
+      <?php elseif (!$wpisy): ?>
         <tr><td colspan="3" class="pmg-empty">Nie ma jeszcze wpisów.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=aktualnosci&nowy">+ Dodaj pierwszy wpis</a></td></tr>
       <?php endif; ?>
       </tbody>

@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('case', 'dodanie', $id);
             }
-            $_SESSION['flash'] = $f['widoczna'] ? 'Zapisano. Edycja jest widoczna na stronie (w ciągu 5 minut).' : 'Zapisano. Edycja jest ukryta na stronie.';
+            $_SESSION['flash'] = $f['widoczna'] ? 'Zapisano. Edycja jest widoczna na stronie. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano. Edycja jest ukryta na stronie.';
             go('?m=case&id=' . $id);
         } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy
             foreach ($nowe as $p) drop_image($p);
@@ -239,9 +239,9 @@ if ($edit !== null) {
         'opis' => $edit['id'] ? (string) $edit['nazwa'] : 'Karta w hubie i podstrona powstaną po zapisaniu. Puste pola tekstowe są pomijane na stronie.',
         'wstecz' => ['href' => '?m=case', 'etykieta' => 'Case Koła'],
     ];
-    if ($edit['id']) {
+    if ($edit['id'] && !empty($edit['widoczna'])) { // ukrytej edycji nie ma na stronie, więc bez linku
         $url = $edit['adres_strony'] !== '' ? $edit['adres_strony'] : 'case-kola-edycja.html?nr=' . (int) $edit['numer'];
-        $pmgNaglowek['akcje'] = [['href' => '../' . $url, 'etykieta' => 'Zobacz stronę', 'rodzaj' => 'text', 'nowaKarta' => true]];
+        $pmgNaglowek['akcje'] = [['href' => '../' . $url, 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
     }
 } else {
     $lista = pmg_db()->query('SELECT e.id, e.numer, e.nazwa, e.widoczna, (SELECT COUNT(*) FROM pmg_case_galeria g WHERE g.edycja_id = e.id) AS zdjec FROM pmg_case_edycje e ORDER BY e.kolejnosc, e.id')->fetchAll();
