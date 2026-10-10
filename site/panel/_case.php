@@ -269,7 +269,7 @@ if ($edit !== null) {
     ];
     $wBazie = isset($old) && is_array($old) ? $old : $edit; // po nieudanym zapisie $edit ma wartości z formularza
     if ($edit['id'] && !empty($wBazie['widoczna'])) { // ukrytej edycji nie ma na stronie, więc bez linku
-        $url = $edit['adres_strony'] !== '' ? $edit['adres_strony'] : 'case-kola-edycja.html?nr=' . (int) $edit['numer'];
+        $url = (string) $wBazie['adres_strony'] !== '' ? $wBazie['adres_strony'] : 'case-kola-edycja.html?nr=' . (int) $wBazie['numer'];
         $pmgNaglowek['akcje'] = [['href' => '../' . $url, 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
     }
 } else {
