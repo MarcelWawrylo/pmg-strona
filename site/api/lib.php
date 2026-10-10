@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 10;
+const PMG_SCHEMA = 11;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -117,7 +117,7 @@ function pmg_migrate()
             email VARCHAR(150) NOT NULL UNIQUE,
             haslo VARCHAR(255) NULL,
             rola ENUM('admin','redaktor') NOT NULL DEFAULT 'redaktor',
-            moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case','tresci','rekrutacja') NOT NULL DEFAULT '',
+            moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case','tresci','rekrutacja','glowna','dolacz','kontakt') NOT NULL DEFAULT '',
             aktywny TINYINT(1) NOT NULL DEFAULT 1,
             token_hash CHAR(64) NULL UNIQUE,
             token_do DATETIME NULL,
@@ -290,7 +290,9 @@ function pmg_migrate()
     foreach ($tabele as $sql) $pdo->exec($sql);
 
     // Bazy utworzone wcześniej: nowy moduł w SET uprawnień (schemat 6: 'case', schemat 7: 'tresci', schemat 9: 'rekrutacja') i kolumna opisu edycji PM Session.
-    $pdo->exec("ALTER TABLE pmg_uzytkownicy MODIFY moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case','tresci','rekrutacja') NOT NULL DEFAULT ''");
+    // Schemat 11 (W6, menu według stron): glowna, dolacz, kontakt — dopisane NA KOŃCU SET, więc kolejność bitów i zapisane
+    // uprawnienia się nie zmieniają (danych nie przenosimy). 'tresci' zostaje w SET, ale panel już go nie nadaje.
+    $pdo->exec("ALTER TABLE pmg_uzytkownicy MODIFY moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case','tresci','rekrutacja','glowna','dolacz','kontakt') NOT NULL DEFAULT ''");
     // Schemat 9: „Treści stron” tylko dla administratorów — zdejmujemy 'tresci' z modułów wszystkich kont. Wartość zostaje w SET
     // (W6 przeniesie te uprawnienia). Tylko przy przejściu z wersji < 9, żeby kolejne migracje nie zdejmowały uprawnień nadanych później.
     if ((int) $v < 9) {
