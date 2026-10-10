@@ -14,6 +14,16 @@ function podcast_spotify_id($v)
     return null;
 }
 
+// Odcinek widać na stronie, gdy jest opublikowany, a jego edycja podcastu (jeśli ma) jest widoczna (api/podcast.php).
+function podcast_na_stronie($opublikowany, $edycjaId)
+{
+    if (!$opublikowany) return false;
+    if ($edycjaId === null) return true;
+    $st = pmg_db()->prepare('SELECT widoczna FROM pmg_podcast_edycje WHERE id = ?');
+    $st->execute([(int) $edycjaId]);
+    return (bool) $st->fetchColumn();
+}
+
 // Podekran „Edycje podcastu” (?m=podcast&w=edycje) ma osobny plik; poniżej zostaje obsługa odcinków.
 if (($_GET['w'] ?? '') === 'edycje') {
     require __DIR__ . '/_podcast_edycje.php';
@@ -74,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$id]);
             $old = $st->fetch() ?: null;
         }
-        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi naraz wszystkie błędy pól (błąd pliku dopiero po ich poprawieniu, bo plik wgrywamy na końcu).
         if ($f['numer'] < 1 || $f['numer'] > 9999) $bledyPol['numer'] = 'Numer odcinka: liczba od 1 do 9999.';
         if ($f['tytul'] === '') $bledyPol['tytul'] = 'Uzupełnij tytuł odcinka.';
         if (!data_ok($f['data'])) $bledyPol['data'] = 'Podaj poprawną datę odcinka.';
@@ -118,7 +128,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('podcast', 'dodanie', $id, 'Odcinek ' . $f['numer'] . ': ' . $f['tytul']);
             }
-            $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano jako szkic (niewidoczny na stronie).';
+            $_SESSION['flash'] = !$f['opublikowany'] ? 'Zapisano jako szkic (niewidoczny na stronie).'
+                : (podcast_na_stronie(1, $f['edycja_id']) ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano. Odcinka nie widać na stronie, bo jego edycja podcastu jest ukryta.');
             go('?m=podcast');
         } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
             drop_image($noweZdjecie);
@@ -158,7 +169,7 @@ if ($edit !== null) {
     ];
     // Strona podcastu nie ma kotwic do odcinków (okno odcinka otwiera się kliknięciem), więc link prowadzi do całej listy.
     $wBazie = isset($old) && is_array($old) ? $old : $edit; // po nieudanym zapisie $edit ma wartości z formularza
-    if (!empty($edit['id']) && !empty($wBazie['opublikowany'])) {
+    if (!empty($edit['id']) && podcast_na_stronie(!empty($wBazie['opublikowany']), $wBazie['edycja_id'] ?? null)) {
         $pmgNaglowek['akcje'] = [['href' => '../podcast.html', 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
     }
 } else {
@@ -234,7 +245,7 @@ if ($edit !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
       <h2 class="pmg-form-section__title" id="sek-zdjecie">Zdjęcie</h2>
       <label for="zdjecie">Zdjęcie 16:9 (JPG, PNG albo WebP) <span class="pmg-opt">(opcjonalnie)</span></label>
-      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1600 × 900 px.</p>
+      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9. Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1600 × 900 px.</p>
       <?php if (!empty($edit['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--16x9"><img src="../<?= h($edit['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>

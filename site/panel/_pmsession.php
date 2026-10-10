@@ -21,10 +21,11 @@ function ustaw_biezaca($id)
     return true;
 }
 
-// Edycja jest widoczna na stronie, gdy jest bieżąca albo zakończona (szkic nie, patrz api/pmsession.php).
-function pms_widoczna($status)
+// Edycja jest widoczna na stronie, gdy jest bieżąca (pm-session.html) albo zakończona i ma własny plik pm-session-<numer>.html.
+// Zakończoną bez własnego pliku API podaje (patrz api/pmsession.php), ale żadna strona jej nie pokazuje. Szkic nigdy.
+function pms_widoczna($status, $numer)
 {
-    return $status === 'biezaca' || $status === 'zakonczona';
+    return $status === 'biezaca' || ($status === 'zakonczona' && pms_adres_strony($numer) !== '../pm-session.html');
 }
 
 // Adres publicznej strony edycji: własny plik pm-session-<numer>.html, a gdy go nie ma — wspólna pm-session.html.
@@ -38,9 +39,10 @@ function pms_adres_strony($numer)
 // Komunikat po zapisie prelegenta lub punktu harmonogramu: dopisek o opóźnieniu tylko, gdy edycja jest widoczna na stronie.
 function pms_komunikat_zapisu($edycjaId)
 {
-    $st = pmg_db()->prepare('SELECT status FROM pmg_edycje WHERE id = ?');
+    $st = pmg_db()->prepare('SELECT status, numer FROM pmg_edycje WHERE id = ?');
     $st->execute([(int) $edycjaId]);
-    return pms_widoczna($st->fetchColumn()) ? 'Zapisano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano.';
+    $e = $st->fetch();
+    return $e && pms_widoczna($e['status'], $e['numer']) ? 'Zapisano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano.';
 }
 
 $error = '';
@@ -125,10 +127,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $id = (int) pmg_db()->lastInsertId();
                     loguj('pmsession', 'dodanie', $id, 'Edycja ' . $f['numer'] . ': ' . $f['temat']);
                     // nowa edycja: od razu widok tej edycji (prelegenci i harmonogram), żeby dalszy krok był oczywisty
-                    $_SESSION['flash'] = 'Edycja zapisana. Dodaj teraz prelegentów i harmonogram.' . (pms_widoczna($status) ? ' Na stronie zmiana pojawi się w ciągu 5 minut.' : '');
+                    $_SESSION['flash'] = 'Edycja zapisana. Dodaj teraz prelegentów i harmonogram.' . (pms_widoczna($status, $f['numer']) ? ' Na stronie zmiana pojawi się w ciągu 5 minut.' : '');
                     go('?m=pmsession&e=' . $id);
                 }
-                $_SESSION['flash'] = pms_widoczna($status) ? 'Zapisano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano.';
+                $_SESSION['flash'] = pms_widoczna($status, $f['numer']) ? 'Zapisano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano.';
                 go('?m=pmsession');
             } catch (PDOException $e) {
                 $error = $e->getCode() === '23000' ? 'Edycja o tym numerze już istnieje.' : 'Błąd zapisu.';
@@ -183,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $old = $st->fetch() ?: null;
         }
         if (!$stE->fetchColumn()) $error = 'Nieprawidłowa edycja.'; // nie dotyczy żadnego pola
-        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi naraz wszystkie błędy pól (błąd pliku dopiero po ich poprawieniu, bo plik wgrywamy na końcu).
         if ($f['imie_nazwisko'] === '') $bledyPol['imie_nazwisko'] = 'Podaj imię i nazwisko.';
         if ($f['temat'] === '') $bledyPol['temat'] = 'Podaj temat wystąpienia.';
         if (!url_ok($f['linkedin'])) $bledyPol['linkedin'] = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
@@ -361,8 +363,13 @@ if ($editPrelegent !== null) {
             ? ['href' => '?m=pmsession&e=' . (int) $editEdycja['id'], 'etykieta' => 'PM Session ' . $editEdycja['numer']]
             : ['href' => '?m=pmsession', 'etykieta' => 'PM Session — wszystkie edycje'],
     ];
-    if (!empty($editEdycja['id']) && pms_widoczna($editEdycja['status'] ?? '')) {
-        $pmgNaglowek['akcje'] = [['href' => pms_adres_strony($editEdycja['numer']), 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
+    if (!empty($editEdycja['id'])) { // numer i status z bazy: po nieudanym zapisie $editEdycja ma wartości z formularza
+        $st = pmg_db()->prepare('SELECT numer, status FROM pmg_edycje WHERE id = ?');
+        $st->execute([(int) $editEdycja['id']]);
+        $wBazie = $st->fetch();
+        if ($wBazie && pms_widoczna($wBazie['status'], $wBazie['numer'])) {
+            $pmgNaglowek['akcje'] = [['href' => pms_adres_strony($wBazie['numer']), 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
+        }
     }
 } elseif ($edycjaWidok !== null) {
     $pmgNaglowek = [
@@ -374,7 +381,7 @@ if ($editPrelegent !== null) {
             ['href' => '?m=pmsession&edycja=' . (int) $edycjaWidok['id'], 'etykieta' => 'Edytuj edycję', 'rodzaj' => 'secondary'],
         ],
     ];
-    if (pms_widoczna($edycjaWidok['status'])) {
+    if (pms_widoczna($edycjaWidok['status'], $edycjaWidok['numer'])) {
         $pmgNaglowek['akcje'][] = ['href' => pms_adres_strony($edycjaWidok['numer']), 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true];
     }
 } else {
@@ -432,7 +439,7 @@ if ($editPrelegent !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
       <h2 class="pmg-form-section__title" id="sek-zdjecie">Zdjęcie</h2>
       <label for="zdjecie">Zdjęcie 4:3 (JPG, PNG albo WebP)</label>
-      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 4:3 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1600 × 1200 px. Opcjonalne. Okno prelegenta pokazuje całe zdjęcie 4:3, a kafelek na liście jego środek w kwadracie — twarz ustaw pośrodku.</p>
+      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 4:3. Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1600 × 1200 px. Opcjonalne. Okno prelegenta pokazuje całe zdjęcie 4:3, a kafelek na liście jego środek w kwadracie — twarz ustaw pośrodku.</p>
       <?php if (!empty($editPrelegent['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--4x3"><img src="../<?= h($editPrelegent['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>

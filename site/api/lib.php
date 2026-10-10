@@ -301,7 +301,7 @@ function pmg_migrate()
     // Schemat 10 (W8): dziennik w zdaniach — opis = czytelna nazwa rzeczy (np. tytuł wpisu) z chwili zdarzenia; starsze wpisy
     // dostają pusty opis (panel pokazuje wtedy #id). uzytkownik_id NULL = nieudane logowanie na nieznany adres (adresu nie zapisujemy).
     if ($pdo->query("SHOW COLUMNS FROM pmg_dziennik LIKE 'opis'")->fetchColumn() === false) {
-        $pdo->exec("ALTER TABLE pmg_dziennik ADD COLUMN opis VARCHAR(200) NOT NULL DEFAULT '' AFTER rekord_id");
+        $pdo->exec("ALTER TABLE pmg_dziennik ADD COLUMN IF NOT EXISTS opis VARCHAR(200) NOT NULL DEFAULT '' AFTER rekord_id");
     }
     $st = $pdo->query("SELECT IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pmg_dziennik' AND COLUMN_NAME = 'uzytkownik_id'");
     if ($st->fetchColumn() === 'NO') {
@@ -317,16 +317,16 @@ function pmg_migrate()
     // Schemat 3: biogram prelegenta do 2500 znaków (dane startowe PM Session XIV mają biogramy dłuższe niż 1500).
     $pdo->exec("ALTER TABLE pmg_prelegenci MODIFY bio VARCHAR(2500) NOT NULL DEFAULT ''");
     if ($pdo->query("SHOW COLUMNS FROM pmg_edycje LIKE 'opis'")->fetchColumn() === false) {
-        $pdo->exec("ALTER TABLE pmg_edycje ADD COLUMN opis VARCHAR(600) NOT NULL DEFAULT '' AFTER miejsce");
+        $pdo->exec("ALTER TABLE pmg_edycje ADD COLUMN IF NOT EXISTS opis VARCHAR(600) NOT NULL DEFAULT '' AFTER miejsce");
     }
     // Schemat 4: przypisanie odcinka do edycji podcastu (NULL = bez edycji; usunięcie edycji z odcinkami blokuje panel).
     if ($pdo->query("SHOW COLUMNS FROM pmg_odcinki LIKE 'edycja_id'")->fetchColumn() === false) {
-        $pdo->exec('ALTER TABLE pmg_odcinki ADD COLUMN edycja_id INT NULL');
+        $pdo->exec('ALTER TABLE pmg_odcinki ADD COLUMN IF NOT EXISTS edycja_id INT NULL');
     }
     // Schemat 5: lead wpisu (akapit pod tytułem w artykule) oddzielony od zajawki (krótki tekst na kafelku). Dotychczasowa
     // zajawka była jednym i drugim, więc istniejące wpisy dostają lead = zajawka i wyglądają tak samo; kategoria staje się opcjonalna.
     if ($pdo->query("SHOW COLUMNS FROM pmg_aktualnosci LIKE 'lead'")->fetchColumn() === false) {
-        $pdo->exec("ALTER TABLE pmg_aktualnosci ADD COLUMN lead VARCHAR(600) NOT NULL DEFAULT '' AFTER tytul");
+        $pdo->exec("ALTER TABLE pmg_aktualnosci ADD COLUMN IF NOT EXISTS lead VARCHAR(600) NOT NULL DEFAULT '' AFTER tytul");
         $pdo->exec('UPDATE pmg_aktualnosci SET lead = zajawka');
     }
     $pdo->exec("ALTER TABLE pmg_aktualnosci MODIFY kategoria VARCHAR(40) NOT NULL DEFAULT ''");
@@ -334,13 +334,13 @@ function pmg_migrate()
     // Schemat 5: prelegent — opis prelekcji (wieloakapitowy) i rodzaj etykiety biogramu (m = „O prelegencie”, k = „O prelegentce”);
     // harmonogram — znacznik pod godziną (np. „3 sesje równoległe”), pusty = bez znacznika.
     if ($pdo->query("SHOW COLUMNS FROM pmg_prelegenci LIKE 'opis'")->fetchColumn() === false) {
-        $pdo->exec("ALTER TABLE pmg_prelegenci ADD COLUMN opis VARCHAR(4000) NOT NULL DEFAULT '' AFTER bio");
+        $pdo->exec("ALTER TABLE pmg_prelegenci ADD COLUMN IF NOT EXISTS opis VARCHAR(4000) NOT NULL DEFAULT '' AFTER bio");
     }
     if ($pdo->query("SHOW COLUMNS FROM pmg_prelegenci LIKE 'plec'")->fetchColumn() === false) {
-        $pdo->exec("ALTER TABLE pmg_prelegenci ADD COLUMN plec CHAR(1) NOT NULL DEFAULT 'm' AFTER opis");
+        $pdo->exec("ALTER TABLE pmg_prelegenci ADD COLUMN IF NOT EXISTS plec CHAR(1) NOT NULL DEFAULT 'm' AFTER opis");
     }
     if ($pdo->query("SHOW COLUMNS FROM pmg_harmonogram LIKE 'znacznik'")->fetchColumn() === false) {
-        $pdo->exec("ALTER TABLE pmg_harmonogram ADD COLUMN znacznik VARCHAR(40) NOT NULL DEFAULT '' AFTER prelegent");
+        $pdo->exec("ALTER TABLE pmg_harmonogram ADD COLUMN IF NOT EXISTS znacznik VARCHAR(40) NOT NULL DEFAULT '' AFTER prelegent");
     }
 
     // Dane startowe: 4 odcinki, które do tej pory były wpisane na sztywno w podcast.html. Tylko przy pierwszym

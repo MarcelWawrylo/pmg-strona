@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nowe = []; // pliki wgrane w tym żądaniu — usuwane, jeśli zapis się nie uda
         $stareHero = $old['hero'] ?? null;
         $stareLogo = $old['logo'] ?? null;
-        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi naraz wszystkie błędy pól (błąd pliku dopiero po ich poprawieniu, bo plik wgrywamy na końcu).
         if ($f['numer'] < 1 || $f['numer'] > 999) $bledyPol['numer'] = 'Numer edycji: liczba od 1 do 999.';
         if ($f['nazwa'] === '') $bledyPol['nazwa'] = 'Podaj nazwę partnera (np. Solvro).';
         if (!isset(CASE_STYLE[$f['logo_styl']])) $bledyPol['logo_styl'] = 'Wybierz sposób wyświetlania logo.';
@@ -269,7 +269,7 @@ if ($edit !== null) {
     ];
     $wBazie = isset($old) && is_array($old) ? $old : $edit; // po nieudanym zapisie $edit ma wartości z formularza
     if ($edit['id'] && !empty($wBazie['widoczna'])) { // ukrytej edycji nie ma na stronie, więc bez linku
-        $url = $edit['adres_strony'] !== '' ? $edit['adres_strony'] : 'case-kola-edycja.html?nr=' . (int) $edit['numer'];
+        $url = (string) $wBazie['adres_strony'] !== '' ? $wBazie['adres_strony'] : 'case-kola-edycja.html?nr=' . (int) $wBazie['numer'];
         $pmgNaglowek['akcje'] = [['href' => '../' . $url, 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
     }
 } else {
@@ -304,7 +304,7 @@ if ($edit !== null) {
       <p class="pmg-hint" id="logo_h">Maks. 10 MB, dowolne proporcje. PNG z przezroczystym tłem zachowa przezroczystość. Karta bez logo pokazuje tylko tytuł.</p>
       <?php if (!empty($edit['logo'])): ?>
         <figure class="pmg-photo pmg-photo--16x9"><img src="../<?= h($edit['logo']) ?>" alt="" style="object-fit:contain;padding:12px;background:#141414"><figcaption class="pmg-hint">Obecne logo (na ciemnym tle podglądu). Wgranie nowego pliku zastąpi je.</figcaption></figure>
-        <label class="pmg-check"><input type="checkbox" name="logo_usun" value="1"><span>Usuń obecne logo</span></label>
+        <label class="pmg-check"><input type="checkbox" name="logo_usun" value="1"<?= !empty($_POST['logo_usun']) ? ' checked' : '' ?>><span>Usuń obecne logo</span></label>
       <?php endif; ?>
       <input type="file" id="logo" name="logo" accept="image/jpeg,image/png,image/webp"<?= blad_pola('logo', 'logo_h') ?>><?= komunikat_pola('logo') ?>
       <label for="logo_styl">Jak pokazać logo na karcie</label>
@@ -325,10 +325,10 @@ if ($edit !== null) {
       <textarea id="opis_meta" name="opis_meta" maxlength="300" aria-describedby="opis_meta_h" data-pmg-licznik><?= $v('opis_meta') ?></textarea>
 
       <label for="hero">Zdjęcie główne 16:9 (JPG, PNG albo WebP) <span class="pmg-opt">(opcjonalnie)</span></label>
-      <p class="pmg-hint" id="hero_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1920 × 1080 px. Bez zdjęcia, ale z jasnym logo (patrz wyżej) na górze pojawi się logo na ciemnym tle; w pozostałych przypadkach sekcji nie ma.</p>
+      <p class="pmg-hint" id="hero_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9. Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1920 × 1080 px. Bez zdjęcia, ale z jasnym logo (patrz wyżej) na górze pojawi się logo na ciemnym tle; w pozostałych przypadkach sekcji nie ma.</p>
       <?php if (!empty($edit['hero'])): ?>
         <figure class="pmg-photo pmg-photo--16x9"><img src="../<?= h($edit['hero']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi je.</figcaption></figure>
-        <label class="pmg-check"><input type="checkbox" name="hero_usun" value="1"><span>Usuń obecne zdjęcie główne</span></label>
+        <label class="pmg-check"><input type="checkbox" name="hero_usun" value="1"<?= !empty($_POST['hero_usun']) ? ' checked' : '' ?>><span>Usuń obecne zdjęcie główne</span></label>
       <?php endif; ?>
       <input type="file" id="hero" name="hero" accept="image/jpeg,image/png,image/webp"<?= blad_pola('hero', 'hero_h') ?>><?= komunikat_pola('hero') ?>
       <label for="hero_alt">Opis zdjęcia głównego (co na nim widać — dla osób niewidomych)</label>
@@ -378,7 +378,7 @@ if ($edit !== null) {
           <figure class="pmg-photo pmg-photo--16x9 pmg-gal__foto"><img src="../<?= h($g['zdjecie']) ?>" alt=""></figure>
           <div class="pmg-gal__pola">
             <label for="gal-podpis-<?= (int) $g['id'] ?>">Podpis zdjęcia <?= $i + 1 ?> (także opis dla osób niewidomych)</label>
-            <input type="text" id="gal-podpis-<?= (int) $g['id'] ?>" name="podpis" maxlength="200" value="<?= h($g['podpis']) ?>" required<?= blad_pola('gal-podpis-' . (int) $g['id']) ?>><?= komunikat_pola('gal-podpis-' . (int) $g['id']) ?>
+            <input type="text" id="gal-podpis-<?= (int) $g['id'] ?>" name="podpis" maxlength="200" value="<?= h(($action ?? '') === 'gal_zapisz' && ($gid ?? 0) === (int) $g['id'] ? (string) ($_POST['podpis'] ?? '') : $g['podpis']) ?>" required<?= blad_pola('gal-podpis-' . (int) $g['id']) ?>><?= komunikat_pola('gal-podpis-' . (int) $g['id']) ?>
             <label for="gal-plik-<?= (int) $g['id'] ?>">Podmień plik <span class="pmg-opt">(opcjonalnie)</span></label>
             <input type="file" id="gal-plik-<?= (int) $g['id'] ?>" name="plik" accept="image/jpeg,image/png,image/webp"<?= blad_pola('gal-plik-' . (int) $g['id']) ?>><?= komunikat_pola('gal-plik-' . (int) $g['id']) ?>
             <div class="pmg-gal__akcje">
@@ -395,10 +395,10 @@ if ($edit !== null) {
           <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="edycja_id" value="<?= (int) $edit['id'] ?>"><input type="hidden" name="a" value="gal_dodaj">
           <h3 class="pmg-gal__tytul">Dodaj zdjęcie</h3>
           <label for="gal-nowe-plik">Zdjęcie 16:9 (JPG, PNG albo WebP)</label>
-          <p class="pmg-hint" id="gal-nowe-h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1200 × 675 px.</p>
+          <p class="pmg-hint" id="gal-nowe-h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9. Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1200 × 675 px.</p>
           <input type="file" id="gal-nowe-plik" name="plik" accept="image/jpeg,image/png,image/webp" required<?= blad_pola('gal-nowe-plik', 'gal-nowe-h') ?>><?= komunikat_pola('gal-nowe-plik') ?>
           <label for="gal-nowe-podpis">Podpis zdjęcia (także opis dla osób niewidomych)</label>
-          <input type="text" id="gal-nowe-podpis" name="podpis" maxlength="200" required<?= blad_pola('gal-nowe-podpis') ?>><?= komunikat_pola('gal-nowe-podpis') ?>
+          <input type="text" id="gal-nowe-podpis" name="podpis" maxlength="200" value="<?= ($action ?? '') === 'gal_dodaj' ? h((string) ($_POST['podpis'] ?? '')) : '' ?>" required<?= blad_pola('gal-nowe-podpis') ?>><?= komunikat_pola('gal-nowe-podpis') ?>
           <div class="pmg-form-actions"><button class="pmg-btn pmg-btn--secondary" type="submit">Dodaj do galerii</button></div>
         </form>
       <?php endif; ?>

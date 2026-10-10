@@ -128,7 +128,10 @@ $bledyPol = [];
 // oraz aria-invalid, gdy pole ma błąd. Bez podpowiedzi i bez błędu zwraca ''.
 function blad_pola($id, $podpowiedz = '')
 {
-    global $bledyPol;
+    global $bledyPol, $error;
+    // Formularz wraca z błędem, a w polu pliku (zdjecie, logo, hero) wybrano plik: przeglądarka go nie odtworzy, a zapis nic
+    // nie wgrał. Dopisujemy błąd przy tym polu (trafi też na listę „Popraw N pól”, bo alert powstaje po formularzu).
+    if (($bledyPol || $error !== '') && !isset($bledyPol[$id]) && !empty($_FILES[$id]['name'])) $bledyPol[$id] = 'Wybrane zdjęcie nie zostało zapisane — wybierz je ponownie.';
     $opis = trim((string) $podpowiedz . (isset($bledyPol[$id]) ? ' ' . $id . '_blad' : ''));
     return ($opis !== '' ? ' aria-describedby="' . h($opis) . '"' : '') . (isset($bledyPol[$id]) ? ' aria-invalid="true"' : '');
 }
@@ -300,8 +303,24 @@ function save_image($file, $modul)
     if (!function_exists($open) || !function_exists('imagejpeg')) throw new BladPliku('Serwer nie obsługuje przetwarzania zdjęć (brak biblioteki GD) — zgłoś to administratorowi strony.');
     $src = @$open($file['tmp_name']);
     if ($src === false) throw new BladPliku('Nie udało się odczytać zdjęcia — plik jest uszkodzony. Spróbuj zapisać go ponownie (np. jako JPG).');
+    // Zdjęcie z telefonu bywa zapisane bokiem ze znacznikiem EXIF Orientation, którego GD nie czyta: obracamy przed kadrowaniem.
+    // Bez rozszerzenia exif zostaje dawne zachowanie (bez obrotu).
+    // shortcut: pomijamy lustrzane odbicia (Orientation 2/4/5/7), aparaty ich praktycznie nie zapisują; dodać imageflip(), gdyby się pojawiły.
+    if ($types[$info[2]] === 'jpg' && function_exists('exif_read_data') && function_exists('imagerotate')) {
+        $exif = @exif_read_data($file['tmp_name']);
+        $orientacja = is_array($exif) && isset($exif['Orientation']) ? (int) $exif['Orientation'] : 1;
+        $kat = [3 => 180, 6 => -90, 8 => 90][$orientacja] ?? 0;
+        $obrocone = $kat ? @imagerotate($src, $kat, 0) : false;
+        if ($obrocone !== false) {
+            imagedestroy($src);
+            $src = $obrocone;
+            $w = imagesx($src);
+            $hgt = imagesy($src);
+        }
+    }
     // Wycinek źródła: domyślnie całe zdjęcie. Gdy proporcje odbiegają od wymaganych o więcej niż 0,03, bierzemy
-    // największy wyśrodkowany prostokąt o wymaganych proporcjach (np. 4000×3000 na 16:9 → 4000×2250, ucięte 375 px u góry i u dołu).
+    // największy prostokąt o wymaganych proporcjach (np. 4000×3000 na 16:9 → 4000×2250): poziomo wyśrodkowany, pionowo bliżej
+    // góry (1/4 nadmiaru u góry, 3/4 u dołu), żeby na portretach nie ucinać głów.
     $sx = 0;
     $sy = 0;
     $sw = $w;
@@ -312,7 +331,7 @@ function save_image($file, $modul)
             $sx = (int) floor(($w - $sw) / 2);
         } else {
             $sh = max(1, (int) round($w / $proporcja));
-            $sy = (int) floor(($hgt - $sh) / 2);
+            $sy = (int) floor(($hgt - $sh) / 4);
         }
     }
     $nw = min($maxSzer, $sw);
@@ -338,17 +357,14 @@ function drop_image($path)
     if ($path && preg_match('~^uploads/(aktualnosci|czlonkowie|pmsession|podcast|case|case-logo)/[0-9a-f-]+\.(jpg|png|webp)$~', $path)) @unlink(__DIR__ . '/../' . $path);
 }
 
-// Sprawdza opis zdjęcia (wymagany przy nowym pliku i przy zachowaniu istniejącego) i wgrywa nowy plik, jeśli podano.
+// Wgrywa nowy plik, jeśli podano. Opis zdjęcia sprawdza wcześniej blad_opisu_zdjecia() (wołana przez każdy moduł przed zapisem).
 // Zwraca ścieżkę do zapisania w bazie (nową albo — bez wgrania — dotychczasową $old).
 function zdjecie($modul, $old)
 {
-    $alt = trim((string) ($_POST['zdjecie_alt'] ?? ''));
-    $upload = !empty($_FILES['zdjecie']['name']);
-    if (($upload || $old) && $alt === '') throw new BladPliku('Dodaj opis zdjęcia (dla osób niewidomych).');
-    return $upload ? save_image($_FILES['zdjecie'], $modul) : $old;
+    return !empty($_FILES['zdjecie']['name']) ? save_image($_FILES['zdjecie'], $modul) : $old;
 }
 
-// Ta sama reguła co w zdjecie(), ale jako błąd przy polu „Opis zdjęcia” (wołaj przy walidacji pól, przed zapisem).
+// Opis zdjęcia wymagany przy nowym pliku i przy zachowaniu istniejącego — błąd przy polu „Opis zdjęcia” (wołaj przy walidacji pól, przed zapisem).
 function blad_opisu_zdjecia($old)
 {
     global $bledyPol;
@@ -410,7 +426,7 @@ if (isset($_GET['ping'])) { http_response_code($me ? 204 : 401); exit; }
 // Zły token (najczęściej sesja wygasła przy otwartym formularzu): nic nie zapisujemy, wracamy na ten sam adres
 // i pokazujemy komunikat w wyglądzie panelu (dawniej biała strona z jednym zdaniem).
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !hash_equals(csrf(), (string) ($_POST['csrf'] ?? ''))) {
-    $_SESSION['blad_sesji'] = 1;
+    $_SESSION['blad_sesji'] = ($_POST['a'] ?? '') === 'login' ? 'login' : 1; // 'login': nieaktualna druga karta logowania
     go(isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
 }
 // ---------- Stare adresy (sprzed W6) → nowe strony i zakładki ----------
@@ -426,10 +442,12 @@ if ($me && in_array($_GET['m'] ?? '', ['tresci', 'ustawienia', 'rekrutacja'], tr
     } else {
         $q = ($q['m'] === 'ustawienia' ? ['m' => 'stopka'] : ['m' => 'dolacz', 'w' => 'rekrutacja']) + $q;
     }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') $_SESSION['blad_sesji'] = 1; // formularz otwarty przed wdrożeniem: pokaż „Nie zapisano zmian…”
     go('?' . http_build_query($q));
 }
 
-$bladSesji = !empty($_SESSION['blad_sesji']);
+// Zły token z formularza logowania, a osoba jest już zalogowana (zalogowała się w innej karcie): nic nie przepadło, bez komunikatu.
+$bladSesji = !empty($_SESSION['blad_sesji']) && !($me && $_SESSION['blad_sesji'] === 'login');
 unset($_SESSION['blad_sesji']);
 if (!empty($_SESSION['wygasla12h'])) $wygasla12h = true;
 unset($_SESSION['wygasla12h']);
@@ -534,9 +552,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     go();
                 } else {
                     $error = 'Nieprawidłowy e-mail lub hasło.';
-                    // A2 6.2, 6.3: nieudane logowanie w dzienniku. Nieznany adres: bez konta i BEZ wpisanego e-maila (RODO).
+                    // A2 6.2, 6.3: nieudane logowanie na aktywne konto w dzienniku. Adres bez aktywnego konta pomijamy: wpis nie
+                    // miałby ani konta, ani adresu, a seria takich prób wypychałaby prawdziwe zmiany z widoku (200 ostatnich).
                     if ($u) dziennik_wpis((int) $u['id'], 'konto', 'nieudane_logowanie', (int) $u['id'], $ma_haslo ? 'błędne hasło' : 'konto bez ustawionego hasła');
-                    else dziennik_wpis(null, 'konto', 'nieudane_logowanie', null, 'nieznany adres e-mail');
                 }
             }
         }
