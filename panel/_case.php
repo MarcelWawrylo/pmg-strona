@@ -296,7 +296,7 @@ if ($edit !== null) {
       <textarea id="opis_meta" name="opis_meta" maxlength="300" aria-describedby="opis_meta_h" data-pmg-licznik><?= $v('opis_meta') ?></textarea>
 
       <label for="hero">Zdjęcie główne 16:9 (JPG, PNG albo WebP) <span class="pmg-opt">(opcjonalnie)</span></label>
-      <p class="pmg-hint" id="hero_h">Maks. 10 MB, proporcje 16:9, np. 1920 × 1080 px. Bez zdjęcia, ale z jasnym logo (patrz wyżej) na górze pojawi się logo na ciemnym tle; w pozostałych przypadkach sekcji nie ma.</p>
+      <p class="pmg-hint" id="hero_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1920 × 1080 px. Bez zdjęcia, ale z jasnym logo (patrz wyżej) na górze pojawi się logo na ciemnym tle; w pozostałych przypadkach sekcji nie ma.</p>
       <?php if (!empty($edit['hero'])): ?>
         <figure class="pmg-photo pmg-photo--16x9"><img src="../<?= h($edit['hero']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi je.</figcaption></figure>
         <label class="pmg-check"><input type="checkbox" name="hero_usun" value="1"><span>Usuń obecne zdjęcie główne</span></label>
@@ -366,7 +366,7 @@ if ($edit !== null) {
           <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="edycja_id" value="<?= (int) $edit['id'] ?>"><input type="hidden" name="a" value="gal_dodaj">
           <h3 class="pmg-gal__tytul">Dodaj zdjęcie</h3>
           <label for="gal-nowe-plik">Zdjęcie 16:9 (JPG, PNG albo WebP)</label>
-          <p class="pmg-hint" id="gal-nowe-h">Maks. 10 MB, proporcje 16:9, np. 1200 × 675 px.</p>
+          <p class="pmg-hint" id="gal-nowe-h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1200 × 675 px.</p>
           <input type="file" id="gal-nowe-plik" name="plik" accept="image/jpeg,image/png,image/webp" aria-describedby="gal-nowe-h" required>
           <label for="gal-nowe-podpis">Podpis zdjęcia (także opis dla osób niewidomych)</label>
           <input type="text" id="gal-nowe-podpis" name="podpis" maxlength="200" required>

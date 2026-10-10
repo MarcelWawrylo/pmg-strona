@@ -235,7 +235,7 @@ if ($edit !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
       <h2 class="pmg-form-section__title" id="sek-zdjecie">Zdjęcie</h2>
       <label for="zdjecie">Zdjęcie 16:9 (JPG, PNG albo WebP)</label>
-      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Proporcje 16:9, np. 1600 × 900 px.</p>
+      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1600 × 900 px.</p>
       <?php if (!empty($edit['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--16x9"><img src="../<?= h($edit['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>
@@ -284,7 +284,7 @@ if ($edit !== null) {
         <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="wpis_id" value="<?= (int) $edit['id'] ?>"><input type="hidden" name="a" value="gal_dodaj">
         <h3 class="pmg-gal__tytul">Dodaj zdjęcie</h3>
         <label for="gal-nowe-plik">Zdjęcie 16:9 (JPG, PNG albo WebP)</label>
-        <p class="pmg-hint" id="gal-nowe-h">Maks. 10 MB, proporcje 16:9, np. 1200 × 675 px.</p>
+        <p class="pmg-hint" id="gal-nowe-h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1200 × 675 px.</p>
         <input type="file" id="gal-nowe-plik" name="plik" accept="image/jpeg,image/png,image/webp" aria-describedby="gal-nowe-h" required>
         <label for="gal-nowe-podpis">Podpis zdjęcia (także opis dla osób niewidomych)</label>
         <input type="text" id="gal-nowe-podpis" name="podpis" maxlength="200" required>
