@@ -256,19 +256,19 @@ return [
           'domyslny' => 'Konferencja naukowa poświęcona zarządzaniu projektami',
         ],
         'pms.about_naglowek' => [
-          'etykieta' => 'Co to PM Session?: nagłówek sekcji',
+          'etykieta' => 'Co to Project Management Session?: nagłówek sekcji',
           'typ' => 'krotki',
           'max' => 300,
-          'domyslny' => 'Co to PM Session?',
+          'domyslny' => 'Co to Project Management Session?',
         ],
         'pms.about_akapit_1' => [
-          'etykieta' => 'Co to PM Session?: akapit 1',
+          'etykieta' => 'Co to Project Management Session?: akapit 1',
           'typ' => 'tekst',
           'max' => 1500,
           'domyslny' => 'PM Session to coroczna konferencja biznesowo-naukowa poświęcona zarządzaniu projektami, organizowana przez Koło Naukowe Project Management Group przy Wydziale Zarządzania Politechniki Wrocławskiej. To wydarzenie łączące świat akademicki z praktyką biznesową, skierowane zarówno do osób stawiających pierwsze kroki w project management, jak i do doświadczonych specjalistów.',
         ],
         'pms.about_akapit_2' => [
-          'etykieta' => 'Co to PM Session?: akapit 2',
+          'etykieta' => 'Co to Project Management Session?: akapit 2',
           'typ' => 'tekst',
           'max' => 1500,
           'domyslny' => 'W programie znajdują się prelekcje ekspertów, praktyczne warsztaty oraz networking, które pozwalają zdobywać nową wiedzę, rozwijać kompetencje i wymieniać się doświadczeniami. PM Session to także przestrzeń do poznawania inspirujących osób, budowania wartościowych relacji i odkrywania nowych możliwości rozwoju w świecie zarządzania projektami.',
