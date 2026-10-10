@@ -29,12 +29,24 @@ Options -Indexes
   </If>
 </IfModule>
 
-# Włączyć na produkcji, gdy HTTPS na serwerze PWr będzie działać:
-# <IfModule mod_headers.c>
-#   Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
-# </IfModule>
-# <IfModule mod_rewrite.c>
-#   RewriteEngine On
-#   RewriteCond %{HTTPS} off
-#   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-# </IfModule>
+# HSTS: przeglądarka przez rok łączy się z tą domeną tylko po HTTPS (hasło do panelu nie leci otwartym tekstem).
+# Bez includeSubDomains i preload: to subdomena pwr.edu.pl, nie kontrolujemy pozostałych subdomen.
+# Tylko przy HTTPS, żeby nie wpływać na lokalne testy po http (przez HTTP przeglądarki i tak go ignorują).
+<IfModule mod_headers.c>
+  <If "%{HTTPS} == 'on'">
+    Header always set Strict-Transport-Security "max-age=31536000"
+  </If>
+</IfModule>
+# Przekierowania http→https celowo tu nie ma: serwer PWr robi je sam (302 na poziomie serwera, sprawdzone 10.10.2026).
+# Gdyby HTTPS kończył się na proxy przed Apache, %{HTTPS} byłoby zawsze "off" i reguła w .htaccess zapętliłaby stronę.
+
+# Content-Security-Policy strony publicznej. Panel ma własną, ściślejszą w panel/.htaccess (nadpisuje tę).
+# script-src: jedyny skrypt w HTML to <script>document.documentElement.classList.add('js')</script> (każdy plik .html),
+#   dopuszczony hashem sha256. Zmiana choćby znaku w tym skrypcie = nowy hash tutaj; bez tego strona działa
+#   dalej (klasę "js" dodaje też js/main.js, tylko chwilę później). Biblioteki GSAP/Lenis są lokalnie w js/vendor/.
+# style-src 'unsafe-inline': atrybuty style= w HTML i w znacznikach tworzonych przez main.js.
+# img-src data:: obrazek SVG zapisany w css/style.css. Fonty są lokalnie w fonts/.
+# frame-src: mapa Google (kontakt.html, po zgodzie) i odtwarzacz Spotify (podcast.html).
+<IfModule mod_headers.c>
+  Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-Du+OJKJSbdUgz5nrHeWWINvez6XKDDU/tyj/5c2uvwo='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src https://www.google.com https://open.spotify.com; form-action 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+</IfModule>
