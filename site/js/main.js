@@ -1587,3 +1587,31 @@
     });
   }
 })();
+
+/* ---------- PM Session: podmenu edycji z panelu ---------- */
+/* #subnav-pms: pierwsza pozycja („Czym jest PM Session?”) zostaje z HTML, dalej edycje z api/pmsession.php?lista=1:
+   „Aktualna edycja” dla bieżącej i „PM Session <numer>” dla zakończonych (tylko te z własnym plikiem pm-session-<numer>.html,
+   szkice nigdy). Bez backendu (GitHub Pages), przy błędzie albo pustej bazie edycji zostaje statyczne menu z HTML. */
+(function () {
+  'use strict';
+  var PMG = window.PMG;
+  if (!PMG) return;
+  var subnav = PMG.$('#subnav-pms');
+  var first = subnav && subnav.firstElementChild;
+  if (!first) return;
+  PMG.api('pmsession.php?lista=1').then(function (d) {
+    if (!d || !d.edycje || !(d.wszystkich > 0)) return;
+    var file = location.pathname.split('/').pop();
+    while (first.nextElementSibling) subnav.removeChild(first.nextElementSibling);
+    d.edycje.forEach(function (e) {
+      if (!/^pm-session-[ivxlc]{1,10}\.html$/.test(e.adres)) return;
+      var li = document.createElement('li'), a = document.createElement('a');
+      a.className = 'site-nav__sublink';
+      a.href = PMG.root + e.adres; // od katalogu strony, nie od bieżącego adresu (404.html wyświetla się pod dowolną ścieżką)
+      a.textContent = e.status === 'biezaca' ? 'Aktualna edycja' : 'PM Session ' + e.numer;
+      if (e.adres === file) a.setAttribute('aria-current', 'page');
+      li.appendChild(a);
+      subnav.appendChild(li);
+    });
+  });
+})();
