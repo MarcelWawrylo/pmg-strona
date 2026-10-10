@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'save') {
         $id = (int) ($_POST['id'] ?? 0);
         $f = [];
-        foreach (['tytul' => 200, 'lead' => 600, 'zajawka' => 400, 'kategoria' => 40, 'autor' => 100, 'zdjecie_alt' => 200] as $k => $max) {
+        foreach (['tytul' => 200, 'lead' => 600, 'zajawka' => 400, 'autor' => 100, 'zdjecie_alt' => 200] as $k => $max) {
             $f[$k] = mb_substr(trim((string) ($_POST[$k] ?? '')), 0, $max);
         }
         $f['tresc'] = trim(str_replace("\r\n", "\n", (string) ($_POST['tresc'] ?? '')));
@@ -50,8 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $f['zdjecie'] = zdjecie('aktualnosci', $stareZdjecie);
             if ($f['zdjecie'] !== $stareZdjecie) $noweZdjecie = $f['zdjecie'];
             if ($id && $old) {
-                $st = pmg_db()->prepare('UPDATE pmg_aktualnosci SET data=?, kategoria=?, kolor=?, tytul=?, lead=?, zajawka=?, tresc=?, zdjecie=?, zdjecie_alt=?, autor=?, opublikowany=? WHERE id=?');
-                $st->execute([$f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $id]);
+                $st = pmg_db()->prepare('UPDATE pmg_aktualnosci SET data=?, kolor=?, tytul=?, lead=?, zajawka=?, tresc=?, zdjecie=?, zdjecie_alt=?, autor=?, opublikowany=? WHERE id=?');
+                $st->execute([$f['data'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $id]);
                 $noweZdjecie = null;
                 if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
                 loguj('aktualnosci', 'edycja', $id);
@@ -59,8 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $base = $slug = slugify($f['tytul']);
                 $st = pmg_db()->prepare('SELECT 1 FROM pmg_aktualnosci WHERE slug = ?');
                 for ($n = 2; $st->execute([$slug]) && $st->fetchColumn(); $n++) $slug = $base . '-' . $n;
-                $st = pmg_db()->prepare('INSERT INTO pmg_aktualnosci (slug, data, kategoria, kolor, tytul, lead, zajawka, tresc, zdjecie, zdjecie_alt, autor, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
-                $st->execute([$slug, $f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany']]);
+                $st = pmg_db()->prepare('INSERT INTO pmg_aktualnosci (slug, data, kolor, tytul, lead, zajawka, tresc, zdjecie, zdjecie_alt, autor, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+                $st->execute([$slug, $f['data'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany']]);
                 $noweZdjecie = null;
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('aktualnosci', 'dodanie', $id);
@@ -127,11 +127,8 @@ if ($edit !== null) {
       <textarea id="tresc" name="tresc" aria-describedby="tresc_h" required><?= $v('tresc') ?></textarea>
     </section>
 
-    <section class="pmg-form-section" aria-labelledby="sek-kategoria">
-      <h2 class="pmg-form-section__title" id="sek-kategoria">Data, kategoria i kolor</h2>
-      <label for="kategoria">Kategoria <span class="pmg-opt">(opcjonalnie)</span></label>
-      <p class="pmg-hint" id="kategoria_h">Np. Życie koła, Wydarzenie, Rekrutacja. Strona na razie nie wyświetla kategorii, więc pole można zostawić puste.</p>
-      <input type="text" id="kategoria" name="kategoria" maxlength="40" value="<?= $v('kategoria') ?>" aria-describedby="kategoria_h">
+    <section class="pmg-form-section" aria-labelledby="sek-data">
+      <h2 class="pmg-form-section__title" id="sek-data">Data, kolor i autor</h2>
       <label for="kolor">Kolor wpisu (akcent na kafelku)</label>
       <select id="kolor" name="kolor"><?php foreach (KOLORY as $k => $n): ?><option value="<?= $k ?>"<?= ($edit['kolor'] ?? '') === $k ? ' selected' : '' ?>><?= $n ?></option><?php endforeach; ?></select>
       <label for="data">Data wpisu</label>
