@@ -14,6 +14,16 @@ function podcast_spotify_id($v)
     return null;
 }
 
+// Odcinek widać na stronie, gdy jest opublikowany, a jego edycja podcastu (jeśli ma) jest widoczna (api/podcast.php).
+function podcast_na_stronie($opublikowany, $edycjaId)
+{
+    if (!$opublikowany) return false;
+    if ($edycjaId === null) return true;
+    $st = pmg_db()->prepare('SELECT widoczna FROM pmg_podcast_edycje WHERE id = ?');
+    $st->execute([(int) $edycjaId]);
+    return (bool) $st->fetchColumn();
+}
+
 // Podekran „Edycje podcastu” (?m=podcast&w=edycje) ma osobny plik; poniżej zostaje obsługa odcinków.
 if (($_GET['w'] ?? '') === 'edycje') {
     require __DIR__ . '/_podcast_edycje.php';
@@ -118,7 +128,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('podcast', 'dodanie', $id, 'Odcinek ' . $f['numer'] . ': ' . $f['tytul']);
             }
-            $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano jako szkic (niewidoczny na stronie).';
+            $_SESSION['flash'] = !$f['opublikowany'] ? 'Zapisano jako szkic (niewidoczny na stronie).'
+                : (podcast_na_stronie(1, $f['edycja_id']) ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano. Odcinka nie widać na stronie, bo jego edycja podcastu jest ukryta.');
             go('?m=podcast');
         } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
             drop_image($noweZdjecie);
@@ -158,7 +169,7 @@ if ($edit !== null) {
     ];
     // Strona podcastu nie ma kotwic do odcinków (okno odcinka otwiera się kliknięciem), więc link prowadzi do całej listy.
     $wBazie = isset($old) && is_array($old) ? $old : $edit; // po nieudanym zapisie $edit ma wartości z formularza
-    if (!empty($edit['id']) && !empty($wBazie['opublikowany'])) {
+    if (!empty($edit['id']) && podcast_na_stronie(!empty($wBazie['opublikowany']), $wBazie['edycja_id'] ?? null)) {
         $pmgNaglowek['akcje'] = [['href' => '../podcast.html', 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
     }
 } else {
