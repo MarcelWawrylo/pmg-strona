@@ -1488,7 +1488,7 @@
   };
   var cardHtml = function (e) {
     var tall = e.logo_styl === 'jasne-wysokie', light = tall || e.logo_styl === 'jasne';
-    var cls = 'case-card__media case-card__media--logo' + (tall ? ' case-card__media--logo-tall' : '') + (light ? ' case-card__media--logo-light' : '');
+    var cls = 'case-card__media case-card__media--logo' + (tall ? ' case-card__media--logo-tall' : '') + (light ? ' case-card__media--logo-light' : '') + (e.linia ? ' case-card__media--linia' : '');
     return '<li class="is-in" data-reveal><a class="case-card card card--hover" href="' + esc(e.url) + '">' +
       '<div class="' + cls + '">' + (e.logo ? cardLogo(e, light) : '') + '</div>' +
       '<div class="case-card__body"><h2 class="case-card__title">' + esc(e.tytul) + '</h2><p class="case-card__edition">Edycja ' + Number(e.numer) + '</p>' +

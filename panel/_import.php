@@ -124,11 +124,11 @@ function import_wstaw($modul, $d)
         $komunikat = 'Wczytano edycję ' . $d['edycje'][0]['numer'] . ' jako ' . ($d['edycje'][0]['status'] === 'zakonczona' ? 'zakończoną' : 'szkic') . ' (prelegentów: ' . $prel . ', punktów harmonogramu: ' . $pkt . ')'
             . ($liczby ? ' oraz liczby „PM Session w liczbach” (' . $liczby . ')' : '') . '. Strona pokazuje teraz tę edycję z panelu (w ciągu 5 minut).';
     } elseif ($modul === 'case') {
-        $stE = $pdo->prepare('INSERT INTO pmg_case_edycje (numer, nazwa, tytul_karty, naglowek, adres_strony, opis_meta, logo, logo_styl, hero, hero_alt, o_partnerze, wyzwanie, co_zrobilismy, rezultat, w_toku, kolejnosc, widoczna) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+        $stE = $pdo->prepare('INSERT INTO pmg_case_edycje (numer, nazwa, tytul_karty, naglowek, adres_strony, opis_meta, logo, logo_styl, linia_pod_logo, hero, hero_alt, o_partnerze, wyzwanie, co_zrobilismy, rezultat, w_toku, kolejnosc, widoczna) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
         $stG = $pdo->prepare('INSERT INTO pmg_case_galeria (edycja_id, zdjecie, pelne, podpis, kolejnosc) VALUES (?,?,?,?,?)');
         $zdj = 0;
         foreach ($d['case'] as $c) {
-            $stE->execute([$c['numer'], $c['nazwa'], $c['tytul_karty'], $c['naglowek'], $c['adres_strony'], $c['opis_meta'], $c['logo'], $c['logo_styl'], $c['hero'], $c['hero_alt'], $c['o_partnerze'], $c['wyzwanie'], $c['co_zrobilismy'], $c['rezultat'], $c['w_toku'], $c['kolejnosc'], $c['widoczna']]);
+            $stE->execute([$c['numer'], $c['nazwa'], $c['tytul_karty'], $c['naglowek'], $c['adres_strony'], $c['opis_meta'], $c['logo'], $c['logo_styl'], $c['linia_pod_logo'], $c['hero'], $c['hero_alt'], $c['o_partnerze'], $c['wyzwanie'], $c['co_zrobilismy'], $c['rezultat'], $c['w_toku'], $c['kolejnosc'], $c['widoczna']]);
             $eid = (int) $pdo->lastInsertId();
             foreach ($c['galeria'] as $i => $g) {
                 $stG->execute([$eid, $g[0], $g[2], $g[1], $i + 1]);
