@@ -582,5 +582,6 @@ body.pmg--auth { background: var(--pmg-bg); }
 .pmg-tresc { padding: 4px 0 8px; }
 .pmg-tresc textarea { min-height: 88px; }
 .pmg-tresc__dom { white-space: pre-line; overflow-wrap: anywhere; margin-bottom: 8px; }
+.pmg-wiadomosc { margin: 0; overflow-wrap: anywhere; } /* treść wiadomości z formularza (nl2br w _wiadomosci.php) */
 .pmg-tresc__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 8px; }
 .pmg-tresc__meta .pmg-hint { margin: 0; }

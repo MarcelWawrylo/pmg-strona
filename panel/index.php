@@ -38,6 +38,7 @@ const MODULY = [
     'dolacz' => ['dolacz', 'rekrutacja'], // Dołącz: teksty strony (dolacz) i nabór (rekrutacja) to osobne uprawnienia
     'kontakt' => 'kontakt',
     'stopka' => 'admin', 'konta' => 'admin', 'dziennik' => 'admin', 'kopia' => 'admin',
+    'wiadomosci' => 'admin', // dane osobowe gości: tylko administrator, bez osobnego uprawnienia redaktora
     'konto' => 'konto', // „Moje konto”: każdy zalogowany (wyjątek w routerze)
 ];
 // Zakładki stron (?m=…&w=…): w => [etykieta, uprawnienie, część z api/tresci-pola.php albo null]. Jedno źródło prawdy dla routera,
@@ -57,7 +58,7 @@ const ZAKLADKI = [
 // Menu panelu w kolejności stron serwisu; z tej samej listy powstają kafelki na Starcie.
 const MENU = [
     'Strona' => ['glowna', 'czlonkowie', 'aktualnosci', 'pmsession', 'podcast', 'case', 'dolacz', 'kontakt'],
-    'Administracja' => ['stopka', 'konta', 'dziennik', 'kopia'],
+    'Administracja' => ['wiadomosci', 'stopka', 'konta', 'dziennik', 'kopia'],
 ];
 
 function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
@@ -155,6 +156,7 @@ function pmg_ikona($nazwa)
         'dolacz' => 'M8 9.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M2.5 16.5a5.5 5.5 0 0 1 9.5-3.75 M15 11v6 M12 14h6',
         'glowna' => 'M3.5 4h13v12h-13Z M3.5 8h13 M8 8v8',
         'kontakt' => 'M3.5 5.5h13v9h-13Z M3.5 5.5 10 11l6.5-5.5',
+        'wiadomosci' => 'M3.5 11.5h4l1 2h3l1-2h4 M3.5 11.5l2-7h9l2 7v4.5h-13Z',
         'podcast' => 'M10 12.5a2.5 2.5 0 0 0 2.5-2.5V5.5a2.5 2.5 0 0 0-5 0V10a2.5 2.5 0 0 0 2.5 2.5Z M5.5 9.5a4.5 4.5 0 0 0 9 0 M10 14v3 M7.5 17h5',
         'czlonkowie' => 'M7.5 9.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M2.5 16.5a5 5 0 0 1 10 0 M13 3.75a2.75 2.75 0 0 1 0 5.5 M14.75 11.75a5 5 0 0 1 2.75 4.75',
         'pmsession' => 'M3.5 5.5A1.5 1.5 0 0 1 5 4h10a1.5 1.5 0 0 1 1.5 1.5v10A1.5 1.5 0 0 1 15 17H5a1.5 1.5 0 0 1-1.5-1.5Z M3.5 8.5h13 M7 2.5v3 M13 2.5v3 M7 12h2.5',
@@ -385,7 +387,7 @@ function blad_opisu_zdjecia($old)
 // ---------- Etykiety i opisy stron panelu (nad routerem — pliki stron ich potrzebują) ----------
 $etykietyModulow = [
     'glowna' => 'Strona główna', 'czlonkowie' => 'O nas', 'aktualnosci' => 'Aktualności', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła', 'dolacz' => 'Dołącz', 'kontakt' => 'Kontakt',
-    'stopka' => 'Stopka i kontakt', 'konta' => 'Konta', 'dziennik' => 'Dziennik zmian', 'kopia' => 'Kopia zapasowa',
+    'wiadomosci' => 'Wiadomości', 'stopka' => 'Stopka i kontakt', 'konta' => 'Konta', 'dziennik' => 'Dziennik zmian', 'kopia' => 'Kopia zapasowa',
     // Dawne klucze (przed W6): nie są pozycjami menu, ale dziennik pokazuje nimi wpisy loguj('tresci'|'ustawienia'|'rekrutacja').
     'tresci' => 'Teksty na stronie', 'ustawienia' => 'Stopka i kontakt', 'rekrutacja' => 'Rekrutacja',
 ];
@@ -399,6 +401,7 @@ $opisyModulow = [
     'dolacz' => 'Nabór otwarty lub zamknięty, link do formularza i teksty strony Dołącz. Zmiany widać w ciągu 5 minut.',
     'kontakt' => 'Nagłówki i opisy na stronie Kontakt.',
     'stopka' => 'E-mail kontaktowy, linki do mediów społecznościowych i teksty w stopce każdej strony. Zmiany widać w ciągu 5 minut.',
+    'wiadomosci' => 'Wiadomości wysłane z formularza na stronie Kontakt. Po 12 miesiącach usuwają się same.',
     'konta' => 'Kto ma dostęp do panelu i do których stron.',
     'dziennik' => 'Ostatnie 200 zdarzeń: zmiany w panelu i logowania.',
     'kopia' => 'Plik .sql z pełną kopią bazy danych do pobrania.',
@@ -651,7 +654,7 @@ if ($me && $m !== '') {
     } elseif ($m !== 'konto' && !wolno(MODULY[$m])) {
         $tresc = pmg_brak_dostepu();
     } else {
-        $plik = __DIR__ . '/_' . (MODULY[$m] === 'admin' ? 'admin' : $m) . '.php';
+        $plik = __DIR__ . '/_' . (MODULY[$m] === 'admin' && $m !== 'wiadomosci' ? 'admin' : $m) . '.php';
         $pasek = '';
         $zakladkaOk = true;
         if (isset(ZAKLADKI[$m])) {
@@ -738,6 +741,8 @@ if ($me && $m === '') { $db = pmg_db(); foreach ($pmgKafelki as $mk) {
   if ($mk === 'glowna' || $mk === 'kontakt' || $mk === 'stopka') { $pmgLiczby[$mk] = pmg_zmienione_teksty(['glowna' => 'index', 'kontakt' => 'kontakt', 'stopka' => 'wspolne'][$mk]); }
   if ($mk === 'konta') { $a = $db->query('SELECT COUNT(*) FROM pmg_uzytkownicy')->fetchColumn(); $b = (int) $db->query('SELECT COUNT(*) FROM pmg_uzytkownicy WHERE haslo IS NULL')->fetchColumn();
       $pmgLiczby[$mk] = pmg_odmiana($a, 'konto', 'konta', 'kont') . ($b ? ' · ' . $b . ' bez hasła' : ''); }
+  if ($mk === 'wiadomosci') { $a = (int) $db->query('SELECT COUNT(*) FROM pmg_wiadomosci WHERE przeczytana = 0')->fetchColumn();
+      $pmgLiczby[$mk] = $a ? pmg_odmiana($a, 'nowa wiadomość', 'nowe wiadomości', 'nowych wiadomości') : 'Brak nowych wiadomości'; }
   if ($mk === 'dziennik') { $pmgLiczby[$mk] = pmg_odmiana($db->query('SELECT COUNT(*) FROM pmg_dziennik')->fetchColumn(), 'zmiana', 'zmiany', 'zmian') . ' w dzienniku'; }
 } }
 ?>
