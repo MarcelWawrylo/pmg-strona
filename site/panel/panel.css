@@ -373,6 +373,11 @@ input[type=checkbox], input[type=radio] { width: 24px; height: 24px; margin: 0; 
 @media (hover: hover) { .pmg-option:hover { border-color: #5F5B53; } }
 .pmg-option:has(input:checked) { border-color: #141414; box-shadow: inset 0 0 0 1px #141414; background: #F7F6F3; }
 .pmg-option:has(input:focus-visible) { outline: 3px solid var(--pmg-focus); outline-offset: 2px; }
+/* PM Session, formularz edycji: przy statusie „Aktualna edycja – wkrótce więcej” wystarczy numer — temat, data, miejsce i opis
+   znikają (chyba że któreś ma błąd). Bez obsługi :has() pola zostają widoczne; o wymaganych polach decyduje serwer. */
+.pmg-pms-tylko-numer { display: none; margin-top: 8px; }
+.pmg-pms-edycja:has(input[name="status"][value="zapowiedz"]:checked) .pmg-pms-tylko-numer { display: block; }
+.pmg-pms-edycja:has(input[name="status"][value="zapowiedz"]:checked) .pmg-pms-pelne:not(:has([aria-invalid="true"])) { display: none; }
 
 /* ===================== 12. Sekcje formularza ===================== */
 .pmg-form-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--pmg-border); }
