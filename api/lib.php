@@ -168,7 +168,7 @@ function pmg_migrate()
             id INT AUTO_INCREMENT PRIMARY KEY,
             numer VARCHAR(10) NOT NULL UNIQUE,
             temat VARCHAR(200) NOT NULL,
-            data DATE NOT NULL,
+            data DATE NULL,
             miejsce VARCHAR(200) NOT NULL,
             opis VARCHAR(600) NOT NULL DEFAULT '',
             status ENUM('szkic','biezaca','zakonczona','zapowiedz') NOT NULL DEFAULT 'szkic'
@@ -356,9 +356,11 @@ function pmg_migrate()
         $pdo->exec("ALTER TABLE pmg_harmonogram ADD COLUMN IF NOT EXISTS znacznik VARCHAR(40) NOT NULL DEFAULT '' AFTER prelegent");
     }
     // Schemat 13: status edycji PM Session 'zapowiedz' („Aktualna edycja – wkrótce więcej”: tylko numer, bez programu).
-    // Nowa wartość dopisana NA KOŃCU ENUM, więc zapisane statusy się nie zmieniają.
+    // Nowa wartość dopisana NA KOŃCU ENUM, więc zapisane statusy się nie zmieniają. Data edycji może być pusta (NULL = zapowiedź
+    // bez daty); dla pozostałych statusów datę nadal wymaga panel. Istniejące daty zostają.
     if ((int) $v < 13) {
         $pdo->exec("ALTER TABLE pmg_edycje MODIFY status ENUM('szkic','biezaca','zakonczona','zapowiedz') NOT NULL DEFAULT 'szkic'");
+        $pdo->exec('ALTER TABLE pmg_edycje MODIFY data DATE NULL');
     }
     // Schemat 14: kreska między logo a opisem na karcie Case Koła (przełącznik w panelu). Dotąd była tylko przy jasnym logo
     // (białe tło mediów), więc istniejące edycje dostają 1 dla 'jasne'/'jasne-wysokie' i 0 dla 'ciemne' — wygląd bez zmian.
