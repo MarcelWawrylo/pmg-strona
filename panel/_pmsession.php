@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int) ($_POST['id'] ?? 0);
         $edycjaId = (int) ($_POST['edycja_id'] ?? 0);
         if (przesun('pmg_prelegenci', 'kolejnosc, id', $id, $action === 'prelegent_gora' ? 'gora' : 'dol', 'edycja_id', $edycjaId)) loguj('pmsession', 'kolejnosc', $id, 'Prelegent ' . nazwa_rekordu('SELECT imie_nazwisko FROM pmg_prelegenci WHERE id = ?', $id));
-        go('?m=pmsession&e=' . $edycjaId);
+        go_po_przesunieciu('?m=pmsession&e=' . $edycjaId, 'p' . $id, $action === 'prelegent_gora' ? 'gora' : 'dol');
 
     } elseif ($action === 'prelegent_usun') {
         $id = (int) ($_POST['id'] ?? 0);
@@ -173,7 +173,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'notatka' => mb_substr(trim((string) ($_POST['notatka'] ?? '')), 0, 200),
             'linkedin' => mb_substr(trim((string) ($_POST['linkedin'] ?? '')), 0, 200),
             'zdjecie_alt' => mb_substr(trim((string) ($_POST['zdjecie_alt'] ?? '')), 0, 200),
-            'kolejnosc' => (int) ($_POST['kolejnosc'] ?? 0),
         ];
         $stE = pmg_db()->prepare('SELECT 1 FROM pmg_edycje WHERE id = ?');
         $stE->execute([$edycjaId]);
@@ -196,14 +195,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $f['zdjecie'] = zdjecie('pmsession', $stareZdjecie);
                 if ($f['zdjecie'] !== $stareZdjecie) $noweZdjecie = $f['zdjecie'];
                 if ($id && $old) {
-                    $st = pmg_db()->prepare('UPDATE pmg_prelegenci SET imie_nazwisko=?, temat=?, bio=?, opis=?, plec=?, notatka=?, zdjecie=?, zdjecie_alt=?, linkedin=?, kolejnosc=? WHERE id=?');
-                    $st->execute([$f['imie_nazwisko'], $f['temat'], $f['bio'], $f['opis'], $f['plec'], $f['notatka'], $f['zdjecie'], $f['zdjecie_alt'], $f['linkedin'], $f['kolejnosc'], $id]);
+                    $st = pmg_db()->prepare('UPDATE pmg_prelegenci SET imie_nazwisko=?, temat=?, bio=?, opis=?, plec=?, notatka=?, zdjecie=?, zdjecie_alt=?, linkedin=? WHERE id=?');
+                    $st->execute([$f['imie_nazwisko'], $f['temat'], $f['bio'], $f['opis'], $f['plec'], $f['notatka'], $f['zdjecie'], $f['zdjecie_alt'], $f['linkedin'], $id]);
                     $noweZdjecie = null;
                     if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
                     loguj('pmsession', 'edycja', $id, 'Prelegent ' . $f['imie_nazwisko']);
                 } else {
+                    // Nowy prelegent trafia na koniec listy swojej edycji (kolejność zmieniasz strzałkami na liście).
+                    $stN = pmg_db()->prepare('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_prelegenci WHERE edycja_id = ?');
+                    $stN->execute([$edycjaId]);
                     $st = pmg_db()->prepare('INSERT INTO pmg_prelegenci (edycja_id, imie_nazwisko, temat, bio, opis, plec, notatka, zdjecie, zdjecie_alt, linkedin, kolejnosc) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
-                    $st->execute([$edycjaId, $f['imie_nazwisko'], $f['temat'], $f['bio'], $f['opis'], $f['plec'], $f['notatka'], $f['zdjecie'], $f['zdjecie_alt'], $f['linkedin'], $f['kolejnosc']]);
+                    $st->execute([$edycjaId, $f['imie_nazwisko'], $f['temat'], $f['bio'], $f['opis'], $f['plec'], $f['notatka'], $f['zdjecie'], $f['zdjecie_alt'], $f['linkedin'], (int) $stN->fetchColumn()]);
                     $noweZdjecie = null;
                     $id = (int) pmg_db()->lastInsertId();
                     loguj('pmsession', 'dodanie', $id, 'Prelegent ' . $f['imie_nazwisko']);
@@ -311,9 +313,7 @@ if ($eid && $editEdycja === null) {
 if ($edycjaWidok !== null) {
     if ($editPrelegent === null && isset($_GET['p'])) {
         if ($_GET['p'] === 'nowy') {
-            $stN = pmg_db()->prepare('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_prelegenci WHERE edycja_id = ?');
-            $stN->execute([$eid]);
-            $editPrelegent = ['id' => 0, 'edycja_id' => $eid, 'imie_nazwisko' => '', 'temat' => '', 'bio' => '', 'opis' => '', 'plec' => 'm', 'notatka' => '', 'linkedin' => '', 'zdjecie_alt' => '', 'kolejnosc' => (int) $stN->fetchColumn()];
+            $editPrelegent = ['id' => 0, 'edycja_id' => $eid, 'imie_nazwisko' => '', 'temat' => '', 'bio' => '', 'opis' => '', 'plec' => 'm', 'notatka' => '', 'linkedin' => '', 'zdjecie_alt' => ''];
         } else {
             $st = pmg_db()->prepare('SELECT * FROM pmg_prelegenci WHERE id = ? AND edycja_id = ?');
             $st->execute([(int) $_GET['p'], $eid]);
@@ -399,9 +399,7 @@ if ($editPrelegent !== null) {
       <label for="notatka">Notatka <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="notatka_h">Np. „Wspólny warsztat z Anną Nowak”. Widoczna nad tematem na stronie.</p>
       <input type="text" id="notatka" name="notatka" maxlength="200" value="<?= $v('notatka') ?>" aria-describedby="notatka_h">
-      <label for="kolejnosc">Kolejność</label>
-      <p class="pmg-hint" id="kolejnosc_h">Mniejsza liczba = wyżej na liście. Wygodniej zmieniać kolejność strzałkami na liście prelegentów.</p>
-      <input type="number" id="kolejnosc" name="kolejnosc" value="<?= (int) ($editPrelegent['kolejnosc'] ?? 0) ?>" aria-describedby="kolejnosc_h">
+      <p class="pmg-hint">Kolejność prelegentów zmieniasz strzałkami na liście prelegentów. Nowy prelegent trafia na koniec listy.</p>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-opis">
@@ -538,15 +536,15 @@ if ($editPrelegent !== null) {
         <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Temat</th><th scope="col">Kolejność</th></tr></thead>
         <tbody>
         <?php $stP = pmg_db()->prepare('SELECT * FROM pmg_prelegenci WHERE edycja_id = ? ORDER BY kolejnosc, id'); $stP->execute([$eid]); $prelegenci = $stP->fetchAll(); ?>
-        <?php foreach ($prelegenci as $i => $p): ?>
-          <tr>
+        <?php foreach ($prelegenci as $i => $p): $wylG = $i === 0; $wylD = $i === count($prelegenci) - 1; ?>
+          <tr id="wiersz-p<?= (int) $p['id'] ?>">
             <td class="pmg-td-main" data-label="Imię i nazwisko"><a class="pmg-row-link" href="?m=pmsession&e=<?= $eid ?>&p=<?= (int) $p['id'] ?>"><?= h($p['imie_nazwisko']) ?></a></td>
             <td data-label="Temat"><?= h($p['temat']) ?></td>
             <td class="pmg-td-actions" data-label="Kolejność">
               <form method="post">
                 <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>"><input type="hidden" name="edycja_id" value="<?= $eid ?>">
-                <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="prelegent_gora"<?= $i === 0 ? ' disabled' : '' ?> aria-label="Przesuń wyżej: <?= h($p['imie_nazwisko']) ?>"><span aria-hidden="true">↑</span></button>
-                <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="prelegent_dol"<?= $i === count($prelegenci) - 1 ? ' disabled' : '' ?> aria-label="Przesuń niżej: <?= h($p['imie_nazwisko']) ?>"><span aria-hidden="true">↓</span></button>
+                <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="prelegent_gora"<?= $wylG ? ' disabled' : '' ?><?= fokus_strzalki('p' . (int) $p['id'], 'gora', $wylG, $wylD) ?> aria-label="Przesuń wyżej: <?= h($p['imie_nazwisko']) ?>"><span aria-hidden="true">↑</span></button>
+                <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="prelegent_dol"<?= $wylD ? ' disabled' : '' ?><?= fokus_strzalki('p' . (int) $p['id'], 'dol', $wylG, $wylD) ?> aria-label="Przesuń niżej: <?= h($p['imie_nazwisko']) ?>"><span aria-hidden="true">↓</span></button>
               </form>
             </td>
           </tr>

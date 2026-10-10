@@ -27,8 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'gora' || $action === 'dol') {
         $id = (int) ($_POST['id'] ?? 0);
-        if (przesun('pmg_odcinki', PODCAST_ORDER, $id, $action)) loguj('podcast', 'kolejnosc', $id, nazwa_rekordu("SELECT CONCAT('Odcinek ', numer, ': ', tytul) FROM pmg_odcinki WHERE id = ?", $id));
-        go('?m=podcast');
+        // Strzałki działają w obrębie edycji podcastu — tak jak lista na stronie (odcinki są tam pogrupowane w edycje).
+        $st = pmg_db()->prepare('SELECT edycja_id FROM pmg_odcinki WHERE id = ?');
+        $st->execute([$id]);
+        $wiersz = $st->fetch();
+        if ($wiersz && przesun('pmg_odcinki', PODCAST_ORDER, $id, $action, 'edycja_id', $wiersz['edycja_id'] === null ? null : (int) $wiersz['edycja_id'])) loguj('podcast', 'kolejnosc', $id, nazwa_rekordu("SELECT CONCAT('Odcinek ', numer, ': ', tytul) FROM pmg_odcinki WHERE id = ?", $id));
+        go_po_przesunieciu('?m=podcast', $id, $action);
 
     } elseif ($action === 'delete') {
         $id = (int) ($_POST['id'] ?? 0);
@@ -100,6 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $st = pmg_db()->prepare('UPDATE pmg_odcinki SET numer=?, tytul=?, data=?, czas_min=?, opis=?, prowadzacy=?, gosc=?, gosc_bio=?, spotify_id=?, apple_url=?, youtube_url=?, zdjecie=?, zdjecie_alt=?, opublikowany=?, edycja_id=? WHERE id=?');
                 $st->execute([$f['numer'], $f['tytul'], $f['data'], $f['czas_min'], $f['opis'], $f['prowadzacy'], $f['gosc'], $f['gosc_bio'], $f['spotify_id'], $f['apple_url'], $f['youtube_url'], $f['zdjecie'], $f['zdjecie_alt'], $f['opublikowany'], $f['edycja_id'], $id]);
                 $noweZdjecie = null;
+                if ((string) $old['edycja_id'] !== (string) $f['edycja_id']) { // przeniesiony do innej edycji: na koniec jej listy
+                    $kolejnosc = (int) pmg_db()->query('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_odcinki')->fetchColumn();
+                    pmg_db()->prepare('UPDATE pmg_odcinki SET kolejnosc = ? WHERE id = ?')->execute([$kolejnosc, $id]);
+                }
                 if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
                 loguj('podcast', 'edycja', $id, 'Odcinek ' . $f['numer'] . ': ' . $f['tytul']);
             } else {
@@ -153,7 +161,8 @@ if ($edit !== null) {
         $pmgNaglowek['akcje'] = [['href' => '../podcast.html', 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
     }
 } else {
-    $odcinki = pmg_db()->query('SELECT o.id, o.numer, o.tytul, o.data, o.opublikowany, e.numer AS edycja_numer FROM pmg_odcinki o LEFT JOIN pmg_podcast_edycje e ON e.id = o.edycja_id ORDER BY o.kolejnosc, o.numer, o.id')->fetchAll();
+    // Kolejność listy = kolejność na stronie: edycje w kolejności z panelu, w każdej odcinki wg strzałek (numer rozstrzyga tylko remisy).
+    $odcinki = pmg_db()->query('SELECT o.id, o.numer, o.tytul, o.data, o.opublikowany, o.edycja_id, e.numer AS edycja_numer FROM pmg_odcinki o LEFT JOIN pmg_podcast_edycje e ON e.id = o.edycja_id ORDER BY e.kolejnosc IS NULL, e.kolejnosc, e.id, o.kolejnosc, o.numer, o.id')->fetchAll();
     $pmgNaglowek = [
         'akcje' => [
             ['href' => '?m=podcast&w=edycje', 'etykieta' => 'Edycje podcastu', 'rodzaj' => 'secondary'],
@@ -172,7 +181,8 @@ if ($edit !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-odcinek">
       <h2 class="pmg-form-section__title" id="sek-odcinek">Odcinek</h2>
       <label for="numer">Numer odcinka</label>
-      <input type="number" id="numer" name="numer" min="1" max="9999" value="<?= $v('numer') ?>" required<?= blad_pola('numer') ?>><?= komunikat_pola('numer') ?>
+      <p class="pmg-hint" id="numer_h">Oznaczenie odcinka na stronie (np. „Odcinek 12”). Nie wpływa na kolejność — tę zmieniasz strzałkami na liście odcinków.</p>
+      <input type="number" id="numer" name="numer" min="1" max="9999" value="<?= $v('numer') ?>" required<?= blad_pola('numer', 'numer_h') ?>><?= komunikat_pola('numer') ?>
       <label for="tytul">Tytuł</label>
       <input type="text" id="tytul" name="tytul" maxlength="200" value="<?= $v('tytul') ?>" required data-pmg-licznik<?= blad_pola('tytul') ?>><?= komunikat_pola('tytul') ?>
       <label for="data">Data publikacji odcinka</label>
@@ -237,7 +247,7 @@ if ($edit !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-publikacja">
       <h2 class="pmg-form-section__title" id="sek-publikacja">Publikacja</h2>
       <label class="pmg-check"><input type="checkbox" name="opublikowany" value="1"<?= !empty($edit['opublikowany']) ? ' checked' : '' ?> aria-describedby="opublikowany_h"><span>Opublikuj na stronie</span></label>
-      <p class="pmg-hint pmg-hint--check" id="opublikowany_h">Bez zaznaczenia = szkic, niewidoczny na stronie. Kolejność na stronie zmieniasz strzałkami na liście odcinków.</p>
+      <p class="pmg-hint pmg-hint--check" id="opublikowany_h">Bez zaznaczenia = szkic, niewidoczny na stronie. Kolejność zmieniasz strzałkami na liście odcinków.</p>
     </section>
 
     <div class="pmg-form-actions">
@@ -256,15 +266,18 @@ if ($edit !== null) {
   <?php endif; ?>
 
 <?php else: ?>
-  <p class="pmg-hint">Odcinki pojawiają się na stronie w kolejności z tej listy. Gdy w panelu jest choć jeden odcinek (także szkic), lista na stronie pochodzi z panelu, a nie z kodu strony.</p>
+  <p class="pmg-hint">Odcinki pojawiają się na stronie w edycjach, w kolejności z tej listy (strzałki przesuwają odcinek w obrębie jego edycji). Numer odcinka jest tylko jego oznaczeniem i nie wpływa na kolejność. Gdy w panelu jest choć jeden odcinek (także szkic), lista na stronie pochodzi z panelu, a nie z kodu strony.</p>
   <div class="pmg-table-wrap">
     <table class="pmg-table pmg-table--klikalna">
       <caption class="pmg-vh">Odcinki podcastu</caption>
-      <thead><tr><th scope="col" class="pmg-num">Nr</th><th scope="col">Tytuł</th><th scope="col">Edycja</th><th scope="col">Data</th><th scope="col">Status</th><th scope="col">Kolejność</th></tr></thead>
+      <thead><tr><th scope="col" class="pmg-num">Numer</th><th scope="col">Tytuł</th><th scope="col">Edycja</th><th scope="col">Data</th><th scope="col">Status</th><th scope="col">Kolejność</th></tr></thead>
       <tbody>
-      <?php foreach ($odcinki as $i => $r): ?>
-        <tr>
-          <td class="pmg-num" data-label="Nr"><?= (int) $r['numer'] ?></td>
+      <?php foreach ($odcinki as $i => $r):
+          // strzałka jest wyłączona na brzegu edycji (odcinek sąsiedniej edycji nie jest jego sąsiadem na stronie)
+          $wylG = $i === 0 || (string) $odcinki[$i - 1]['edycja_id'] !== (string) $r['edycja_id'];
+          $wylD = $i === count($odcinki) - 1 || (string) $odcinki[$i + 1]['edycja_id'] !== (string) $r['edycja_id']; ?>
+        <tr id="wiersz-<?= (int) $r['id'] ?>">
+          <td class="pmg-num" data-label="Numer"><?= (int) $r['numer'] ?></td>
           <td class="pmg-td-main" data-label="Tytuł"><a class="pmg-row-link" href="?m=podcast&id=<?= (int) $r['id'] ?>"><?= h($r['tytul']) ?></a></td>
           <td class="pmg-num" data-label="Edycja"><?= $r['edycja_numer'] === null ? '—' : (int) $r['edycja_numer'] ?></td>
           <td class="pmg-num" data-label="Data"><time datetime="<?= h($r['data']) ?>"><?= h($r['data']) ?></time></td>
@@ -272,8 +285,8 @@ if ($edit !== null) {
           <td class="pmg-td-actions" data-label="Kolejność">
             <form method="post">
               <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
-              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gora"<?= $i === 0 ? ' disabled' : '' ?> aria-label="Przesuń wyżej: <?= h($r['tytul']) ?>"><span aria-hidden="true">↑</span></button>
-              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="dol"<?= $i === count($odcinki) - 1 ? ' disabled' : '' ?> aria-label="Przesuń niżej: <?= h($r['tytul']) ?>"><span aria-hidden="true">↓</span></button>
+              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gora"<?= $wylG ? ' disabled' : '' ?><?= fokus_strzalki((int) $r['id'], 'gora', $wylG, $wylD) ?> aria-label="Przesuń wyżej: <?= h($r['tytul']) ?>"><span aria-hidden="true">↑</span></button>
+              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="dol"<?= $wylD ? ' disabled' : '' ?><?= fokus_strzalki((int) $r['id'], 'dol', $wylG, $wylD) ?> aria-label="Przesuń niżej: <?= h($r['tytul']) ?>"><span aria-hidden="true">↓</span></button>
             </form>
           </td>
         </tr>
