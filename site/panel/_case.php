@@ -267,7 +267,8 @@ if ($edit !== null) {
         'opis' => $edit['id'] ? (string) $edit['nazwa'] : 'Karta w hubie i podstrona powstaną po zapisaniu. Puste pola tekstowe są pomijane na stronie.',
         'wstecz' => ['href' => '?m=case', 'etykieta' => 'Edycje Case Koła'],
     ];
-    if ($edit['id'] && !empty($edit['widoczna'])) { // ukrytej edycji nie ma na stronie, więc bez linku
+    $wBazie = isset($old) && is_array($old) ? $old : $edit; // po nieudanym zapisie $edit ma wartości z formularza
+    if ($edit['id'] && !empty($wBazie['widoczna'])) { // ukrytej edycji nie ma na stronie, więc bez linku
         $url = $edit['adres_strony'] !== '' ? $edit['adres_strony'] : 'case-kola-edycja.html?nr=' . (int) $edit['numer'];
         $pmgNaglowek['akcje'] = [['href' => '../' . $url, 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
     }

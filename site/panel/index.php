@@ -391,6 +391,7 @@ if (!empty($_SESSION['uid'])) {
         $wygasla = true;
         session_regenerate_id(true);
         $_SESSION = [];
+        if ($wygasla12h) $_SESSION['wygasla12h'] = 1; // powód przetrwa przekierowanie po złym CSRF (komunikat niżej)
     } else {
         $_SESSION['t'] = time();
         $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ? AND aktywny = 1');
@@ -430,6 +431,8 @@ if ($me && in_array($_GET['m'] ?? '', ['tresci', 'ustawienia', 'rekrutacja'], tr
 
 $bladSesji = !empty($_SESSION['blad_sesji']);
 unset($_SESSION['blad_sesji']);
+if (!empty($_SESSION['wygasla12h'])) $wygasla12h = true;
+unset($_SESSION['wygasla12h']);
 
 $error = '';
 $flash = $_SESSION['flash'] ?? '';

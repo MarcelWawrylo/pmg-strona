@@ -157,7 +157,8 @@ if ($edit !== null) {
         'wstecz' => ['href' => '?m=podcast', 'etykieta' => 'Odcinki podcastu'],
     ];
     // Strona podcastu nie ma kotwic do odcinków (okno odcinka otwiera się kliknięciem), więc link prowadzi do całej listy.
-    if (!empty($edit['id']) && !empty($edit['opublikowany'])) {
+    $wBazie = isset($old) && is_array($old) ? $old : $edit; // po nieudanym zapisie $edit ma wartości z formularza
+    if (!empty($edit['id']) && !empty($wBazie['opublikowany'])) {
         $pmgNaglowek['akcje'] = [['href' => '../podcast.html', 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
     }
 } else {

@@ -294,7 +294,7 @@ function pmg_migrate()
     // uprawnienia się nie zmieniają (danych nie przenosimy). 'tresci' zostaje w SET, ale panel już go nie nadaje.
     $pdo->exec("ALTER TABLE pmg_uzytkownicy MODIFY moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case','tresci','rekrutacja','glowna','dolacz','kontakt') NOT NULL DEFAULT ''");
     // Schemat 9: „Treści stron” tylko dla administratorów — zdejmujemy 'tresci' z modułów wszystkich kont. Wartość zostaje w SET
-    // (W6 przeniesie te uprawnienia). Tylko przy przejściu z wersji < 9, żeby kolejne migracje nie zdejmowały uprawnień nadanych później.
+    // (W6, schemat 11, danych nie przenosi: uprawnienie do strony daje jej teksty). Tylko przy przejściu z wersji < 9, żeby kolejne migracje nie zdejmowały uprawnień nadanych później.
     if ((int) $v < 9) {
         $pdo->exec("UPDATE pmg_uzytkownicy SET moduly = TRIM(BOTH ',' FROM REPLACE(CONCAT(',', moduly, ','), ',tresci,', ',')) WHERE FIND_IN_SET('tresci', moduly) > 0");
     }

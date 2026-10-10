@@ -214,16 +214,19 @@ if ($edit !== null) {
         'opis' => $edit['id'] ? (string) $edit['tytul'] : 'Wpis bez zaznaczenia „Opublikuj na stronie” zostaje szkicem.',
         'wstecz' => ['href' => '?m=aktualnosci', 'etykieta' => 'Wszystkie aktualności'],
     ];
-    // Link do wpisu na stronie tylko dla zapisanego, opublikowanego wpisu (szkic nie jest widoczny publicznie).
-    if (!empty($edit['id']) && !empty($edit['opublikowany']) && !empty($edit['slug'])) {
-        $pmgNaglowek['akcje'] = [['href' => '../aktualnosci.html#wpis-' . rawurlencode((string) $edit['slug']), 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
+    // Link do wpisu na stronie tylko dla zapisanego, opublikowanego wpisu (szkic nie jest widoczny publicznie). Po nieudanym
+    // zapisie $edit ma wartości z formularza, więc stan publikacji bierzemy z bazy ($old).
+    $wBazie = isset($old) && is_array($old) ? $old : $edit;
+    if (!empty($edit['id']) && !empty($wBazie['opublikowany']) && !empty($wBazie['slug'])) {
+        $pmgNaglowek['akcje'] = [['href' => '../aktualnosci.html#wpis-' . rawurlencode((string) $wBazie['slug']), 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
     }
 } else {
-    // Szukanie po tytule: q przycięte do 100 znaków, a znaki specjalne LIKE (% _ \) są traktowane jak zwykły tekst.
+    // Szukanie po tytule: q przycięte do 100 znaków, a znaki specjalne LIKE (% _ !) są traktowane jak zwykły tekst. Znak ucieczki
+    // „!” zamiast „\”, bo działa też przy sql_mode NO_BACKSLASH_ESCAPES.
     $q = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 100);
     if ($q !== '') {
-        $st = pmg_db()->prepare('SELECT id, data, tytul, opublikowany FROM pmg_aktualnosci WHERE tytul LIKE ? ESCAPE \'\\\\\' ORDER BY data DESC, id DESC');
-        $st->execute(['%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q) . '%']);
+        $st = pmg_db()->prepare('SELECT id, data, tytul, opublikowany FROM pmg_aktualnosci WHERE tytul LIKE ? ESCAPE \'!\' ORDER BY data DESC, id DESC');
+        $st->execute(['%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $q) . '%']);
         $wpisy = $st->fetchAll();
     } else {
         $wpisy = pmg_db()->query('SELECT id, data, tytul, opublikowany FROM pmg_aktualnosci ORDER BY data DESC, id DESC')->fetchAll();
