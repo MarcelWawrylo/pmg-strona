@@ -562,6 +562,10 @@ html.nav-open body { overflow: hidden; }
 }
 .gallery__button img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .gallery__caption { font: 400 13.5px/1.5 var(--font-body); color: var(--color-text-muted); margin-top: 10px; }
+/* Mała galeria (Aktualności): 3 kolumny od 961 px, poniżej 2 — także na telefonie (stoi po regule max-width: 640px, więc ją nadpisuje). */
+.gallery--small { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 961px) { .gallery--small { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.blog-article__gallery .gallery { margin-top: 18px; }
 
 /* ---------- 10b. Case Koła — hub ---------- */
 .eyebrow--blue { color: var(--color-blue); letter-spacing: .2em; margin: 0; }
