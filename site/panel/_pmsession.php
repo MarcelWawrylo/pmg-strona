@@ -14,9 +14,14 @@ function ustaw_biezaca($id)
     $ed = $st->fetch();
     if (!$ed) return false;
     $pdo->beginTransaction();
-    $pdo->exec("UPDATE pmg_edycje SET status = 'zakonczona' WHERE status = 'biezaca'");
-    $pdo->prepare("UPDATE pmg_edycje SET status = 'biezaca' WHERE id = ?")->execute([$id]);
-    $pdo->commit();
+    try {
+        $pdo->exec("UPDATE pmg_edycje SET status = 'zakonczona' WHERE status = 'biezaca'");
+        $pdo->prepare("UPDATE pmg_edycje SET status = 'biezaca' WHERE id = ?")->execute([$id]);
+        $pdo->commit();
+    } catch (Exception $e) { // bez połowicznej zmiany: stara bieżąca nie zostaje zdjęta, gdy nowej nie udało się ustawić
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
     loguj('pmsession', 'biezaca', $id, 'Edycja ' . $ed['numer'] . ': ' . $ed['temat']);
     return true;
 }
@@ -115,13 +120,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'miejsce' => mb_substr(trim((string) ($_POST['miejsce'] ?? '')), 0, 200),
             'opis' => mb_substr(trim(str_replace("\r\n", "\n", (string) ($_POST['opis'] ?? ''))), 0, 600),
         ];
-        // Status z formularza: szkic, biezaca albo zakonczona; nieznana wartość (spreparowany POST) -> szkic.
-        $status = in_array($_POST['status'] ?? '', ['szkic', 'biezaca', 'zakonczona'], true) ? $_POST['status'] : 'szkic';
         $obecnyStatus = null;
         if ($id) {
             $st = pmg_db()->prepare('SELECT status FROM pmg_edycje WHERE id = ?');
             $st->execute([$id]);
             $obecnyStatus = $st->fetchColumn();
+        }
+        // Status z formularza: szkic, biezaca albo zakonczona. Brak pola przy istniejącej edycji (np. formularz otwarty przed
+        // aktualizacją) = status z bazy. Nieznana wartość (spreparowany POST): bieżąca zostaje bieżącą, pozostałe -> szkic.
+        // Status bieżącej zdejmuje tylko jawny wybór „szkic” albo „zakonczona”.
+        if (in_array($_POST['status'] ?? null, ['szkic', 'biezaca', 'zakonczona'], true)) {
+            $status = $_POST['status'];
+        } elseif ($obecnyStatus && (!isset($_POST['status']) || $obecnyStatus === 'biezaca')) {
+            $status = $obecnyStatus;
+        } else {
+            $status = 'szkic';
         }
         // „Bieżąca” ustawia wyłącznie ustaw_biezaca() (po zapisie pól), żeby stara bieżąca w tej samej transakcji stała się zakończona.
         // Do tego wywołania wiersz zachowuje dotychczasowy status (nowa edycja: szkic). Zdjęcie statusu bieżącej jest dozwolone:
