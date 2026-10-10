@@ -56,7 +56,7 @@ Katalog domowy konta mieści się zwykle w `open_basedir`, więc PHP może tam c
 1. Utwórz `pmg-config.php` (patrz wyżej): dane bazy, adres nadawcy w domenie serwera, `tmp_dir`, oraz losowe hasło instalacyjne `setup_haslo` (min. 12 znaków, najlepiej 20+) — bez niego ekran pierwszego konta nie przyjmie zgłoszenia. Plik nie trafia do repozytorium.
 2. Od razu po wgraniu wejdź na `…/panel/`. Przy pustej bazie kont panel pokaże **„Pierwsze konto administratora”**: hasło instalacyjne, imię i nazwisko, e-mail (login), hasło (min. 12 znaków). Tabele w bazie tworzą się same przy pierwszym wejściu do panelu (istniejące wpisy zostają); wersja schematu jest zapisana w tabeli ustawień, więc kolejne wejścia nie wykonują już migracji. **Po każdej aktualizacji strony wejdź do panelu raz** — tylko wtedy powstają nowe tabele i kolumny (np. odcinki podcastu), bo publiczne API ich nie tworzy.
 3. Po założeniu konta usuń linię `setup_haslo` z pliku konfiguracji.
-4. Kolejne osoby: **Konta → + Nowe konto** (rola: administrator albo redaktor z wybranymi modułami: Aktualności, Członkowie, PM Session, Podcast). Panel pokaże link ważny 72 h — skopiuj go i przekaż tej osobie (np. na Messengerze). Zapomniane hasło = **Resetuj hasło** i nowy link. Kont się nie usuwa, tylko blokuje.
+4. Kolejne osoby: **Konta → + Nowe konto** (rola: administrator albo redaktor z wybranymi modułami: Aktualności, Członkowie, PM Session, Podcast, Case Koła, Treści stron). Panel pokaże link ważny 72 h — skopiuj go i przekaż tej osobie (np. na Messengerze). Zapomniane hasło = **Resetuj hasło** i nowy link. Kont się nie usuwa, tylko blokuje. Własne hasło każdy zmienia w **Moje konto**.
 5. Kopia bazy: **Kopia bazy danych** w menu panelu → przycisk „Pobierz kopię bazy” pobiera plik `.sql` (zawiera e-maile i skróty haseł — przechowuj bezpiecznie; nie zawiera zdjęć z `uploads/`). Pełna kopia kończy się linią `-- KONIEC KOPII` — jeśli jej nie ma, pobieranie zostało przerwane. Przywracanie: import w phpMyAdmin.
 
 ### Jedyny administrator bez hasła (procedura awaryjna)
@@ -76,6 +76,18 @@ Gdy jedyny administrator zapomni hasła, panel nie pomoże. Potrzebna jest osoba
 3. W ciągu godziny otwórz `…/panel/?t=TU_WKLEJ_CIAG` (bez logowania) i ustaw nowe hasło (min. 12 znaków).
 
 Procedura wynika z kodu i nie była jeszcze uruchamiana na serwerze.
+
+### Lista kontrolna przed uruchomieniem produkcji
+
+Odhaczaj po sprawdzeniu na serwerze PWr (nie w repozytorium).
+
+- [ ] **HTTPS z HSTS i przekierowaniem.** Dopiero gdy certyfikat działa, odkomentuj blok w `.htaccess` (linie 33–40: HSTS w 33–35, przekierowanie na HTTPS w 36–40) w wersji wgranej na serwer. Sprawdź, że adres `http://` przechodzi na `https://`.
+- [ ] **`tmp_dir` w `pmg-config.php`.** Ustaw katalog poza katalogiem strony, tworzony z prawami 0700. Sprawdź, że wartość nie jest pusta, bo bez niej sesje i liczniki prób leżą we wspólnym `/tmp`.
+- [ ] **Usunięte `setup_haslo`.** Po założeniu pierwszego konta usuń linię `setup_haslo` z `pmg-config.php` (krok 3 powyżej). Sprawdź, że w panelu nie pojawia się już ekran „Pierwsze konto administratora”.
+- [ ] **`AllowOverride` dla `uploads/`.** Blokada PHP w `uploads/.htaccess` działa tylko, gdy Apache czyta `.htaccess` w tym katalogu. Ustal z administratorem serwera PWr, czy `AllowOverride` na to pozwala, i sprawdź, że plik `.php` w `uploads/` daje błąd 403.
+- [ ] **`display_errors = Off`.** Kod ustawia to w `api/lib.php`, ale wartość z `php.ini` serwera trzeba sprawdzić (do ustalenia z administratorem serwera PWr). Błędy PHP mają trafiać tylko do logu.
+- [ ] **Limity uploadu PHP.** `upload_max_filesize` i `post_max_size` co najmniej 10 MB, bo panel przyjmuje zdjęcia do 10 MB. Sprawdź też `memory_limit`: przekodowanie zdjęcia do 12 Mpix wymaga zapasu pamięci (wartość do ustalenia z administratorem serwera PWr).
+- [ ] **HTTPS widziany przez PHP.** Flaga `Secure` ciasteczka panelu zależy od `$_SERVER['HTTPS']`. Jeśli HTTPS kończy się przed Apache (reverse proxy), sprawdź, czy PHP to widzi (do ustalenia z administratorem serwera PWr).
 
 ### Moduły panelu — co z nich wpływa na stronę
 
