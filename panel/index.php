@@ -732,7 +732,8 @@ if ($me && $m === '') { $db = pmg_db(); foreach ($pmgKafelki as $mk) {
       $pmgLiczby[$mk] = pmg_odmiana($a, 'wpis', 'wpisy', 'wpisów') . ($b ? ' · ' . pmg_odmiana($b, 'szkic', 'szkice', 'szkiców') : ''); }
   if ($mk === 'czlonkowie') { $pmgLiczby[$mk] = pmg_odmiana($db->query('SELECT COUNT(*) FROM pmg_osoby')->fetchColumn(), 'osoba', 'osoby', 'osób') . ' · ' . pmg_odmiana($db->query('SELECT COUNT(*) FROM pmg_sekcje')->fetchColumn(), 'sekcja', 'sekcje', 'sekcji'); }
   if ($mk === 'pmsession') { $a = $db->query('SELECT COUNT(*) FROM pmg_edycje')->fetchColumn(); $b = (int) $db->query("SELECT COUNT(*) FROM pmg_edycje WHERE status = 'biezaca'")->fetchColumn();
-      $pmgLiczby[$mk] = pmg_odmiana($a, 'edycja', 'edycje', 'edycji') . ($b ? '' : ' · brak bieżącej edycji'); }
+      $z = $b ? false : $db->query("SELECT numer FROM pmg_edycje WHERE status = 'zapowiedz' LIMIT 1")->fetchColumn(); // „Aktualna edycja – wkrótce więcej” (h() przy wyświetlaniu)
+      $pmgLiczby[$mk] = pmg_odmiana($a, 'edycja', 'edycje', 'edycji') . ($b ? '' : ($z !== false ? ' · Edycja ' . $z . ' — wkrótce więcej' : ' · brak bieżącej edycji')); }
   if ($mk === 'podcast') { $a = $db->query('SELECT COUNT(*) FROM pmg_odcinki')->fetchColumn(); $b = (int) $db->query('SELECT COUNT(*) FROM pmg_odcinki WHERE opublikowany = 0')->fetchColumn();
       $pmgLiczby[$mk] = pmg_odmiana($a, 'odcinek', 'odcinki', 'odcinków') . ($b ? ' · ' . pmg_odmiana($b, 'szkic', 'szkice', 'szkiców') : ''); }
   if ($mk === 'case') { $a = $db->query('SELECT COUNT(*) FROM pmg_case_edycje')->fetchColumn(); $b = (int) $db->query('SELECT COUNT(*) FROM pmg_case_edycje WHERE widoczna = 0')->fetchColumn();
