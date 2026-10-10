@@ -2,4 +2,8 @@
 <IfModule mod_headers.c>
   Header set Referrer-Policy "no-referrer"
   Header set X-Frame-Options "DENY"
+  # CSP panelu (nadpisuje CSP strony z ../.htaccess i tę samą wysyłaną z index.php — trzymaj obie wartości równe).
+  # Bez 'unsafe-inline' dla skryptów: panel ma tylko panel.js, bez skryptów w HTML i atrybutów on*=.
+  # style-src 'unsafe-inline': jeden atrybut style= w _case.php. img-src bez blob:/data: (panel.js nie robi podglądu).
+  Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
 </IfModule>

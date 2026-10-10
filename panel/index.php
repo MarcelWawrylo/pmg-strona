@@ -23,7 +23,7 @@ session_name('pmgpanel');
 session_start();
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
-header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; form-action 'self'; frame-ancestors 'none'");
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'");
 header('Cache-Control: no-store');
 header('Referrer-Policy: no-referrer');
 
