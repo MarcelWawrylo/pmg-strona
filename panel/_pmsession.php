@@ -20,6 +20,28 @@ function ustaw_biezaca($id)
     return true;
 }
 
+// Edycja jest widoczna na stronie, gdy jest bieżąca albo zakończona (szkic nie, patrz api/pmsession.php).
+function pms_widoczna($status)
+{
+    return $status === 'biezaca' || $status === 'zakonczona';
+}
+
+// Adres publicznej strony edycji: własny plik pm-session-<numer>.html, a gdy go nie ma — wspólna pm-session.html.
+function pms_adres_strony($numer)
+{
+    $numer = strtolower((string) $numer);
+    if (preg_match('~^[ivxlc]+$~', $numer) && is_file(__DIR__ . '/../pm-session-' . $numer . '.html')) return '../pm-session-' . $numer . '.html';
+    return '../pm-session.html';
+}
+
+// Komunikat po zapisie prelegenta lub punktu harmonogramu: dopisek o opóźnieniu tylko, gdy edycja jest widoczna na stronie.
+function pms_komunikat_zapisu($edycjaId)
+{
+    $st = pmg_db()->prepare('SELECT status FROM pmg_edycje WHERE id = ?');
+    $st->execute([(int) $edycjaId]);
+    return pms_widoczna($st->fetchColumn()) ? 'Zapisano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano.';
+}
+
 $error = '';
 $editEdycja = null;
 $editPrelegent = null;
@@ -100,10 +122,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $id = (int) pmg_db()->lastInsertId();
                     loguj('pmsession', 'dodanie', $id);
                     // nowa edycja: od razu widok tej edycji (prelegenci i harmonogram), żeby dalszy krok był oczywisty
-                    $_SESSION['flash'] = 'Edycja zapisana. Dodaj teraz prelegentów i harmonogram.';
+                    $_SESSION['flash'] = 'Edycja zapisana. Dodaj teraz prelegentów i harmonogram.' . (pms_widoczna($status) ? ' Na stronie zmiana pojawi się w ciągu 5 minut.' : '');
                     go('?m=pmsession&e=' . $id);
                 }
-                $_SESSION['flash'] = 'Zapisano.';
+                $_SESSION['flash'] = pms_widoczna($status) ? 'Zapisano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano.';
                 go('?m=pmsession');
             } catch (PDOException $e) {
                 $error = $e->getCode() === '23000' ? 'Edycja o tym numerze już istnieje.' : 'Błąd zapisu.';
@@ -180,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $id = (int) pmg_db()->lastInsertId();
                     loguj('pmsession', 'dodanie', $id);
                 }
-                $_SESSION['flash'] = 'Zapisano.';
+                $_SESSION['flash'] = pms_komunikat_zapisu($edycjaId);
                 go('?m=pmsession&e=' . $edycjaId);
             } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
                 error_log('pmsession prelegent zapis: ' . $e->getMessage());
@@ -230,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('pmsession', 'dodanie', $id);
             }
-            $_SESSION['flash'] = 'Zapisano.';
+            $_SESSION['flash'] = pms_komunikat_zapisu($edycjaId);
             go('?m=pmsession&e=' . $edycjaId);
         }
         if ($error !== '') $editHarmonogram = array_merge($f, ['id' => $id, 'edycja_id' => $edycjaId]);
@@ -328,6 +350,9 @@ if ($editPrelegent !== null) {
         'opis' => '',
         'wstecz' => ['href' => '?m=pmsession', 'etykieta' => 'PM Session'],
     ];
+    if (!empty($editEdycja['id']) && pms_widoczna($editEdycja['status'] ?? '')) {
+        $pmgNaglowek['akcje'] = [['href' => pms_adres_strony($editEdycja['numer']), 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
+    }
 } elseif ($edycjaWidok !== null) {
     $pmgNaglowek = [
         'tytul' => 'Edycja ' . $edycjaWidok['numer'],
@@ -338,6 +363,9 @@ if ($editPrelegent !== null) {
             ['href' => '?m=pmsession&edycja=' . (int) $edycjaWidok['id'], 'etykieta' => 'Edytuj edycję', 'rodzaj' => 'secondary'],
         ],
     ];
+    if (pms_widoczna($edycjaWidok['status'])) {
+        $pmgNaglowek['akcje'][] = ['href' => pms_adres_strony($edycjaWidok['numer']), 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true];
+    }
 } else {
     $pmgNaglowek = [
         'akcje' => [
