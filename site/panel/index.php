@@ -316,7 +316,8 @@ function save_image($file, $modul)
         }
     }
     // Wycinek źródła: domyślnie całe zdjęcie. Gdy proporcje odbiegają od wymaganych o więcej niż 0,03, bierzemy
-    // największy wyśrodkowany prostokąt o wymaganych proporcjach (np. 4000×3000 na 16:9 → 4000×2250, ucięte 375 px u góry i u dołu).
+    // największy prostokąt o wymaganych proporcjach (np. 4000×3000 na 16:9 → 4000×2250): poziomo wyśrodkowany, pionowo bliżej
+    // góry (1/4 nadmiaru u góry, 3/4 u dołu), żeby na portretach nie ucinać głów.
     $sx = 0;
     $sy = 0;
     $sw = $w;
@@ -327,7 +328,7 @@ function save_image($file, $modul)
             $sx = (int) floor(($w - $sw) / 2);
         } else {
             $sh = max(1, (int) round($w / $proporcja));
-            $sy = (int) floor(($hgt - $sh) / 2);
+            $sy = (int) floor(($hgt - $sh) / 4);
         }
     }
     $nw = min($maxSzer, $sw);
