@@ -802,7 +802,7 @@
       box.innerHTML = original;
       var btn = $('[data-map-load]', box);
       btn.hidden = false;
-      btn.addEventListener('click', function () { loadFrame(); var f = $('iframe', box); if (f) f.focus(); });
+      btn.addEventListener('click', function () { loadFrame(); var f = $('iframe', box); if (f) f.focus({ preventScroll: true }); });
       $$('[data-cookie-settings]', box).forEach(function (el) { el.hidden = false; });
     }
     showConsent();
@@ -819,6 +819,7 @@
     var policy = $('.site-footer a[href$="polityka-prywatnosci.html"]');
     var href = (policy ? policy.getAttribute('href') : 'polityka-prywatnosci.html') + '#pp-mapa';
     var bar = null;
+    var opener = null; // element z fokusem tuż przed pokazaniem paska (null = brak albo sam pasek)
     function pad() { document.body.style.paddingBottom = bar && !bar.hidden ? bar.offsetHeight + 'px' : ''; }
     function hide() {
       if (!bar) return;
@@ -848,18 +849,22 @@
         hide();
         if (mapApi) mapApi.apply(choice);
         if (hadFocus) {
-          var back = $('.site-footer [data-cookie-settings]');
-          if (back) back.focus();
+          var back = opener && opener.isConnected ? opener : $('.site-footer [data-cookie-settings]');
+          if (back) back.focus({ preventScroll: true });
         }
       });
       window.addEventListener('resize', pad);
     }
     function show(focusFirst) {
       if (!bar) build();
+      if (bar.hidden) {
+        var active = document.activeElement;
+        opener = active && active !== document.body && !bar.contains(active) ? active : null;
+      }
       bar.hidden = false;
       pad();
       requestAnimationFrame(function () { bar.classList.add('is-in'); });
-      if (focusFirst) { var first = $('button', bar); if (first) first.focus(); }
+      if (focusFirst) { var first = $('button', bar); if (first) first.focus({ preventScroll: true }); }
     }
     document.addEventListener('click', function (e) {
       var t = e.target.closest ? e.target.closest('[data-cookie-settings]') : null;
