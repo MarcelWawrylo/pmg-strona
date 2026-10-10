@@ -150,6 +150,21 @@
     });
   }
 
+  // Sesja wygasa po 2 h bez kliknięcia. Gdy w formularzu są niezapisane zmiany, co 10 minut odświeżamy ją
+  // w tle (index.php?ping), żeby długie pisanie nie przepadło przy „Zapisz”.
+  function podtrzymajSesje() {
+    var formularze = document.querySelectorAll('form[data-pmg-niezapisane]');
+    if (!formularze.length || !window.fetch) return;
+    var zmieniony = false;
+    formularze.forEach(function (f) {
+      f.addEventListener('input', function () { zmieniony = true; });
+      f.addEventListener('change', function () { zmieniony = true; });
+    });
+    setInterval(function () {
+      if (zmieniony) fetch('index.php?ping=1', { credentials: 'same-origin', cache: 'no-store' }).catch(function () {});
+    }, 10 * 60 * 1000);
+  }
+
   // Menu mobilne (<details class="pmg-menu">): Esc zamyka i oddaje fokus, klik poza zamyka,
   // zmiana szerokości na desktopową (>= 1024 px) zamyka.
   function menuMobilne() {
@@ -230,6 +245,7 @@
     licznikZnakow();
     kopiujLink();
     niezapisaneZmiany();
+    podtrzymajSesje();
     menuMobilne();
     informacjaOPliku();
   });
