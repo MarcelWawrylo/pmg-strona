@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'kolejnosc' => (int) ($_POST['kolejnosc'] ?? 0),
         ];
         if ($f['nazwa'] === '') {
-            $error = 'Podaj nazwę sekcji.';
+            $bledyPol['nazwa'] = 'Podaj nazwę sekcji.';
         } else {
             if ($id) {
                 pmg_db()->prepare('UPDATE pmg_sekcje SET nazwa=?, kolor=?, opis=?, kolejnosc=? WHERE id=?')
@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['flash'] = 'Zapisano.';
             go('?m=czlonkowie');
         }
-        if ($error !== '') $editSekcja = array_merge($f, ['id' => $id]);
+        if ($error !== '' || $bledyPol) $editSekcja = array_merge($f, ['id' => $id]);
 
     // ---------- Osoby ----------
     } elseif ($action === 'osoba_usun') {
@@ -91,18 +91,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$id]);
             $old = $st->fetch() ?: null;
         }
-        if ($f['imie'] === '' || $f['nazwisko'] === '') {
-            $error = 'Podaj imię i nazwisko.';
-        } elseif (!filter_var($f['email'], FILTER_VALIDATE_EMAIL)) {
-            $error = 'Podaj poprawny adres e-mail.';
-        } elseif (!url_ok($f['linkedin'])) {
-            $error = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
-        } elseif ($f['sekcja_id'] !== null) {
+        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+        if ($f['imie'] === '') $bledyPol['imie'] = 'Podaj imię.';
+        if ($f['nazwisko'] === '') $bledyPol['nazwisko'] = 'Podaj nazwisko.';
+        if ($f['sekcja_id'] !== null) {
             $st = pmg_db()->prepare('SELECT 1 FROM pmg_sekcje WHERE id = ?');
             $st->execute([$f['sekcja_id']]);
-            if (!$st->fetchColumn()) $error = 'Nieprawidłowa sekcja.';
+            if (!$st->fetchColumn()) $bledyPol['sekcja_id'] = 'Nieprawidłowa sekcja.';
         }
-        if ($error === '') {
+        if (!filter_var($f['email'], FILTER_VALIDATE_EMAIL)) $bledyPol['email'] = 'Podaj poprawny adres e-mail.';
+        if (!url_ok($f['linkedin'])) $bledyPol['linkedin'] = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        blad_opisu_zdjecia($old['zdjecie'] ?? null);
+        if ($error === '' && !$bledyPol) {
             $noweZdjecie = null; // plik wgrany w tym żądaniu — usuwany, jeśli zapis do bazy się nie uda
             try {
                 $stareZdjecie = $old['zdjecie'] ?? null;
@@ -128,11 +128,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 drop_image($noweZdjecie);
                 $f['zdjecie'] = $old['zdjecie'] ?? null;
                 $error = 'Błąd zapisu — nic nie zapisano. Sprawdź długość pól (np. e-mail do 150 znaków) i spróbuj ponownie.';
-            } catch (RuntimeException $e) {
-                $error = $e->getMessage();
+            } catch (BladPliku $e) {
+                $bledyPol['zdjecie'] = $e->getMessage();
             }
         }
-        if ($error !== '') $editOsoba = array_merge($old ?: [], $f, ['id' => $id]);
+        if ($error !== '' || $bledyPol) $editOsoba = array_merge($old ?: [], $f, ['id' => $id]);
     }
 }
 
@@ -189,9 +189,9 @@ if ($editOsoba !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-osoba">
       <h2 class="pmg-form-section__title" id="sek-osoba">Osoba</h2>
       <label for="imie">Imię</label>
-      <input type="text" id="imie" name="imie" maxlength="50" value="<?= $v('imie') ?>" required>
+      <input type="text" id="imie" name="imie" maxlength="50" value="<?= $v('imie') ?>" required<?= blad_pola('imie') ?>><?= komunikat_pola('imie') ?>
       <label for="nazwisko">Nazwisko</label>
-      <input type="text" id="nazwisko" name="nazwisko" maxlength="60" value="<?= $v('nazwisko') ?>" required>
+      <input type="text" id="nazwisko" name="nazwisko" maxlength="60" value="<?= $v('nazwisko') ?>" required<?= blad_pola('nazwisko') ?>><?= komunikat_pola('nazwisko') ?>
       <label for="funkcja">Funkcja</label>
       <p class="pmg-hint" id="funkcja_h">Np. Prezes, Koordynator, Koordynatorka, Członek.</p>
       <input type="text" id="funkcja" name="funkcja" maxlength="60" value="<?= $v('funkcja') ?>" aria-describedby="funkcja_h">
@@ -200,12 +200,12 @@ if ($editOsoba !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-przydzial">
       <h2 class="pmg-form-section__title" id="sek-przydzial">Przydział</h2>
       <label for="sekcja_id">Sekcja</label>
-      <select id="sekcja_id" name="sekcja_id">
+      <select id="sekcja_id" name="sekcja_id"<?= blad_pola('sekcja_id') ?>>
         <option value=""<?= ($editOsoba['sekcja_id'] ?? '') === '' ? ' selected' : '' ?>>Zarząd</option>
         <?php foreach ($sekcjeLista as $s): ?>
           <option value="<?= (int) $s['id'] ?>"<?= (string) ($editOsoba['sekcja_id'] ?? '') === (string) $s['id'] ? ' selected' : '' ?>><?= h($s['nazwa']) ?></option>
         <?php endforeach; ?>
-      </select>
+      </select><?= komunikat_pola('sekcja_id') ?>
       <label class="pmg-check"><input type="checkbox" name="koordynator" value="1"<?= !empty($editOsoba['koordynator']) ? ' checked' : '' ?>><span>Koordynator/-ka sekcji</span></label>
       <label for="kolejnosc">Kolejność</label>
       <p class="pmg-hint" id="kolejnosc_h">Mniejsza liczba = wyżej na liście.</p>
@@ -216,10 +216,10 @@ if ($editOsoba !== null) {
       <h2 class="pmg-form-section__title" id="sek-kontakt">Kontakt</h2>
       <label for="email">E-mail</label>
       <p class="pmg-hint" id="email_h">Adres będzie widoczny na stronie O nas.</p>
-      <input type="email" id="email" name="email" maxlength="150" value="<?= $v('email') ?>" required aria-describedby="email_h">
+      <input type="email" id="email" name="email" maxlength="150" value="<?= $v('email') ?>" required<?= blad_pola('email', 'email_h') ?>><?= komunikat_pola('email') ?>
       <label for="linkedin">LinkedIn <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="linkedin_h">Pełny adres zaczynający się od https://. Pole opcjonalne.</p>
-      <input type="text" id="linkedin" name="linkedin" maxlength="200" value="<?= $v('linkedin') ?>" aria-describedby="linkedin_h">
+      <input type="text" id="linkedin" name="linkedin" maxlength="200" value="<?= $v('linkedin') ?>"<?= blad_pola('linkedin', 'linkedin_h') ?>><?= komunikat_pola('linkedin') ?>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
@@ -229,10 +229,10 @@ if ($editOsoba !== null) {
       <?php if (!empty($editOsoba['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--1x1"><img src="../<?= h($editOsoba['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>
-      <input type="file" id="zdjecie" name="zdjecie" accept="image/jpeg,image/png,image/webp" aria-describedby="zdjecie_h">
+      <input type="file" id="zdjecie" name="zdjecie" accept="image/jpeg,image/png,image/webp"<?= blad_pola('zdjecie', 'zdjecie_h') ?>><?= komunikat_pola('zdjecie') ?>
       <label for="zdjecie_alt">Opis zdjęcia (co na nim widać — dla osób niewidomych)</label>
       <p class="pmg-hint" id="zdjecie_alt_h">Wymagany, jeśli dodajesz lub masz już zapisane zdjęcie.</p>
-      <input type="text" id="zdjecie_alt" name="zdjecie_alt" maxlength="200" value="<?= $v('zdjecie_alt') ?>" aria-describedby="zdjecie_alt_h">
+      <input type="text" id="zdjecie_alt" name="zdjecie_alt" maxlength="200" value="<?= $v('zdjecie_alt') ?>"<?= blad_pola('zdjecie_alt', 'zdjecie_alt_h') ?>><?= komunikat_pola('zdjecie_alt') ?>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-widocznosc">
@@ -260,7 +260,7 @@ if ($editOsoba !== null) {
   <form class="pmg-card" method="post" data-pmg-niezapisane>
     <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="sekcja_zapisz"><input type="hidden" name="id" value="<?= (int) $editSekcja['id'] ?>">
     <label for="nazwa">Nazwa</label>
-    <input type="text" id="nazwa" name="nazwa" maxlength="60" value="<?= $v('nazwa') ?>" required>
+    <input type="text" id="nazwa" name="nazwa" maxlength="60" value="<?= $v('nazwa') ?>" required<?= blad_pola('nazwa') ?>><?= komunikat_pola('nazwa') ?>
     <label for="kolor">Kolor</label>
     <select id="kolor" name="kolor"><?php foreach (KOLORY as $k => $n): ?><option value="<?= $k ?>"<?= ($editSekcja['kolor'] ?? '') === $k ? ' selected' : '' ?>><?= $n ?></option><?php endforeach; ?></select>
     <label for="opis">Opis <span class="pmg-opt">(opcjonalnie)</span></label>
