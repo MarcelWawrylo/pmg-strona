@@ -185,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $old = $st->fetch() ?: null;
         }
         if (!$stE->fetchColumn()) $error = 'Nieprawidłowa edycja.'; // nie dotyczy żadnego pola
-        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi naraz wszystkie błędy pól (błąd pliku dopiero po ich poprawieniu, bo plik wgrywamy na końcu).
         if ($f['imie_nazwisko'] === '') $bledyPol['imie_nazwisko'] = 'Podaj imię i nazwisko.';
         if ($f['temat'] === '') $bledyPol['temat'] = 'Podaj temat wystąpienia.';
         if (!url_ok($f['linkedin'])) $bledyPol['linkedin'] = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
@@ -439,7 +439,7 @@ if ($editPrelegent !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
       <h2 class="pmg-form-section__title" id="sek-zdjecie">Zdjęcie</h2>
       <label for="zdjecie">Zdjęcie 4:3 (JPG, PNG albo WebP)</label>
-      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 4:3 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1600 × 1200 px. Opcjonalne. Okno prelegenta pokazuje całe zdjęcie 4:3, a kafelek na liście jego środek w kwadracie — twarz ustaw pośrodku.</p>
+      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 4:3. Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1600 × 1200 px. Opcjonalne. Okno prelegenta pokazuje całe zdjęcie 4:3, a kafelek na liście jego środek w kwadracie — twarz ustaw pośrodku.</p>
       <?php if (!empty($editPrelegent['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--4x3"><img src="../<?= h($editPrelegent['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>

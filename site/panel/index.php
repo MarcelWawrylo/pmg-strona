@@ -357,17 +357,14 @@ function drop_image($path)
     if ($path && preg_match('~^uploads/(aktualnosci|czlonkowie|pmsession|podcast|case|case-logo)/[0-9a-f-]+\.(jpg|png|webp)$~', $path)) @unlink(__DIR__ . '/../' . $path);
 }
 
-// Sprawdza opis zdjęcia (wymagany przy nowym pliku i przy zachowaniu istniejącego) i wgrywa nowy plik, jeśli podano.
+// Wgrywa nowy plik, jeśli podano. Opis zdjęcia sprawdza wcześniej blad_opisu_zdjecia() (wołana przez każdy moduł przed zapisem).
 // Zwraca ścieżkę do zapisania w bazie (nową albo — bez wgrania — dotychczasową $old).
 function zdjecie($modul, $old)
 {
-    $alt = trim((string) ($_POST['zdjecie_alt'] ?? ''));
-    $upload = !empty($_FILES['zdjecie']['name']);
-    if (($upload || $old) && $alt === '') throw new BladPliku('Dodaj opis zdjęcia (dla osób niewidomych).');
-    return $upload ? save_image($_FILES['zdjecie'], $modul) : $old;
+    return !empty($_FILES['zdjecie']['name']) ? save_image($_FILES['zdjecie'], $modul) : $old;
 }
 
-// Ta sama reguła co w zdjecie(), ale jako błąd przy polu „Opis zdjęcia” (wołaj przy walidacji pól, przed zapisem).
+// Opis zdjęcia wymagany przy nowym pliku i przy zachowaniu istniejącego — błąd przy polu „Opis zdjęcia” (wołaj przy walidacji pól, przed zapisem).
 function blad_opisu_zdjecia($old)
 {
     global $bledyPol;
