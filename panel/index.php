@@ -525,6 +525,9 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
     </header>
     <?= $pmgAlerty ?>
     <?php if ($m === ''): ?>
+      <?php if ($me['rola'] === 'admin' && (int) pmg_db()->query("SELECT COUNT(*) FROM pmg_uzytkownicy WHERE rola='admin' AND aktywny=1 AND haslo IS NOT NULL")->fetchColumn() < 2): ?>
+        <div class="pmg-alert pmg-alert--warning" role="status"><?= pmg_ikona('info') ?><p>Jesteś jedynym aktywnym administratorem. Dodaj drugiego w module Konta: jeśli zapomnisz hasła, nikt inny nie odzyska dostępu z panelu (procedura awaryjna w <code>README.md</code>).</p></div>
+      <?php endif; ?>
       <ul class="pmg-tiles">
         <?php foreach ($etykietyModulow as $mk => $ml): if (!wolno(MODULY[$mk])) continue; ?>
           <?php if ($mk === 'kopia'): ?>
