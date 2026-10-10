@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 8;
+const PMG_SCHEMA = 9;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -83,6 +83,7 @@ const PMG_SCHEMA = 8;
 function pmg_migrate()
 {
     $pdo = pmg_db();
+    $v = false; // wersja schematu przed migracją (false = świeża baza)
     try {
         $v = $pdo->query("SELECT wartosc FROM pmg_ustawienia WHERE klucz = 'schema'")->fetchColumn();
         if ($v !== false && (int) $v >= PMG_SCHEMA) return;
@@ -116,7 +117,7 @@ function pmg_migrate()
             email VARCHAR(150) NOT NULL UNIQUE,
             haslo VARCHAR(255) NULL,
             rola ENUM('admin','redaktor') NOT NULL DEFAULT 'redaktor',
-            moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case') NOT NULL DEFAULT '',
+            moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case','tresci','rekrutacja') NOT NULL DEFAULT '',
             aktywny TINYINT(1) NOT NULL DEFAULT 1,
             token_hash CHAR(64) NULL UNIQUE,
             token_do DATETIME NULL,
@@ -287,8 +288,13 @@ function pmg_migrate()
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     foreach ($tabele as $sql) $pdo->exec($sql);
 
-    // Bazy utworzone wcześniej: nowy moduł w SET uprawnień (schemat 6: 'case', schemat 7: 'tresci') i kolumna opisu edycji PM Session.
-    $pdo->exec("ALTER TABLE pmg_uzytkownicy MODIFY moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case','tresci') NOT NULL DEFAULT ''");
+    // Bazy utworzone wcześniej: nowy moduł w SET uprawnień (schemat 6: 'case', schemat 7: 'tresci', schemat 9: 'rekrutacja') i kolumna opisu edycji PM Session.
+    $pdo->exec("ALTER TABLE pmg_uzytkownicy MODIFY moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case','tresci','rekrutacja') NOT NULL DEFAULT ''");
+    // Schemat 9: „Treści stron” tylko dla administratorów — zdejmujemy 'tresci' z modułów wszystkich kont. Wartość zostaje w SET
+    // (W6 przeniesie te uprawnienia). Tylko przy przejściu z wersji < 9, żeby kolejne migracje nie zdejmowały uprawnień nadanych później.
+    if ((int) $v < 9) {
+        $pdo->exec("UPDATE pmg_uzytkownicy SET moduly = TRIM(BOTH ',' FROM REPLACE(CONCAT(',', moduly, ','), ',tresci,', ',')) WHERE FIND_IN_SET('tresci', moduly) > 0");
+    }
     // Schemat 3: biogram prelegenta do 2500 znaków (dane startowe PM Session XIV mają biogramy dłuższe niż 1500).
     $pdo->exec("ALTER TABLE pmg_prelegenci MODIFY bio VARCHAR(2500) NOT NULL DEFAULT ''");
     if ($pdo->query("SHOW COLUMNS FROM pmg_edycje LIKE 'opis'")->fetchColumn() === false) {
