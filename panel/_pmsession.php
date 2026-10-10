@@ -14,6 +14,8 @@ const PMS_AKTUALNE = ['biezaca', 'zapowiedz'];
 // (zapowiedź bez kompletu danych -> szkic, żeby pusta edycja nie trafiła do menu strony jako zakończona), wybrana -> $status.
 // Zwraca false (bez żadnych zmian), gdy edycja o tym id nie istnieje — inaczej stara bieżąca zostałaby zdjęta, a nowej nie byłoby.
 // Komplet danych dla 'biezaca' sprawdza wołający (walidacja formularza albo pms_braki() przy przycisku na liście).
+// Gdy wołający ma już otwartą transakcję (zapis formularza edycji: pola + status razem), funkcja działa w niej i nie robi
+// commit/rollback — robi je wołający.
 function ustaw_biezaca($id, $status = 'biezaca')
 {
     if (!in_array($status, PMS_AKTUALNE, true)) return false;
@@ -22,13 +24,14 @@ function ustaw_biezaca($id, $status = 'biezaca')
     $st->execute([$id]);
     $ed = $st->fetch();
     if (!$ed) return false;
-    $pdo->beginTransaction();
+    $wlasna = !$pdo->inTransaction();
+    if ($wlasna) $pdo->beginTransaction();
     try {
         $pdo->prepare("UPDATE pmg_edycje SET status = IF(" . PMS_SQL_KOMPLET . ", 'zakonczona', 'szkic') WHERE status IN ('biezaca','zapowiedz') AND id <> ?")->execute([$id]);
         $pdo->prepare('UPDATE pmg_edycje SET status = ? WHERE id = ?')->execute([$status, $id]);
-        $pdo->commit();
+        if ($wlasna) $pdo->commit();
     } catch (Exception $e) { // bez połowicznej zmiany: stara bieżąca nie zostaje zdjęta, gdy nowej nie udało się ustawić
-        if ($pdo->inTransaction()) $pdo->rollBack();
+        if ($wlasna && $pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
     loguj('pmsession', 'biezaca', $id, 'Edycja ' . $ed['numer'] . ($status === 'zapowiedz' ? ' (Aktualna edycja – wkrótce więcej)' : ': ' . $ed['temat']));
@@ -179,6 +182,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($f['miejsce'] === '' && !$tylkoNumer) $bledyPol['miejsce'] = 'Podaj miejsce.';
         $dataZapisu = $f['data'] === '' ? null : $f['data'];
         if (!$bledyPol) {
+            $idPrzed = $id;
+            // Pola i zmiana statusu (ustaw_biezaca) w jednej transakcji: błąd w trakcie nie zostawia ani nowych pól ze starym statusem,
+            // ani zdjętej poprzedniej bieżącej edycji.
+            pmg_db()->beginTransaction();
             try {
                 $nowa = !$id;
                 if ($id) {
@@ -194,11 +201,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $komunikatBiezacej = '';
                 if ($nowaBiezaca) {
                     $poprzednia = pms_poprzednia_biezaca($id);
-                    ustaw_biezaca($id, $status); // transakcja + wpis „Ustawienie bieżącej edycji” w dzienniku
+                    ustaw_biezaca($id, $status); // w tej samej transakcji + wpis „Ustawienie bieżącej edycji” w dzienniku
                     $komunikatBiezacej = ' ' . pms_komunikat_biezacej($f['numer'], $poprzednia, $status);
                 } elseif (in_array($obecnyStatus, PMS_AKTUALNE, true) && !in_array($status, PMS_AKTUALNE, true)) {
                     $komunikatBiezacej = ' Edycja ' . $f['numer'] . ' nie jest już aktualna — żadna edycja nie jest teraz aktualna, więc w menu strony nie ma pozycji „Aktualna edycja”.';
                 }
+                pmg_db()->commit();
                 $naStronie = pms_widoczna($status, $f['numer']) ? ' Na stronie zmiana pojawi się w ciągu 5 minut.' : '';
                 if ($nowa) {
                     // nowa edycja: od razu widok tej edycji (prelegenci i harmonogram), żeby dalszy krok był oczywisty
@@ -208,7 +216,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['flash'] = 'Zapisano.' . $komunikatBiezacej . $naStronie;
                 go('?m=pmsession');
             } catch (PDOException $e) {
-                $error = $e->getCode() === '23000' ? 'Edycja o tym numerze już istnieje.' : 'Błąd zapisu.';
+                if (pmg_db()->inTransaction()) pmg_db()->rollBack();
+                $id = $idPrzed; // nowa edycja nie powstała
+                if ($e->getCode() !== '23000') error_log('pmsession edycja zapis: ' . $e->getMessage());
+                $error = $e->getCode() === '23000' ? 'Edycja o tym numerze już istnieje.' : 'Błąd zapisu — nic nie zapisano (ani pól, ani statusu). Spróbuj ponownie.';
             }
         }
         // status = wybór z formularza (zostaje zaznaczony po błędzie), status_w_bazie = obecny stan (strefa usuwania).

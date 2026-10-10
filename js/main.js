@@ -518,10 +518,12 @@
 
       var titleEl = $('.pms-banner__title');
       if (titleEl) titleEl.textContent = 'PM Session ' + ed.numer;
-      var p = String(ed.data).split('-');
-      var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
       var pillEl = $('.date-pill'); // stary — tylko robocza v3
-      if (pillEl && ed.data) pillEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + ed.miejsce;
+      if (pillEl && ed.data) {
+        var p = String(ed.data).split('-');
+        var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        pillEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + ed.miejsce;
+      }
       var dateTimeEl = $('.pms-banner__date time');
       if (dateTimeEl && ed.data) { // data null (brak daty) — zostaje to, co w HTML, bez „Invalid Date”
         dateTimeEl.textContent = fmtDate(ed.data);

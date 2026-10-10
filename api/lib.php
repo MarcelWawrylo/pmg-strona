@@ -364,9 +364,10 @@ function pmg_migrate()
     }
     // Schemat 14: kreska między logo a opisem na karcie Case Koła (przełącznik w panelu). Dotąd była tylko przy jasnym logo
     // (białe tło mediów), więc istniejące edycje dostają 1 dla 'jasne'/'jasne-wysokie' i 0 dla 'ciemne' — wygląd bez zmian.
-    // Tylko przy dodaniu kolumny, żeby kolejne migracje nie nadpisywały wyboru z panelu.
-    if ($pdo->query("SHOW COLUMNS FROM pmg_case_edycje LIKE 'linia_pod_logo'")->fetchColumn() === false) {
-        $pdo->exec("ALTER TABLE pmg_case_edycje ADD COLUMN IF NOT EXISTS linia_pod_logo TINYINT(1) NOT NULL DEFAULT 1 AFTER logo_styl");
+    // UPDATE zależy od wersji sprzed migracji (nie od braku kolumny): gdy migrację przerwano między ADD a UPDATE, następne wejście
+    // do panelu i tak ustawi wartości. Przy wersji >= 14 nie nadpisujemy wyboru z panelu. Świeża baza: kolumna z CREATE, tabela pusta.
+    $pdo->exec("ALTER TABLE pmg_case_edycje ADD COLUMN IF NOT EXISTS linia_pod_logo TINYINT(1) NOT NULL DEFAULT 1 AFTER logo_styl");
+    if ((int) $v < 14) {
         $pdo->exec("UPDATE pmg_case_edycje SET linia_pod_logo = IF(logo_styl IN ('jasne','jasne-wysokie'), 1, 0)");
     }
 
