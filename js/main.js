@@ -60,24 +60,20 @@
 
     // Chowanie headera: w dół poza jego wysokością chowa (transform), w górę (próg 8 px, bez drgania) pokazuje.
     // Wymuszone pokazanie (menu/podmenu otwarte, fokus w nav, otwarty dialog) robi CSS (.site-nav.is-hidden…).
+    // Miejsce, które header zajmuje w układzie strony, nie zmienia się przy is-scrolled (CSS), więc przeglądarka
+    // nie przesuwa przewinięcia; histereza progu (włącz > 32 px, wyłącz < 8 px) — drobne ruchy przy górze nie przełączają.
     var lastY = window.scrollY || document.documentElement.scrollTop || 0;
-    var lastH = nav.offsetHeight, shift = 0;
     var onScroll = function () {
       var y = window.scrollY || document.documentElement.scrollTop || 0;
-      nav.classList.toggle('is-scrolled', y > 24);
+      if (y > 32) nav.classList.add('is-scrolled');
+      else if (y < 8) nav.classList.remove('is-scrolled');
       if (themeSwitch) {
         // Dołącz: ciemny nav nad ciemnym hero, jasny po zjechaniu z hero
         var bottom = themeSwitch.getBoundingClientRect().bottom;
         nav.classList.toggle('site-nav--dark', bottom > nav.offsetHeight);
       }
-      // header zmniejsza się (is-scrolled), a przeglądarka przesuwa przewinięcie w górę o tę różnicę (scroll anchoring,
-      // w tym samym albo następnym zdarzeniu) — taki ruch w górę, najwyżej o zmianę wysokości, to nie ruch użytkownika
-      var h = nav.offsetHeight, hChanged = h !== lastH;
-      shift += h - lastH; lastH = h;
       var delta = y - lastY;
-      if (shift < 0 && delta < 0) { var c = Math.max(delta, shift); shift -= c; lastY += c; delta -= c; }
-      if (!hChanged) shift = 0;
-      if (y <= h) { nav.classList.remove('is-hidden'); lastY = y; }
+      if (y <= nav.offsetHeight) { nav.classList.remove('is-hidden'); lastY = y; }
       else if (delta > 8) { nav.classList.add('is-hidden'); lastY = y; }
       else if (delta < -8) { nav.classList.remove('is-hidden'); lastY = y; }
     };
@@ -332,7 +328,7 @@
      prędkość z data-speed). Bez GSAP: scroll + rAF; pętla działa tylko, dopóki wygładzona pozycja nie dogoni przewinięcia,
      więc gdy przewijanie stoi, nic się nie rusza. Każda taśma składa się z tylu powtórzeń, by objęła ekran i jedno
      powtórzenie zapasu; przesunięcie modulo szerokość powtórzenia, więc nigdy nie widać pustego końca.
-     Telefon (≤ 640 px): CSS zostawia jedną taśmę, tu wolniej. Ograniczony ruch: taśmy stoją. */
+     Telefon (≤ 640 px): wszystkie taśmy, tu wolniej (każda tak samo). Ograniczony ruch: taśmy stoją. */
   function initPmsTapes() {
     var section = $('[data-pms-intro]');
     var tapes = section ? $$('.pms-intro__tape', section) : [];
@@ -365,7 +361,7 @@
         var probe = unit(texts[i]);
         track.appendChild(probe);
         var unitW = probe.getBoundingClientRect().width;
-        if (!unitW) return; // taśma ukryta (telefon: tylko środkowa)
+        if (!unitW) return; // taśma ukryta (display: none)
         var n = Math.max(2, Math.ceil(vw / unitW) + 1);
         for (var k = 1; k < n; k++) track.appendChild(unit(texts[i]));
         var speed = parseFloat(tape.getAttribute('data-speed')) || 0.5;
@@ -802,7 +798,7 @@
       box.innerHTML = original;
       var btn = $('[data-map-load]', box);
       btn.hidden = false;
-      btn.addEventListener('click', function () { loadFrame(); var f = $('iframe', box); if (f) f.focus(); });
+      btn.addEventListener('click', function () { loadFrame(); var f = $('iframe', box); if (f) f.focus({ preventScroll: true }); });
       $$('[data-cookie-settings]', box).forEach(function (el) { el.hidden = false; });
     }
     showConsent();
@@ -819,6 +815,7 @@
     var policy = $('.site-footer a[href$="polityka-prywatnosci.html"]');
     var href = (policy ? policy.getAttribute('href') : 'polityka-prywatnosci.html') + '#pp-mapa';
     var bar = null;
+    var opener = null; // element z fokusem tuż przed pokazaniem paska (null = brak albo sam pasek)
     function pad() { document.body.style.paddingBottom = bar && !bar.hidden ? bar.offsetHeight + 'px' : ''; }
     function hide() {
       if (!bar) return;
@@ -848,18 +845,22 @@
         hide();
         if (mapApi) mapApi.apply(choice);
         if (hadFocus) {
-          var back = $('.site-footer [data-cookie-settings]');
-          if (back) back.focus();
+          var back = opener && opener.isConnected ? opener : $('.site-footer [data-cookie-settings]');
+          if (back) back.focus({ preventScroll: true });
         }
       });
       window.addEventListener('resize', pad);
     }
     function show(focusFirst) {
       if (!bar) build();
+      if (bar.hidden) {
+        var active = document.activeElement;
+        opener = active && active !== document.body && !bar.contains(active) ? active : null;
+      }
       bar.hidden = false;
       pad();
       requestAnimationFrame(function () { bar.classList.add('is-in'); });
-      if (focusFirst) { var first = $('button', bar); if (first) first.focus(); }
+      if (focusFirst) { var first = $('button', bar); if (first) first.focus({ preventScroll: true }); }
     }
     document.addEventListener('click', function (e) {
       var t = e.target.closest ? e.target.closest('[data-cookie-settings]') : null;
