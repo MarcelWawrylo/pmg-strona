@@ -502,8 +502,9 @@ if ($editPrelegent !== null) {
     <?php if (($editEdycja['status'] ?? '') === 'biezaca'): ?>
       <div class="pmg-alert pmg-alert--info" role="status"><?= pmg_ikona('info') ?><p>To jest bieżąca edycja — status zmienia się przyciskiem „Ustaw jako bieżącą” na liście edycji, nie w tym formularzu.</p></div>
     <?php else: ?>
-      <fieldset class="pmg-fieldset">
+      <fieldset class="pmg-fieldset" aria-describedby="status_h">
         <legend class="pmg-legend">Status</legend>
+        <p class="pmg-hint" id="status_h">Szkic: edycji nie widać na stronie. Zakończona: edycja ma swoją stronę, ale nie jest już pokazywana jako aktualna. Bieżącą edycję (jedną naraz, pokazywaną na stronie PM Session) ustawiasz przyciskiem na liście edycji.</p>
         <div class="pmg-options">
           <label class="pmg-option"><input type="radio" name="status" value="szkic"<?= ($editEdycja['status'] ?? 'szkic') !== 'zakonczona' ? ' checked' : '' ?>><span>Szkic</span></label>
           <label class="pmg-option"><input type="radio" name="status" value="zakonczona"<?= ($editEdycja['status'] ?? '') === 'zakonczona' ? ' checked' : '' ?>><span>Zakończona</span></label>

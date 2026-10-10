@@ -149,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('case', 'dodanie', $id, 'Edycja ' . $f['numer'] . ': ' . $f['nazwa']);
             }
-            $_SESSION['flash'] = $f['widoczna'] ? 'Zapisano. Edycja jest widoczna na stronie. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano. Edycja jest ukryta na stronie.';
+            $_SESSION['flash'] = $f['widoczna'] ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano jako szkic (niewidoczny na stronie).';
             go('?m=case&id=' . $id);
         } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy
             foreach ($nowe as $p) drop_image($p);
@@ -355,9 +355,9 @@ if ($edit !== null) {
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-widocznosc">
-      <h2 class="pmg-form-section__title" id="sek-widocznosc">Widoczność</h2>
-      <label class="pmg-check"><input type="checkbox" name="widoczna" value="1"<?= !empty($edit['widoczna']) ? ' checked' : '' ?> aria-describedby="widoczna_h"><span>Pokaż edycję na stronie</span></label>
-      <p class="pmg-hint pmg-hint--check" id="widoczna_h">Bez zaznaczenia edycja jest ukryta: nie ma jej w hubie, w menu ani pod swoim adresem. Kolejność kart zmieniasz strzałkami na liście.</p>
+      <h2 class="pmg-form-section__title" id="sek-widocznosc">Publikacja</h2>
+      <label class="pmg-check"><input type="checkbox" name="widoczna" value="1"<?= !empty($edit['widoczna']) ? ' checked' : '' ?> aria-describedby="widoczna_h"><span>Opublikuj na stronie</span></label>
+      <p class="pmg-hint pmg-hint--check" id="widoczna_h">Bez zaznaczenia = szkic, niewidoczny na stronie (edycji nie ma wtedy w hubie, w menu ani pod własnym adresem). Kolejność kart zmieniasz strzałkami na liście.</p>
     </section>
 
     <div class="pmg-form-actions">
@@ -405,7 +405,7 @@ if ($edit !== null) {
     <form method="post" class="pmg-danger-zone" aria-labelledby="usun-h">
       <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
       <h2 class="pmg-danger-zone__title" id="usun-h">Strefa usuwania</h2>
-      <p class="pmg-hint">Edycja, jej zdjęcia i galeria znikną ze strony i z panelu. Tego nie da się cofnąć. Żeby tylko schować edycję, odznacz „Pokaż edycję na stronie”.</p>
+      <p class="pmg-hint">Edycja, jej zdjęcia i galeria znikną ze strony i z panelu. Tego nie da się cofnąć. Żeby tylko schować edycję, odznacz „Opublikuj na stronie”.</p>
       <label class="pmg-check"><input type="checkbox" required><span>Tak, usuń tę edycję na stałe</span></label>
       <button class="pmg-btn pmg-btn--danger" type="submit">Usuń edycję</button>
     </form>
@@ -413,18 +413,18 @@ if ($edit !== null) {
 
 <?php else: ?>
   <?php pmg_import_blok('case'); ?>
-  <p class="pmg-hint">Karty w hubie Case Koła pojawiają się w kolejności z tej listy. Gdy w panelu jest choć jedna edycja (także ukryta), hub i menu pochodzą z panelu, a nie z kodu strony.</p>
+  <p class="pmg-hint">Karty w hubie Case Koła pojawiają się w kolejności z tej listy. Gdy w panelu jest choć jedna edycja (także szkic), hub i menu pochodzą z panelu, a nie z kodu strony.</p>
   <div class="pmg-table-wrap">
     <table class="pmg-table pmg-table--klikalna">
       <caption class="pmg-vh">Edycje Case Koła</caption>
-      <thead><tr><th scope="col" class="pmg-num">Nr</th><th scope="col">Partner</th><th scope="col" class="pmg-num">Zdjęcia</th><th scope="col">Widoczność</th><th scope="col">Kolejność</th></tr></thead>
+      <thead><tr><th scope="col" class="pmg-num">Nr</th><th scope="col">Partner</th><th scope="col" class="pmg-num">Zdjęcia</th><th scope="col">Status</th><th scope="col">Kolejność</th></tr></thead>
       <tbody>
       <?php foreach ($lista as $i => $r): ?>
         <tr>
           <td class="pmg-num" data-label="Nr"><?= (int) $r['numer'] ?></td>
           <td class="pmg-td-main" data-label="Partner"><a class="pmg-row-link" href="?m=case&amp;id=<?= (int) $r['id'] ?>"><?= h($r['nazwa']) ?></a></td>
           <td class="pmg-num" data-label="Zdjęcia"><?= (int) $r['zdjec'] ?></td>
-          <td data-label="Widoczność"><?php if ($r['widoczna']): ?><span class="pmg-chip pmg-chip--success">Widoczna</span><?php else: ?><span class="pmg-chip pmg-chip--neutral">Ukryta</span><?php endif; ?></td>
+          <td data-label="Status"><?php if ($r['widoczna']): ?><span class="pmg-chip pmg-chip--success">Opublikowany</span><?php else: ?><span class="pmg-chip pmg-chip--neutral">Szkic</span><?php endif; ?></td>
           <td class="pmg-td-actions" data-label="Kolejność">
             <form method="post">
               <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
