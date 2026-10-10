@@ -23,7 +23,7 @@ function pms_prelegent_pub($p)
 // ?lista=1: edycje do podmenu PM Session w nagłówku strony (js/main.js). Tylko bieżąca i zakończone, które mają własny plik
 // pm-session-<numer>.html (jak pms_adres_strony() w panelu); szkic nigdy. Zwraca wyłącznie numer, status i adres strony.
 // 'wszystkich' = liczba edycji w bazie (także szkiców): gdy 0 (baza przed importem), menu zostaje w wersji statycznej z HTML.
-if (isset($_GET['lista'])) {
+if (($_GET['lista'] ?? '') === '1') {
     try {
         $pdo = pmg_db();
         $lista = [];
