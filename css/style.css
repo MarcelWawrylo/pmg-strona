@@ -657,6 +657,24 @@ html.nav-open body { overflow: hidden; }
 .contact-form__send:focus-visible, .contact-form__send:active { background: var(--color-pink-text); }
 @media (hover: hover) { .contact-form__send:hover { background: var(--color-pink-text); } }
 .contact-form__hint { font: 400 12.5px/1.5 var(--font-body); color: var(--color-text-muted); margin-top: -14px; }
+/* Wynik wysyłki formularza (main.js): sukces = ciemna karta z paskiem w gradiencie marki, błąd = jasnoróżowa karta */
+.form-result { position: relative; display: flex; gap: 16px; align-items: flex-start; padding: 22px 24px; border-radius: var(--radius-md); overflow: hidden; scroll-margin: 120px 0; }
+.form-result[hidden] { display: none; }
+.form-result:focus { outline: none; }
+.form-result:focus-visible { outline: 2px solid var(--color-blue); outline-offset: 3px; }
+.form-result--ok { background: var(--color-ink); color: #fff; }
+.form-result--ok::before { content: ''; position: absolute; inset: 0 0 auto; height: 5px; background: var(--gradient-brand); }
+.form-result--error { background: #fdeef3; color: var(--color-ink); border: 1.5px solid var(--color-pink-text); }
+.form-result__icon { flex: none; display: flex; }
+.form-result__icon svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.form-result--ok .form-result__icon { color: #fff; }
+.form-result--error .form-result__icon { color: var(--color-pink-text); }
+.form-result__title { font: 600 22px/1.2 var(--font-head); margin: 2px 0 6px; color: inherit; }
+.form-result__text { font: 400 15px/1.5 var(--font-body); margin: 0; overflow-wrap: anywhere; }
+.form-result__mail { margin-top: 14px; font-size: 15px; padding: 13px 24px; }
+@media (prefers-reduced-motion: no-preference) { .form-result:not([hidden]) { animation: form-result-in .35s cubic-bezier(.2, .8, .2, 1); } }
+@keyframes form-result-in { from { opacity: 0; transform: translateY(8px); } }
+@media (max-width: 640px) { .form-result { padding: 18px; gap: 12px; } .form-result__title { font-size: 19px; } .form-result__mail { width: 100%; justify-content: center; } }
 @media (max-width: 960px) {
   .contact__grid { grid-template-columns: minmax(0, 1fr); gap: 48px; }
   .contact-hero { padding-top: 40px; }
