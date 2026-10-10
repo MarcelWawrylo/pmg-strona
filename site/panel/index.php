@@ -182,9 +182,9 @@ function data_ok($v)
 function przesun($tabela, $order, $id, $kierunek, $kolGrupy = null, $grupa = null)
 {
     $pdo = pmg_db();
-    $sql = 'SELECT id FROM ' . $tabela . ($kolGrupy ? ' WHERE ' . $kolGrupy . ' = ?' : '') . ' ORDER BY ' . $order;
+    $sql = 'SELECT id FROM ' . $tabela . ($kolGrupy ? ' WHERE ' . $kolGrupy . ($grupa === null ? ' IS NULL' : ' = ?') : '') . ' ORDER BY ' . $order;
     $st = $pdo->prepare($sql);
-    $st->execute($kolGrupy ? [$grupa] : []);
+    $st->execute($kolGrupy && $grupa !== null ? [$grupa] : []); // $grupa === null = grupa „bez wartości” (np. zarząd: sekcja_id IS NULL)
     $ids = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
     $poz = array_search((int) $id, $ids, true);
     if ($poz === false) return false;
@@ -196,6 +196,24 @@ function przesun($tabela, $order, $id, $kierunek, $kolGrupy = null, $grupa = nul
     foreach ($ids as $i => $rid) $upd->execute([$i + 1, $rid]);
     $pdo->commit();
     return true;
+}
+
+// Po przesunięciu strzałką wracamy na tę samą listę ($baza, np. '?m=case'), do kotwicy wiersza #wiersz-<klucz>;
+// parametr fokus mówi, którą strzałkę kliknięto (patrz fokus_strzalki). Klucz: litery i cyfry, unikalny na stronie.
+function go_po_przesunieciu($baza, $klucz, $kierunek)
+{
+    go($baza . '&fokus=' . $kierunek . '-' . rawurlencode((string) $klucz) . '#wiersz-' . rawurlencode((string) $klucz));
+}
+
+// Atrybut autofocus dla strzałki wiersza $klucz po przesunięciu: fokus wraca na tę samą strzałkę, a gdy ta jest już
+// wyłączona (wiersz dotarł na brzeg listy) — na drugą. $kierunek: 'gora' albo 'dol'; $wylGora/$wylDol: czy strzałka jest wyłączona.
+function fokus_strzalki($klucz, $kierunek, $wylGora, $wylDol)
+{
+    if ($kierunek === 'gora' ? $wylGora : $wylDol) return '';
+    $f = (string) ($_GET['fokus'] ?? '');
+    $inny = $kierunek === 'gora' ? 'dol' : 'gora';
+    $innyWyl = $kierunek === 'gora' ? $wylDol : $wylGora;
+    return ($f === $kierunek . '-' . $klucz || ($innyWyl && $f === $inny . '-' . $klucz)) ? ' autofocus' : '';
 }
 
 // Puste pole albo adres zaczynający się od https:// i poprawny wg FILTER_VALIDATE_URL.

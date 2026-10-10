@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'gora' || $action === 'dol') {
         $id = (int) ($_POST['id'] ?? 0);
         if (przesun('pmg_podcast_edycje', PODCAST_EDYCJE_ORDER, $id, $action)) loguj('podcast', 'kolejnosc', $id, nazwa_rekordu("SELECT CONCAT('Edycja podcastu ', numer, ' (', lata, ')') FROM pmg_podcast_edycje WHERE id = ?", $id));
-        go('?m=podcast&w=edycje');
+        go_po_przesunieciu('?m=podcast&w=edycje', $id, $action);
 
     } elseif ($action === 'delete') {
         $id = (int) ($_POST['id'] ?? 0);
@@ -166,8 +166,8 @@ if ($edit !== null) {
       <caption class="pmg-vh">Edycje podcastu</caption>
       <thead><tr><th scope="col" class="pmg-num">Nr</th><th scope="col">Lata</th><th scope="col">Odcinki</th><th scope="col">Status</th><th scope="col">Kolejność</th></tr></thead>
       <tbody>
-      <?php foreach ($edycje as $i => $r): ?>
-        <tr>
+      <?php foreach ($edycje as $i => $r): $wylG = $i === 0; $wylD = $i === count($edycje) - 1; ?>
+        <tr id="wiersz-<?= (int) $r['id'] ?>">
           <td class="pmg-num" data-label="Nr"><?= (int) $r['numer'] ?></td>
           <td class="pmg-td-main" data-label="Lata"><a class="pmg-row-link" href="?m=podcast&amp;w=edycje&amp;id=<?= (int) $r['id'] ?>">Edycja <?= (int) $r['numer'] ?><?= $r['lata'] !== '' ? ' (' . h($r['lata']) . ')' : '' ?></a></td>
           <td class="pmg-num" data-label="Odcinki"><?= (int) $r['odcinkow'] ?></td>
@@ -175,8 +175,8 @@ if ($edit !== null) {
           <td class="pmg-td-actions" data-label="Kolejność">
             <form method="post">
               <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
-              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gora"<?= $i === 0 ? ' disabled' : '' ?> aria-label="Przesuń wyżej: edycja <?= (int) $r['numer'] ?>"><span aria-hidden="true">↑</span></button>
-              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="dol"<?= $i === count($edycje) - 1 ? ' disabled' : '' ?> aria-label="Przesuń niżej: edycja <?= (int) $r['numer'] ?>"><span aria-hidden="true">↓</span></button>
+              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gora"<?= $wylG ? ' disabled' : '' ?><?= fokus_strzalki((int) $r['id'], 'gora', $wylG, $wylD) ?> aria-label="Przesuń wyżej: edycja <?= (int) $r['numer'] ?>"><span aria-hidden="true">↑</span></button>
+              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="dol"<?= $wylD ? ' disabled' : '' ?><?= fokus_strzalki((int) $r['id'], 'dol', $wylG, $wylD) ?> aria-label="Przesuń niżej: edycja <?= (int) $r['numer'] ?>"><span aria-hidden="true">↓</span></button>
             </form>
           </td>
         </tr>

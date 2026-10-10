@@ -2,6 +2,48 @@
 // Moduł Członkowie: sekcje koła + osoby (zarząd i sekcje). Wołany wyłącznie z index.php (?m=czlonkowie).
 defined('PMG_PANEL') || exit;
 
+// Kolejność osób na liście = kolejność na stronie. W sekcji koordynatorzy są zawsze przed pozostałymi (strona też je rozdziela).
+const OSOBY_ORDER_ZARZAD = 'kolejnosc, nazwisko, id';
+const OSOBY_ORDER_SEKCJA = 'koordynator DESC, kolejnosc, nazwisko, id';
+
+// Osoby jednej grupy w kolejności z listy: $sekcjaId === null to zarząd.
+function osoby_grupy($sekcjaId)
+{
+    if ($sekcjaId === null) return pmg_db()->query('SELECT * FROM pmg_osoby WHERE sekcja_id IS NULL ORDER BY ' . OSOBY_ORDER_ZARZAD)->fetchAll();
+    $st = pmg_db()->prepare('SELECT * FROM pmg_osoby WHERE sekcja_id = ? ORDER BY ' . OSOBY_ORDER_SEKCJA);
+    $st->execute([(int) $sekcjaId]);
+    return $st->fetchAll();
+}
+
+// Nowa pozycja na końcu grupy ($sekcjaId === null to zarząd): największa kolejność w grupie + 1.
+function osoby_nastepna_kolejnosc($sekcjaId)
+{
+    if ($sekcjaId === null) return (int) pmg_db()->query('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_osoby WHERE sekcja_id IS NULL')->fetchColumn();
+    $st = pmg_db()->prepare('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_osoby WHERE sekcja_id = ?');
+    $st->execute([(int) $sekcjaId]);
+    return (int) $st->fetchColumn();
+}
+
+// Przesuwa osobę o jedno miejsce w jej grupie. W sekcji nie przeskakuje koordynatorów (lista i tak ich rozdziela, więc
+// zamiana nic by nie zmieniła). Zwraca false, gdy nie ma osoby albo jest już na brzegu.
+function osoba_przesun($id, $kierunek)
+{
+    $st = pmg_db()->prepare('SELECT sekcja_id FROM pmg_osoby WHERE id = ?');
+    $st->execute([$id]);
+    $w = $st->fetch();
+    if (!$w) return false;
+    $sekcja = $w['sekcja_id'] === null ? null : (int) $w['sekcja_id'];
+    if ($sekcja !== null) {
+        $lista = osoby_grupy($sekcja);
+        foreach ($lista as $i => $o) {
+            if ((int) $o['id'] !== $id) continue;
+            $cel = $kierunek === 'gora' ? $i - 1 : $i + 1;
+            if (isset($lista[$cel]) && (int) $lista[$cel]['koordynator'] !== (int) $o['koordynator']) return false;
+        }
+    }
+    return przesun('pmg_osoby', $sekcja === null ? OSOBY_ORDER_ZARZAD : OSOBY_ORDER_SEKCJA, $id, $kierunek, 'sekcja_id', $sekcja);
+}
+
 $editSekcja = null;
 $editOsoba = null;
 
@@ -9,7 +51,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['a'] ?? '';
 
     // ---------- Sekcje ----------
-    if ($action === 'sekcja_usun') {
+    if ($action === 'sekcja_gora' || $action === 'sekcja_dol') {
+        $id = (int) ($_POST['id'] ?? 0);
+        $kier = $action === 'sekcja_gora' ? 'gora' : 'dol';
+        if (przesun('pmg_sekcje', 'kolejnosc, id', $id, $kier)) loguj('czlonkowie', 'kolejnosc', $id, 'Sekcja ' . nazwa_rekordu('SELECT nazwa FROM pmg_sekcje WHERE id = ?', $id));
+        go_po_przesunieciu('?m=czlonkowie', 's' . $id, $kier);
+
+    } elseif ($action === 'osoba_gora' || $action === 'osoba_dol') {
+        $id = (int) ($_POST['id'] ?? 0);
+        $kier = $action === 'osoba_gora' ? 'gora' : 'dol';
+        if (osoba_przesun($id, $kier)) loguj('czlonkowie', 'kolejnosc', $id, nazwa_rekordu("SELECT CONCAT(imie, ' ', nazwisko) FROM pmg_osoby WHERE id = ?", $id));
+        go_po_przesunieciu('?m=czlonkowie', 'o' . $id, $kier);
+
+    } elseif ($action === 'sekcja_usun') {
         $id = (int) ($_POST['id'] ?? 0);
         try {
             $st = pmg_db()->prepare('SELECT nazwa FROM pmg_sekcje WHERE id = ?'); // nazwa do dziennika, zanim wiersz zniknie
@@ -34,18 +88,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'nazwa' => mb_substr(trim((string) ($_POST['nazwa'] ?? '')), 0, 60),
             'kolor' => array_key_exists((string) ($_POST['kolor'] ?? ''), KOLORY) ? $_POST['kolor'] : 'pink',
             'opis' => mb_substr(trim((string) ($_POST['opis'] ?? '')), 0, 300),
-            'kolejnosc' => (int) ($_POST['kolejnosc'] ?? 0),
         ];
         if ($f['nazwa'] === '') {
             $bledyPol['nazwa'] = 'Podaj nazwę sekcji.';
         } else {
             if ($id) {
-                pmg_db()->prepare('UPDATE pmg_sekcje SET nazwa=?, kolor=?, opis=?, kolejnosc=? WHERE id=?')
-                    ->execute([$f['nazwa'], $f['kolor'], $f['opis'], $f['kolejnosc'], $id]);
+                pmg_db()->prepare('UPDATE pmg_sekcje SET nazwa=?, kolor=?, opis=? WHERE id=?')
+                    ->execute([$f['nazwa'], $f['kolor'], $f['opis'], $id]);
                 loguj('czlonkowie', 'edycja', $id, 'Sekcja ' . $f['nazwa']);
             } else {
+                // Nowa sekcja ląduje na końcu listy (kolejność zmieniasz strzałkami na liście).
+                $kolejnosc = (int) pmg_db()->query('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_sekcje')->fetchColumn();
                 pmg_db()->prepare('INSERT INTO pmg_sekcje (nazwa, kolor, opis, kolejnosc) VALUES (?,?,?,?)')
-                    ->execute([$f['nazwa'], $f['kolor'], $f['opis'], $f['kolejnosc']]);
+                    ->execute([$f['nazwa'], $f['kolor'], $f['opis'], $kolejnosc]);
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('czlonkowie', 'dodanie', $id, 'Sekcja ' . $f['nazwa']);
             }
@@ -82,7 +137,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'email' => trim((string) ($_POST['email'] ?? '')),
             'linkedin' => mb_substr(trim((string) ($_POST['linkedin'] ?? '')), 0, 200),
             'zdjecie_alt' => mb_substr(trim((string) ($_POST['zdjecie_alt'] ?? '')), 0, 200),
-            'kolejnosc' => (int) ($_POST['kolejnosc'] ?? 0),
             'aktywna' => empty($_POST['aktywna']) ? 0 : 1,
         ];
         $old = null;
@@ -105,6 +159,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($error === '' && !$bledyPol) {
             $noweZdjecie = null; // plik wgrany w tym żądaniu — usuwany, jeśli zapis do bazy się nie uda
             try {
+                // Kolejność: bez zmian, dopóki osoba zostaje w tej samej grupie; nowa osoba i osoba przeniesiona
+                // do innej sekcji (albo do zarządu) trafia na koniec swojej grupy.
+                $zmianaGrupy = !$old || (string) ($old['sekcja_id'] ?? '') !== (string) ($f['sekcja_id'] ?? '');
+                $f['kolejnosc'] = $zmianaGrupy ? osoby_nastepna_kolejnosc($f['sekcja_id']) : (int) $old['kolejnosc'];
                 $stareZdjecie = $old['zdjecie'] ?? null;
                 $f['zdjecie'] = zdjecie('czlonkowie', $stareZdjecie);
                 if ($f['zdjecie'] !== $stareZdjecie) $noweZdjecie = $f['zdjecie'];
@@ -139,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // ---------- Widok formularza z GET, gdy nie ma już $edit z POST powyżej ----------
 if ($editSekcja === null && isset($_GET['sekcja'])) {
     if ($_GET['sekcja'] === 'nowa') {
-        $editSekcja = ['id' => 0, 'nazwa' => '', 'kolor' => 'pink', 'opis' => '', 'kolejnosc' => 0];
+        $editSekcja = ['id' => 0, 'nazwa' => '', 'kolor' => 'pink', 'opis' => ''];
     } else {
         $st = pmg_db()->prepare('SELECT * FROM pmg_sekcje WHERE id = ?');
         $st->execute([(int) $_GET['sekcja']]);
@@ -148,7 +206,7 @@ if ($editSekcja === null && isset($_GET['sekcja'])) {
 }
 if ($editOsoba === null && isset($_GET['osoba'])) {
     if ($_GET['osoba'] === 'nowa') {
-        $editOsoba = ['id' => 0, 'imie' => '', 'nazwisko' => '', 'funkcja' => '', 'sekcja_id' => '', 'koordynator' => 0, 'email' => '', 'linkedin' => '', 'zdjecie_alt' => '', 'kolejnosc' => 0, 'aktywna' => 1];
+        $editOsoba = ['id' => 0, 'imie' => '', 'nazwisko' => '', 'funkcja' => '', 'sekcja_id' => '', 'koordynator' => 0, 'email' => '', 'linkedin' => '', 'zdjecie_alt' => '', 'aktywna' => 1];
     } else {
         $st = pmg_db()->prepare('SELECT * FROM pmg_osoby WHERE id = ?');
         $st->execute([(int) $_GET['osoba']]);
@@ -207,9 +265,7 @@ if ($editOsoba !== null) {
         <?php endforeach; ?>
       </select><?= komunikat_pola('sekcja_id') ?>
       <label class="pmg-check"><input type="checkbox" name="koordynator" value="1"<?= !empty($editOsoba['koordynator']) ? ' checked' : '' ?>><span>Koordynator/-ka sekcji</span></label>
-      <label for="kolejnosc">Kolejność</label>
-      <p class="pmg-hint" id="kolejnosc_h">Mniejsza liczba = wyżej na liście.</p>
-      <input type="number" id="kolejnosc" name="kolejnosc" value="<?= (int) ($editOsoba['kolejnosc'] ?? 0) ?>" aria-describedby="kolejnosc_h">
+      <p class="pmg-hint">Kolejność osób zmieniasz strzałkami na liście członków. Nowa osoba trafia na koniec swojej grupy.</p>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-kontakt">
@@ -265,9 +321,6 @@ if ($editOsoba !== null) {
     <select id="kolor" name="kolor"><?php foreach (KOLORY as $k => $n): ?><option value="<?= $k ?>"<?= ($editSekcja['kolor'] ?? '') === $k ? ' selected' : '' ?>><?= $n ?></option><?php endforeach; ?></select>
     <label for="opis">Opis <span class="pmg-opt">(opcjonalnie)</span></label>
     <input type="text" id="opis" name="opis" maxlength="300" value="<?= $v('opis') ?>" data-pmg-licznik>
-    <label for="kolejnosc">Kolejność</label>
-    <p class="pmg-hint" id="kolejnosc_h">Mniejsza liczba = wyżej na liście.</p>
-    <input type="number" id="kolejnosc" name="kolejnosc" value="<?= (int) ($editSekcja['kolejnosc'] ?? 0) ?>" aria-describedby="kolejnosc_h">
     <div class="pmg-form-actions">
       <button class="pmg-btn pmg-btn--primary" type="submit">Zapisz</button>
       <a class="pmg-btn pmg-btn--secondary" href="?m=czlonkowie">Anuluj</a>
@@ -290,15 +343,21 @@ if ($editOsoba !== null) {
     <div class="pmg-table-wrap pmg-table-wrap--flush">
       <table class="pmg-table pmg-table--klikalna pmg-table--osoby">
         <caption class="pmg-vh">Zarząd</caption>
-        <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Funkcja</th><th scope="col">E-mail</th><th scope="col" class="pmg-num">Kolejność</th><th scope="col">Status</th></tr></thead>
+        <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Funkcja</th><th scope="col">E-mail</th><th scope="col">Kolejność</th><th scope="col">Status</th></tr></thead>
         <tbody>
-        <?php $zarzad = pmg_db()->query('SELECT * FROM pmg_osoby WHERE sekcja_id IS NULL ORDER BY kolejnosc, nazwisko'); $bylZarzad = false; ?>
-        <?php foreach ($zarzad as $o): $bylZarzad = true; ?>
-          <tr>
+        <?php $zarzad = osoby_grupy(null); $bylZarzad = $zarzad !== []; ?>
+        <?php foreach ($zarzad as $i => $o): $wylG = $i === 0; $wylD = $i === count($zarzad) - 1; ?>
+          <tr id="wiersz-o<?= (int) $o['id'] ?>">
             <td class="pmg-td-main" data-label="Imię i nazwisko"><a class="pmg-row-link" href="?m=czlonkowie&osoba=<?= (int) $o['id'] ?>"><?= h($o['imie'] . ' ' . $o['nazwisko']) ?></a></td>
             <td data-label="Funkcja"><?= h($o['funkcja']) ?></td>
             <td data-label="E-mail"><?= h($o['email']) ?></td>
-            <td class="pmg-num" data-label="Kolejność"><?= (int) $o['kolejnosc'] ?></td>
+            <td class="pmg-td-actions" data-label="Kolejność">
+              <form method="post">
+                <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="id" value="<?= (int) $o['id'] ?>">
+                <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="osoba_gora"<?= $wylG ? ' disabled' : '' ?><?= fokus_strzalki('o' . (int) $o['id'], 'gora', $wylG, $wylD) ?> aria-label="Przesuń wyżej: <?= h($o['imie'] . ' ' . $o['nazwisko']) ?>"><span aria-hidden="true">↑</span></button>
+                <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="osoba_dol"<?= $wylD ? ' disabled' : '' ?><?= fokus_strzalki('o' . (int) $o['id'], 'dol', $wylG, $wylD) ?> aria-label="Przesuń niżej: <?= h($o['imie'] . ' ' . $o['nazwisko']) ?>"><span aria-hidden="true">↓</span></button>
+              </form>
+            </td>
             <td data-label="Status"><?php if (!$o['aktywna']): ?><span class="pmg-chip pmg-chip--neutral">Szkic</span><?php else: ?><span class="pmg-chip pmg-chip--success">Opublikowany</span><?php endif; ?></td>
           </tr>
         <?php endforeach; ?>
@@ -310,28 +369,45 @@ if ($editOsoba !== null) {
     </div>
   </div>
 
-  <?php foreach ($sekcjeLista as $s): ?>
+  <?php foreach ($sekcjeLista as $si => $s): ?>
     <div class="pmg-card">
-      <div class="pmg-card__head">
+      <?php $wylGs = $si === 0; $wylDs = $si === count($sekcjeLista) - 1; ?>
+      <div class="pmg-card__head" id="wiersz-s<?= (int) $s['id'] ?>">
         <div class="pmg-section-title">
           <h2 class="pmg-h2"><?= h($s['nazwa']) ?></h2>
           <span class="pmg-section-color"><span class="pmg-swatch pmg-swatch--<?= h($s['kolor']) ?>" aria-hidden="true"></span><?= h(KOLORY[$s['kolor']] ?? $s['kolor']) ?></span>
         </div>
-        <a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=czlonkowie&sekcja=<?= (int) $s['id'] ?>">Edytuj sekcję</a>
+        <div class="pmg-td-actions">
+          <form method="post">
+            <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="id" value="<?= (int) $s['id'] ?>">
+            <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="sekcja_gora"<?= $wylGs ? ' disabled' : '' ?><?= fokus_strzalki('s' . (int) $s['id'], 'gora', $wylGs, $wylDs) ?> aria-label="Przesuń wyżej: sekcja <?= h($s['nazwa']) ?>"><span aria-hidden="true">↑</span></button>
+            <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="sekcja_dol"<?= $wylDs ? ' disabled' : '' ?><?= fokus_strzalki('s' . (int) $s['id'], 'dol', $wylGs, $wylDs) ?> aria-label="Przesuń niżej: sekcja <?= h($s['nazwa']) ?>"><span aria-hidden="true">↓</span></button>
+          </form>
+          <a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=czlonkowie&sekcja=<?= (int) $s['id'] ?>">Edytuj sekcję</a>
+        </div>
       </div>
       <?php if ($s['opis'] !== ''): ?><p class="pmg-hint"><?= h($s['opis']) ?></p><?php endif; ?>
       <div class="pmg-table-wrap pmg-table-wrap--flush">
         <table class="pmg-table pmg-table--klikalna pmg-table--osoby">
           <caption class="pmg-vh">Sekcja <?= h($s['nazwa']) ?></caption>
-          <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Funkcja</th><th scope="col">E-mail</th><th scope="col" class="pmg-num">Kolejność</th><th scope="col">Status</th></tr></thead>
+          <thead><tr><th scope="col">Imię i nazwisko</th><th scope="col">Funkcja</th><th scope="col">E-mail</th><th scope="col">Kolejność</th><th scope="col">Status</th></tr></thead>
           <tbody>
-          <?php $st = pmg_db()->prepare('SELECT * FROM pmg_osoby WHERE sekcja_id = ? ORDER BY koordynator DESC, kolejnosc, nazwisko'); $st->execute([$s['id']]); $osoby = $st->fetchAll(); ?>
-          <?php foreach ($osoby as $o): ?>
-            <tr>
+          <?php $osoby = osoby_grupy((int) $s['id']); ?>
+          <?php foreach ($osoby as $i => $o):
+              // strzałka jest wyłączona na brzegu listy i na granicy koordynatorów / pozostałych (ich kolejność jest osobna)
+              $wylG = $i === 0 || (int) $osoby[$i - 1]['koordynator'] !== (int) $o['koordynator'];
+              $wylD = $i === count($osoby) - 1 || (int) $osoby[$i + 1]['koordynator'] !== (int) $o['koordynator']; ?>
+            <tr id="wiersz-o<?= (int) $o['id'] ?>">
               <td class="pmg-td-main" data-label="Imię i nazwisko"><a class="pmg-row-link" href="?m=czlonkowie&osoba=<?= (int) $o['id'] ?>"><?= h($o['imie'] . ' ' . $o['nazwisko']) ?></a></td>
               <td data-label="Funkcja"><?= h($o['funkcja']) ?></td>
               <td data-label="E-mail"><?= h($o['email']) ?></td>
-              <td class="pmg-num" data-label="Kolejność"><?= (int) $o['kolejnosc'] ?></td>
+              <td class="pmg-td-actions" data-label="Kolejność">
+                <form method="post">
+                  <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="id" value="<?= (int) $o['id'] ?>">
+                  <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="osoba_gora"<?= $wylG ? ' disabled' : '' ?><?= fokus_strzalki('o' . (int) $o['id'], 'gora', $wylG, $wylD) ?> aria-label="Przesuń wyżej: <?= h($o['imie'] . ' ' . $o['nazwisko']) ?>"><span aria-hidden="true">↑</span></button>
+                  <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="osoba_dol"<?= $wylD ? ' disabled' : '' ?><?= fokus_strzalki('o' . (int) $o['id'], 'dol', $wylG, $wylD) ?> aria-label="Przesuń niżej: <?= h($o['imie'] . ' ' . $o['nazwisko']) ?>"><span aria-hidden="true">↓</span></button>
+                </form>
+              </td>
               <td data-label="Status"><?php if ($o['koordynator']): ?><span class="pmg-chip pmg-chip--purple">Koordynator/-ka</span> <?php endif; ?><?php if (!$o['aktywna']): ?><span class="pmg-chip pmg-chip--neutral">Szkic</span><?php else: ?><span class="pmg-chip pmg-chip--success">Opublikowany</span><?php endif; ?></td>
             </tr>
           <?php endforeach; ?>
