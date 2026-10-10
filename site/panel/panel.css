@@ -175,7 +175,7 @@ a, button, summary, label, input, select, textarea {
   content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--pmg-gradient);
 }
 .pmg-topbar .pmg-brand { min-height: 44px; }
-.pmg-menu { position: relative; }
+.pmg-menu { position: static; } /* panel menu ma szerokość całego paska (.pmg-topbar), a nie samego przycisku „Menu” */
 .pmg-menu__summary {
   list-style: none; display: inline-flex; align-items: center; gap: 8px;
   min-height: 44px; padding: 0 12px; border-radius: var(--pmg-r);
