@@ -51,6 +51,10 @@ html.lenis, html.lenis body { height: auto; }
 /* ---------- Nawigacja → pływająca pigułka po przewinięciu (desktop) ---------- */
 @media (min-width: 961px) {
   .v2 .site-nav.is-scrolled { background-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  /* pigułka jest o 40 px niższa niż pełny pasek (logo 70→44, padding 36→12, margines +10): margin-bottom oddaje te 40 px,
+     więc miejsce headera w układzie strony się nie zmienia i scroll anchoring nie cofa przewinięcia pod próg is-scrolled */
+  .v2 .site-nav { transition: box-shadow var(--ease), background-color var(--ease), color var(--ease), transform var(--ease), margin var(--ease); }
+  .v2 .site-nav.is-scrolled { margin-bottom: 40px; }
   .v2 .site-nav .site-nav__inner { transition: padding var(--ease), max-width .45s ease, margin .45s ease, border-radius .45s ease, background-color var(--ease), box-shadow var(--ease); max-width: 100%; margin: 0 auto; }
   .v2 .site-nav.is-scrolled .site-nav__inner {
     max-width: 1120px; margin: 10px auto 0; padding: 6px 10px 6px 18px; border-radius: var(--radius-pill);
