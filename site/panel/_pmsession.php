@@ -395,7 +395,7 @@ if ($editPrelegent !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
       <h2 class="pmg-form-section__title" id="sek-zdjecie">Zdjęcie</h2>
       <label for="zdjecie">Zdjęcie 4:3 (JPG, PNG albo WebP)</label>
-      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Proporcje 4:3 (poziome), np. 1600 × 1200 px. Opcjonalne. Okno prelegenta pokazuje całe zdjęcie 4:3, a kafelek na liście jego środek w kwadracie — twarz ustaw pośrodku.</p>
+      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 4:3 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1600 × 1200 px. Opcjonalne. Okno prelegenta pokazuje całe zdjęcie 4:3, a kafelek na liście jego środek w kwadracie — twarz ustaw pośrodku.</p>
       <?php if (!empty($editPrelegent['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--4x3"><img src="../<?= h($editPrelegent['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>
