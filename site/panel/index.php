@@ -34,6 +34,7 @@ const ZDJECIA = ['aktualnosci' => [16 / 9, 1600], 'czlonkowie' => [1, 800], 'pms
 const MODULY = [
     'aktualnosci' => 'aktualnosci', 'czlonkowie' => 'czlonkowie', 'pmsession' => 'pmsession', 'podcast' => 'podcast', 'case' => 'case', 'tresci' => 'tresci',
     'konta' => 'admin', 'dziennik' => 'admin', 'ustawienia' => 'admin', 'kopia' => 'admin',
+    'konto' => 'konto', // „Moje konto”: każdy zalogowany (wyjątek w routerze)
 ];
 
 function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
@@ -77,6 +78,7 @@ function pmg_ikona($nazwa)
         'podcast' => 'M10 12.5a2.5 2.5 0 0 0 2.5-2.5V5.5a2.5 2.5 0 0 0-5 0V10a2.5 2.5 0 0 0 2.5 2.5Z M5.5 9.5a4.5 4.5 0 0 0 9 0 M10 14v3 M7.5 17h5',
         'czlonkowie' => 'M7.5 9.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M2.5 16.5a5 5 0 0 1 10 0 M13 3.75a2.75 2.75 0 0 1 0 5.5 M14.75 11.75a5 5 0 0 1 2.75 4.75',
         'pmsession' => 'M3.5 5.5A1.5 1.5 0 0 1 5 4h10a1.5 1.5 0 0 1 1.5 1.5v10A1.5 1.5 0 0 1 15 17H5a1.5 1.5 0 0 1-1.5-1.5Z M3.5 8.5h13 M7 2.5v3 M13 2.5v3 M7 12h2.5',
+        'konto' => 'M10 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M4.5 16.5a5.5 5.5 0 0 1 11 0',
         'konta' => 'M2.75 5.25a1.5 1.5 0 0 1 1.5-1.5h11.5a1.5 1.5 0 0 1 1.5 1.5v9.5a1.5 1.5 0 0 1-1.5 1.5H4.25a1.5 1.5 0 0 1-1.5-1.5Z M7.5 10a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z M4.75 13.5a2.9 2.9 0 0 1 5.5 0 M12.25 8h3 M12.25 11h3',
         'dziennik' => 'M3.5 10A6.5 6.5 0 1 0 5.4 5.4 M5.4 2.75V5.4H2.75 M10 6.5V10l2.5 1.75',
         'ustawienia' => 'M3.5 6.5h6 M13.5 6.5h3 M3.5 13.5h2 M9.5 13.5h7 M13.5 6.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z M9.5 13.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z',
@@ -404,7 +406,7 @@ if ($me && $m !== '') {
         $pmgNaglowek = ['tytul' => 'Nie ma takiego modułu', 'opis' => ''];
         $tresc = '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nieznany moduł.</p></div>'
             . '<p class="pmg-after-alert"><a class="pmg-btn pmg-btn--secondary" href="index.php">Wróć do strony startowej</a></p>';
-    } elseif (!wolno(MODULY[$m])) {
+    } elseif ($m !== 'konto' && !wolno(MODULY[$m])) {
         http_response_code(403);
         $pmgNaglowek = ['tytul' => 'Brak dostępu', 'opis' => ''];
         $tresc = '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nie masz dostępu do tego modułu. Jeśli to pomyłka, poproś administratora.</p></div>'
@@ -490,6 +492,7 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
           <span class="pmg-user__avatar" aria-hidden="true"><?= h(pmg_inicjaly($me['imie_nazwisko'])) ?></span>
           <span class="pmg-user__text"><span class="pmg-user__name"><?= h($me['imie_nazwisko']) ?></span><span class="pmg-user__role"><?= $me['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?></span></span>
         </div>
+        <a class="pmg-nav__item" href="?m=konto"<?= $m === 'konto' ? ' aria-current="page"' : '' ?>><?= pmg_ikona('konto') ?><span>Moje konto</span></a>
         <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="logout"><button class="pmg-nav__item pmg-nav__item--button" type="submit"><?= pmg_ikona('wyloguj') ?><span>Wyloguj</span></button></form>
       </div>
     </div>
@@ -504,6 +507,7 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
         <span class="pmg-user__avatar" aria-hidden="true"><?= h(pmg_inicjaly($me['imie_nazwisko'])) ?></span>
         <span class="pmg-user__text"><span class="pmg-user__name"><?= h($me['imie_nazwisko']) ?></span><span class="pmg-user__role"><?= $me['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?></span></span>
       </div>
+      <a class="pmg-nav__item" href="?m=konto"<?= $m === 'konto' ? ' aria-current="page"' : '' ?>><?= pmg_ikona('konto') ?><span>Moje konto</span></a>
       <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="logout"><button class="pmg-nav__item pmg-nav__item--button" type="submit"><?= pmg_ikona('wyloguj') ?><span>Wyloguj</span></button></form>
     </div>
   </div>
