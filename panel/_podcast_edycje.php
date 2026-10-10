@@ -50,9 +50,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$id]);
             $old = $st->fetch() ?: null;
         }
+        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+        if ($f['numer'] < 1 || $f['numer'] > 999) $bledyPol['numer'] = 'Numer edycji: liczba od 1 do 999.';
+        if ($f['lata'] === '') $bledyPol['lata'] = 'Podaj lata edycji, np. 2025/2026.';
         try {
-            if ($f['numer'] < 1 || $f['numer'] > 999) throw new RuntimeException('Numer edycji: liczba od 1 do 999.');
-            if ($f['lata'] === '') throw new RuntimeException('Podaj lata edycji, np. 2025/2026.');
+            if ($bledyPol) throw new BladPol();
             if ($id && $old) {
                 $st = pmg_db()->prepare('UPDATE pmg_podcast_edycje SET numer=?, lata=?, koordynator=?, mentorzy=?, zespol=?, opis=?, widoczna=? WHERE id=?');
                 $st->execute([$f['numer'], $f['lata'], $f['koordynator'], $f['mentorzy'], $f['zespol'], $f['opis'], $f['widoczna'], $id]);
@@ -70,8 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
             $error = $e->getCode() === '23000' ? 'Edycja o tym numerze już istnieje.' : 'Błąd zapisu.';
             $edit = array_merge($old ?: [], $f, ['id' => $id]);
-        } catch (RuntimeException $e) {
-            $error = $e->getMessage();
+        } catch (BladPol $e) { // błędy pól są już w $bledyPol
             $edit = array_merge($old ?: [], $f, ['id' => $id]);
         }
     }
@@ -117,10 +118,10 @@ if ($edit !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-edycja">
       <h2 class="pmg-form-section__title" id="sek-edycja">Edycja</h2>
       <label for="numer">Numer edycji</label>
-      <input type="number" id="numer" name="numer" min="1" max="999" value="<?= $v('numer') ?>" required>
+      <input type="number" id="numer" name="numer" min="1" max="999" value="<?= $v('numer') ?>" required<?= blad_pola('numer') ?>><?= komunikat_pola('numer') ?>
       <label for="lata">Lata</label>
       <p class="pmg-hint" id="lata_h">Np. 2025/2026. Na stronie pojawią się w nawiasie obok numeru.</p>
-      <input type="text" id="lata" name="lata" maxlength="20" value="<?= $v('lata') ?>" aria-describedby="lata_h" required>
+      <input type="text" id="lata" name="lata" maxlength="20" value="<?= $v('lata') ?>"<?= blad_pola('lata', 'lata_h') ?> required><?= komunikat_pola('lata') ?>
       <label for="opis">Opis edycji <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="opis_h">Krótki tekst pod nagłówkiem edycji, maksymalnie 600 znaków.</p>
       <textarea id="opis" name="opis" maxlength="600" aria-describedby="opis_h" data-pmg-licznik><?= $v('opis') ?></textarea>

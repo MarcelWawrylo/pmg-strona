@@ -70,24 +70,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$id]);
             $old = $st->fetch() ?: null;
         }
+        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+        if ($f['numer'] < 1 || $f['numer'] > 9999) $bledyPol['numer'] = 'Numer odcinka: liczba od 1 do 9999.';
+        if ($f['tytul'] === '') $bledyPol['tytul'] = 'Uzupełnij tytuł odcinka.';
+        if (!data_ok($f['data'])) $bledyPol['data'] = 'Podaj poprawną datę odcinka.';
+        if ($f['czas_min'] !== null && ($f['czas_min'] < 1 || $f['czas_min'] > 999)) $bledyPol['czas_min'] = 'Czas trwania: liczba minut od 1 do 999 albo puste pole.';
+        if ($f['opis'] === '') $bledyPol['opis'] = 'Uzupełnij opis odcinka.';
+        if ($f['edycja_id'] !== null) {
+            $st = pmg_db()->prepare('SELECT COUNT(*) FROM pmg_podcast_edycje WHERE id = ?');
+            $st->execute([$f['edycja_id']]);
+            if (!(int) $st->fetchColumn()) $bledyPol['edycja_id'] = 'Wybierz edycję podcastu z listy.';
+        } elseif ((int) pmg_db()->query('SELECT COUNT(*) FROM pmg_podcast_edycje')->fetchColumn() > 0) {
+            $bledyPol['edycja_id'] = 'Wybierz edycję podcastu, do której należy odcinek.';
+        }
+        $spotify = podcast_spotify_id($f['spotify_id']);
+        if ($spotify === null) $bledyPol['spotify_id'] = 'Spotify: wklej adres odcinka (https://open.spotify.com/episode/…) albo samo 22-znakowe ID odcinka.';
+        else $f['spotify_id'] = $spotify;
+        if ($f['apple_url'] !== '' && (!url_ok($f['apple_url']) || strpos($f['apple_url'], 'https://podcasts.apple.com/') !== 0)) $bledyPol['apple_url'] = 'Apple Podcasts: adres musi zaczynać się od https://podcasts.apple.com/ (albo zostaw puste pole).';
+        elseif (mb_strlen($f['apple_url']) > 400) $bledyPol['apple_url'] = 'Adres jest za długi.';
+        if ($f['youtube_url'] !== '' && (!url_ok($f['youtube_url']) || !preg_match('~^https://(www\.|music\.)?(youtube\.com|youtu\.be)/~', $f['youtube_url']))) $bledyPol['youtube_url'] = 'YouTube: adres musi zaczynać się od https://www.youtube.com/ albo https://youtu.be/ (albo zostaw puste pole).';
+        elseif (mb_strlen($f['youtube_url']) > 300) $bledyPol['youtube_url'] = 'Adres jest za długi.';
+        blad_opisu_zdjecia($old['zdjecie'] ?? null);
         try {
-            if ($f['tytul'] === '' || $f['opis'] === '') throw new RuntimeException('Uzupełnij tytuł i opis odcinka.');
-            if ($f['numer'] < 1 || $f['numer'] > 9999) throw new RuntimeException('Numer odcinka: liczba od 1 do 9999.');
-            if (!data_ok($f['data'])) throw new RuntimeException('Podaj poprawną datę odcinka.');
-            if ($f['czas_min'] !== null && ($f['czas_min'] < 1 || $f['czas_min'] > 999)) throw new RuntimeException('Czas trwania: liczba minut od 1 do 999 albo puste pole.');
-            if ($f['edycja_id'] !== null) {
-                $st = pmg_db()->prepare('SELECT COUNT(*) FROM pmg_podcast_edycje WHERE id = ?');
-                $st->execute([$f['edycja_id']]);
-                if (!(int) $st->fetchColumn()) throw new RuntimeException('Wybierz edycję podcastu z listy.');
-            } elseif ((int) pmg_db()->query('SELECT COUNT(*) FROM pmg_podcast_edycje')->fetchColumn() > 0) {
-                throw new RuntimeException('Wybierz edycję podcastu, do której należy odcinek.');
-            }
-            $spotify = podcast_spotify_id($f['spotify_id']);
-            if ($spotify === null) throw new RuntimeException('Spotify: wklej adres odcinka (https://open.spotify.com/episode/…) albo samo 22-znakowe ID odcinka.');
-            $f['spotify_id'] = $spotify;
-            if ($f['apple_url'] !== '' && (!url_ok($f['apple_url']) || strpos($f['apple_url'], 'https://podcasts.apple.com/') !== 0)) throw new RuntimeException('Apple Podcasts: adres musi zaczynać się od https://podcasts.apple.com/ (albo zostaw puste pole).');
-            if ($f['youtube_url'] !== '' && (!url_ok($f['youtube_url']) || !preg_match('~^https://(www\.|music\.)?(youtube\.com|youtu\.be)/~', $f['youtube_url']))) throw new RuntimeException('YouTube: adres musi zaczynać się od https://www.youtube.com/ albo https://youtu.be/ (albo zostaw puste pole).');
-            if (mb_strlen($f['apple_url']) > 400 || mb_strlen($f['youtube_url']) > 300) throw new RuntimeException('Adres jest za długi.');
+            if ($bledyPol) throw new BladPol();
             $stareZdjecie = $old['zdjecie'] ?? null;
             $f['zdjecie'] = zdjecie('podcast', $stareZdjecie);
             if ($f['zdjecie'] !== $stareZdjecie) $noweZdjecie = $f['zdjecie'];
@@ -111,8 +116,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             drop_image($noweZdjecie);
             $error = $e->getCode() === '23000' ? 'Odcinek o tym numerze już istnieje.' : 'Błąd zapisu.';
             $edit = array_merge($old ?: [], $f, ['id' => $id, 'zdjecie' => $old['zdjecie'] ?? null]);
-        } catch (RuntimeException $e) {
-            $error = $e->getMessage();
+        } catch (BladPliku $e) {
+            $bledyPol['zdjecie'] = $e->getMessage();
+            $edit = array_merge($old ?: [], $f, ['id' => $id]);
+        } catch (BladPol $e) { // błędy pól są już w $bledyPol
             $edit = array_merge($old ?: [], $f, ['id' => $id]);
         }
     }
@@ -165,28 +172,28 @@ if ($edit !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-odcinek">
       <h2 class="pmg-form-section__title" id="sek-odcinek">Odcinek</h2>
       <label for="numer">Numer odcinka</label>
-      <input type="number" id="numer" name="numer" min="1" max="9999" value="<?= $v('numer') ?>" required>
+      <input type="number" id="numer" name="numer" min="1" max="9999" value="<?= $v('numer') ?>" required<?= blad_pola('numer') ?>><?= komunikat_pola('numer') ?>
       <label for="tytul">Tytuł</label>
-      <input type="text" id="tytul" name="tytul" maxlength="200" value="<?= $v('tytul') ?>" required data-pmg-licznik>
+      <input type="text" id="tytul" name="tytul" maxlength="200" value="<?= $v('tytul') ?>" required data-pmg-licznik<?= blad_pola('tytul') ?>><?= komunikat_pola('tytul') ?>
       <label for="data">Data publikacji odcinka</label>
-      <input type="date" id="data" name="data" value="<?= $v('data') ?>" required>
+      <input type="date" id="data" name="data" value="<?= $v('data') ?>" required<?= blad_pola('data') ?>><?= komunikat_pola('data') ?>
       <label for="czas_min">Czas trwania w minutach <span class="pmg-opt">(opcjonalnie)</span></label>
-      <input type="number" id="czas_min" name="czas_min" min="1" max="999" value="<?= $v('czas_min') ?>">
+      <input type="number" id="czas_min" name="czas_min" min="1" max="999" value="<?= $v('czas_min') ?>"<?= blad_pola('czas_min') ?>><?= komunikat_pola('czas_min') ?>
       <label for="opis">Opis odcinka</label>
       <p class="pmg-hint" id="opis_h">Akapity oddzielaj pustą linią. Bez HTML — znaczniki pokażą się jako zwykły tekst.</p>
-      <textarea id="opis" name="opis" maxlength="5000" aria-describedby="opis_h" required><?= $v('opis') ?></textarea>
+      <textarea id="opis" name="opis" maxlength="5000"<?= blad_pola('opis', 'opis_h') ?> required><?= $v('opis') ?></textarea><?= komunikat_pola('opis') ?>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-edycja">
       <h2 class="pmg-form-section__title" id="sek-edycja">Edycja podcastu</h2>
       <label for="edycja_id">Do której edycji należy odcinek</label>
       <p class="pmg-hint" id="edycja_h">Na stronie odcinki są pogrupowane według edycji. Edycje dodasz w <a href="?m=podcast&amp;w=edycje">Edycje podcastu</a>.</p>
-      <select id="edycja_id" name="edycja_id" aria-describedby="edycja_h"<?= $edycjePodcastu ? ' required' : '' ?>>
+      <select id="edycja_id" name="edycja_id"<?= blad_pola('edycja_id', 'edycja_h') ?><?= $edycjePodcastu ? ' required' : '' ?>>
         <option value=""<?= $edycjePodcastu ? ' disabled' : '' ?><?= ($edit['edycja_id'] ?? null) === null ? ' selected' : '' ?>><?= $edycjePodcastu ? 'Wybierz edycję' : 'Brak edycji — najpierw dodaj edycję podcastu' ?></option>
         <?php foreach ($edycjePodcastu as $ep): ?>
           <option value="<?= (int) $ep['id'] ?>"<?= (int) ($edit['edycja_id'] ?? 0) === (int) $ep['id'] ? ' selected' : '' ?>>Edycja <?= (int) $ep['numer'] ?><?= $ep['lata'] !== '' ? ' (' . h($ep['lata']) . ')' : '' ?></option>
         <?php endforeach; ?>
-      </select>
+      </select><?= komunikat_pola('edycja_id') ?>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-goscie">
@@ -205,13 +212,13 @@ if ($edit !== null) {
       <h2 class="pmg-form-section__title" id="sek-linki">Odtwarzacze i linki</h2>
       <label for="spotify_id">Spotify <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="spotify_h">Wklej adres odcinka ze Spotify (Udostępnij → Kopiuj link do odcinka) albo samo ID. Z niego strona zbuduje odtwarzacz i przycisk.</p>
-      <input type="text" id="spotify_id" name="spotify_id" maxlength="200" value="<?= $v('spotify_id') ?>" aria-describedby="spotify_h">
+      <input type="text" id="spotify_id" name="spotify_id" maxlength="200" value="<?= $v('spotify_id') ?>"<?= blad_pola('spotify_id', 'spotify_h') ?>><?= komunikat_pola('spotify_id') ?>
       <label for="apple_url">Apple Podcasts <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="apple_h">Adres zaczynający się od https://podcasts.apple.com/</p>
-      <input type="text" id="apple_url" name="apple_url" maxlength="400" value="<?= $v('apple_url') ?>" aria-describedby="apple_h">
+      <input type="text" id="apple_url" name="apple_url" maxlength="400" value="<?= $v('apple_url') ?>"<?= blad_pola('apple_url', 'apple_h') ?>><?= komunikat_pola('apple_url') ?>
       <label for="youtube_url">YouTube <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="youtube_h">Adres zaczynający się od https://www.youtube.com/ albo https://youtu.be/</p>
-      <input type="text" id="youtube_url" name="youtube_url" maxlength="300" value="<?= $v('youtube_url') ?>" aria-describedby="youtube_h">
+      <input type="text" id="youtube_url" name="youtube_url" maxlength="300" value="<?= $v('youtube_url') ?>"<?= blad_pola('youtube_url', 'youtube_h') ?>><?= komunikat_pola('youtube_url') ?>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
@@ -221,10 +228,10 @@ if ($edit !== null) {
       <?php if (!empty($edit['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--16x9"><img src="../<?= h($edit['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>
-      <input type="file" id="zdjecie" name="zdjecie" accept="image/jpeg,image/png,image/webp" aria-describedby="zdjecie_h">
+      <input type="file" id="zdjecie" name="zdjecie" accept="image/jpeg,image/png,image/webp"<?= blad_pola('zdjecie', 'zdjecie_h') ?>><?= komunikat_pola('zdjecie') ?>
       <label for="zdjecie_alt">Opis zdjęcia (co na nim widać — dla osób niewidomych)</label>
       <p class="pmg-hint" id="zdjecie_alt_h">Wymagany, jeśli dodajesz lub masz już zapisane zdjęcie.</p>
-      <input type="text" id="zdjecie_alt" name="zdjecie_alt" maxlength="200" value="<?= $v('zdjecie_alt') ?>" aria-describedby="zdjecie_alt_h">
+      <input type="text" id="zdjecie_alt" name="zdjecie_alt" maxlength="200" value="<?= $v('zdjecie_alt') ?>"<?= blad_pola('zdjecie_alt', 'zdjecie_alt_h') ?>><?= komunikat_pola('zdjecie_alt') ?>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-publikacja">
