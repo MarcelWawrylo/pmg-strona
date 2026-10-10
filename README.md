@@ -81,7 +81,7 @@ Procedura wynika z kodu i nie była jeszcze uruchamiana na serwerze.
 
 Odhaczaj po sprawdzeniu na serwerze PWr (nie w repozytorium).
 
-- [ ] **HTTPS z HSTS i przekierowaniem.** Dopiero gdy certyfikat działa, odkomentuj blok w `.htaccess` (linie 33–40: HSTS w 33–35, przekierowanie na HTTPS w 36–40) w wersji wgranej na serwer. Sprawdź, że adres `http://` przechodzi na `https://`.
+- [ ] **HTTPS, HSTS i CSP.** Przekierowanie `http://` → `https://` robi serwer PWr (nie `.htaccess`); sprawdź, że nadal działa. HSTS (`max-age=31536000`, bez `includeSubDomains`) i Content-Security-Policy są włączone w `.htaccess`, CSP panelu w `panel/.htaccess` (ta sama wartość co w `panel/index.php`). Sprawdź `curl -sI` na `/`, `/kontakt.html` i `/panel/`: strona ma CSP z `frame-src https://www.google.com https://open.spotify.com`, panel ma CSP z `frame-ancestors 'none'`, oba mają `Strict-Transport-Security`. Po zmianie skryptu `<script>…classList.add('js')</script>` w plikach HTML trzeba przeliczyć jego hash `sha256-…` w `.htaccess`.
 - [ ] **`tmp_dir` w `pmg-config.php`.** Ustaw katalog poza katalogiem strony, tworzony z prawami 0700. Sprawdź, że wartość nie jest pusta, bo bez niej sesje i liczniki prób leżą we wspólnym `/tmp`.
 - [ ] **Usunięte `setup_haslo`.** Po założeniu pierwszego konta usuń linię `setup_haslo` z `pmg-config.php` (krok 3 powyżej). Sprawdź, że w panelu nie pojawia się już ekran „Pierwsze konto administratora”.
 - [ ] **`AllowOverride` dla `uploads/`.** Blokada PHP w `uploads/.htaccess` działa tylko, gdy Apache czyta `.htaccess` w tym katalogu. Ustal z administratorem serwera PWr, czy `AllowOverride` na to pozwala, i sprawdź, że plik `.php` w `uploads/` daje błąd 403.
