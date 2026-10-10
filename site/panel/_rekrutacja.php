@@ -1,8 +1,9 @@
 <?php
-// Moduł „Rekrutacja”: status naboru, link do formularza i krótki tekst na stronie Dołącz. Administrator i redaktor
-// z modułem 'rekrutacja' (np. osoba z HR). Klucze w pmg_ustawienia te same co dawniej w Ustawieniach strony, więc
+// Zakładka „Rekrutacja” strony Dołącz (?m=dolacz&w=rekrutacja): status naboru, link do formularza i krótki tekst. Administrator
+// i redaktor z uprawnieniem 'rekrutacja' (np. osoba z HR). Klucze w pmg_ustawienia te same co dawniej w Ustawieniach strony, więc
 // api/ustawienia.php i strona się nie zmieniają. Zapis zmienia tylko klucze z $pola — pozostałych ustawień nie rusza.
 defined('PMG_PANEL') || exit;
+if (!wolno('rekrutacja')) { http_response_code(403); exit; } // druga linia obrony (router dołącza ten plik tylko z tym uprawnieniem)
 
 $pola = ['rekrutacja_otwarta', 'rekrutacja_link', 'rekrutacja_tekst'];
 
@@ -30,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->commit();
         loguj('rekrutacja', 'edycja', null, 'Status, link i tekst rekrutacji');
         $_SESSION['flash'] = 'Zapisano. Zmiany widać na stronie w ciągu 5 minut.';
-        go('?m=rekrutacja');
+        go('?m=dolacz&w=rekrutacja');
     }
 }
 ?>

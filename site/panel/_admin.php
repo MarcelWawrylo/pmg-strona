@@ -1,6 +1,6 @@
 <?php
 // Moduł administracyjny (tylko rola 'admin'): konta, dziennik zmian, kopia bazy, ustawienia (2b).
-// Wołany wyłącznie z index.php (?m=konta|dziennik|kopia|ustawienia).
+// Wołany wyłącznie z index.php (?m=konta|dziennik|kopia|stopka; stopka tylko w zakładce „E-mail i media”).
 defined('PMG_PANEL') || exit;
 
 $sub = $_GET['m'] ?? '';
@@ -48,7 +48,7 @@ if ($sub === 'kopia') {
 // Pola tego formularza. Liczby "PM Session w liczbach" (pms_*) są też w białej liście USTAWIENIA
 // (lib.php), ale edytuje je moduł pmsession w etapie 2d — nie ten formularz. Rekrutację (rekrutacja_*) edytuje osobny
 // moduł _rekrutacja.php; zapis poniżej zmienia tylko klucze z $pola, więc kluczy rekrutacji nie rusza.
-if ($sub === 'ustawienia') {
+if ($sub === 'stopka') { // zakładka „E-mail i media” strony Stopka i kontakt (dawne Ustawienia strony; dziennik dalej pod 'ustawienia')
     $pola = ['instagram', 'facebook', 'linkedin', 'tiktok', 'email'];
 
     $st = pmg_db()->prepare('SELECT klucz, wartosc FROM pmg_ustawienia WHERE klucz IN (' . implode(',', array_fill(0, count($pola), '?')) . ')');
@@ -82,7 +82,7 @@ if ($sub === 'ustawienia') {
             $pdo->commit();
             loguj('ustawienia', 'edycja', null, 'Media społecznościowe i e-mail');
             $_SESSION['flash'] = 'Zapisano. Zmiany widać na stronie w ciągu 5 minut.';
-            go('?m=ustawienia');
+            go('?m=stopka');
         }
     }
     ?>
