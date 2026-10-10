@@ -128,7 +128,10 @@ $bledyPol = [];
 // oraz aria-invalid, gdy pole ma błąd. Bez podpowiedzi i bez błędu zwraca ''.
 function blad_pola($id, $podpowiedz = '')
 {
-    global $bledyPol;
+    global $bledyPol, $error;
+    // Formularz wraca z błędem, a w polu pliku (zdjecie, logo, hero) wybrano plik: przeglądarka go nie odtworzy, a zapis nic
+    // nie wgrał. Dopisujemy błąd przy tym polu (trafi też na listę „Popraw N pól”, bo alert powstaje po formularzu).
+    if (($bledyPol || $error !== '') && !isset($bledyPol[$id]) && !empty($_FILES[$id]['name'])) $bledyPol[$id] = 'Wybrane zdjęcie nie zostało zapisane — wybierz je ponownie.';
     $opis = trim((string) $podpowiedz . (isset($bledyPol[$id]) ? ' ' . $id . '_blad' : ''));
     return ($opis !== '' ? ' aria-describedby="' . h($opis) . '"' : '') . (isset($bledyPol[$id]) ? ' aria-invalid="true"' : '');
 }
