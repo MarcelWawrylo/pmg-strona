@@ -567,7 +567,7 @@ body.pmg--auth { background: var(--pmg-bg); }
 .pmg-gal__akcje { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .pmg-gal__tytul { font: 600 17px/1.35 var(--pmg-font-head); margin: 0 0 4px; }
 
-/* ===================== 24. Treści stron: zakładki i pola ===================== */
+/* ===================== 24. Zakładki stron (pasek .pmg-tabs z routera) i pola „Teksty na stronie” ===================== */
 .pmg-tabs { margin: 0 0 16px; }
 .pmg-tabs__list { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
 .pmg-tabs__tab {
