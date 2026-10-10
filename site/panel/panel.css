@@ -320,6 +320,8 @@ input[type=url]:focus-visible, input[type=search]:focus-visible, select:focus-vi
   border-color: var(--pmg-focus); outline: 3px solid var(--pmg-focus); outline-offset: 1px;
 }
 [aria-invalid="true"] { border-color: var(--pmg-danger); box-shadow: inset 0 0 0 1px var(--pmg-danger); }
+/* Komunikat błędu pod polem (kolor jak w alercie błędu: ≥ 4,5:1 na białym i na tle karty). */
+.pmg-field-error { font: 600 14px/1.45 var(--pmg-font-body); color: var(--pmg-error-text); margin: 6px 0 0; }
 input:disabled, select:disabled, textarea:disabled, input[readonly], textarea[readonly] {
   background: var(--pmg-bg); border-style: dashed; border-color: var(--pmg-border-strong);
 }
@@ -475,6 +477,8 @@ form.pmg-card { display: block; }
 .pmg-alert .pmg-icon { margin-top: 1px; }
 .pmg-alert__title { font: 700 15px/1.3 var(--pmg-font-body); margin: 0 0 4px; }
 .pmg-alert p { font: 400 15px/1.45 var(--pmg-font-body); margin: 0; }
+.pmg-alert__list { margin: 0; padding-left: 20px; font: 400 15px/1.45 var(--pmg-font-body); }
+.pmg-alert__list a { color: inherit; text-decoration: underline; }
 .pmg-alert:focus { outline: 3px solid var(--pmg-focus); outline-offset: 2px; }
 .pmg-alert--error { background: var(--pmg-error-bg); color: var(--pmg-error-text); border-left-color: var(--pmg-error-bar); }
 .pmg-alert--success { background: var(--pmg-success-bg); color: var(--pmg-success-text); border-left-color: var(--pmg-success-bar); }
