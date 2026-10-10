@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } elseif ($action === 'gora' || $action === 'dol') {
         $id = (int) ($_POST['id'] ?? 0);
-        if (przesun('pmg_case_edycje', CASE_ORDER, $id, $action)) loguj('case', 'kolejnosc', $id);
+        if (przesun('pmg_case_edycje', CASE_ORDER, $id, $action)) { $ed = case_edycja($id); loguj('case', 'kolejnosc', $id, $ed ? 'Edycja ' . $ed['numer'] . ': ' . $ed['nazwa'] : ''); }
         go('?m=case');
 
     } elseif ($action === 'delete') {
@@ -58,7 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->beginTransaction();
             try {
                 $pdo->prepare('DELETE FROM pmg_case_galeria WHERE edycja_id = ?')->execute([$id]);
-                $pdo->prepare('DELETE FROM pmg_case_edycje WHERE id = ?')->execute([$id]);
+                $usun = $pdo->prepare('DELETE FROM pmg_case_edycje WHERE id = ?');
+                $usun->execute([$id]);
+                $usunieto = $usun->rowCount() > 0; // A2 6.5: równoległe usunięcie mogło nas wyprzedzić
                 $pdo->commit();
             } catch (PDOException $e) {
                 if ($pdo->inTransaction()) $pdo->rollBack();
@@ -66,9 +68,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Nie udało się usunąć edycji (błąd bazy danych).';
                 $edit = $old;
             }
+            if ($error === '' && !$usunieto) {
+                $_SESSION['flash'] = 'Nie znaleziono tej edycji — nic nie usunięto.';
+                go('?m=case');
+            }
             if ($error === '') {
                 foreach ($pliki as $p) drop_image($p);
-                loguj('case', 'usuniecie', $id);
+                loguj('case', 'usuniecie', $id, 'Edycja ' . $old['numer'] . ': ' . $old['nazwa']);
                 $_SESSION['flash'] = 'Edycja usunięta.';
                 go('?m=case');
             }
@@ -120,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $nowe = [];
                 if ($f['hero'] !== $stareHero) drop_image($stareHero);
                 if ($f['logo'] !== $stareLogo) drop_image($stareLogo);
-                loguj('case', 'edycja', $id);
+                loguj('case', 'edycja', $id, 'Edycja ' . $f['numer'] . ': ' . $f['nazwa']);
             } else {
                 // Nowa edycja ląduje na początku listy (w hubie najnowsza edycja jest pierwsza).
                 $kolejnosc = (int) pmg_db()->query('SELECT COALESCE(MIN(kolejnosc), 1) - 1 FROM pmg_case_edycje')->fetchColumn();
@@ -128,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $st->execute(array_merge($wartosci, [$kolejnosc]));
                 $nowe = [];
                 $id = (int) pmg_db()->lastInsertId();
-                loguj('case', 'dodanie', $id);
+                loguj('case', 'dodanie', $id, 'Edycja ' . $f['numer'] . ': ' . $f['nazwa']);
             }
             $_SESSION['flash'] = $f['widoczna'] ? 'Zapisano. Edycja jest widoczna na stronie. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano. Edycja jest ukryta na stronie.';
             go('?m=case&id=' . $id);
@@ -171,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 pmg_db()->prepare('INSERT INTO pmg_case_galeria (edycja_id, zdjecie, pelne, podpis, kolejnosc) VALUES (?,?,NULL,?,?)')
                     ->execute([$eid, $plik, $podpis, (int) $kol->fetchColumn()]);
                 $noweGal = null;
-                loguj('case', 'galeria', $eid);
+                loguj('case', 'galeria', $eid, 'Edycja ' . $ed['numer'] . ': ' . $ed['nazwa']);
                 $_SESSION['flash'] = 'Zdjęcie dodane do galerii.';
                 go($wroc);
             } elseif (!$g) {
@@ -190,17 +196,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     pmg_db()->prepare('UPDATE pmg_case_galeria SET podpis = ? WHERE id = ?')->execute([$podpis, $gid]);
                 }
-                loguj('case', 'galeria', $eid);
+                loguj('case', 'galeria', $eid, 'Edycja ' . $ed['numer'] . ': ' . $ed['nazwa']);
                 $_SESSION['flash'] = 'Zapisano zdjęcie.';
                 go($wroc);
             } elseif ($action === 'gal_gora' || $action === 'gal_dol') {
-                if (przesun('pmg_case_galeria', 'kolejnosc, id', $gid, $action === 'gal_gora' ? 'gora' : 'dol', 'edycja_id', $eid)) loguj('case', 'galeria', $eid);
+                if (przesun('pmg_case_galeria', 'kolejnosc, id', $gid, $action === 'gal_gora' ? 'gora' : 'dol', 'edycja_id', $eid)) loguj('case', 'galeria', $eid, 'Edycja ' . $ed['numer'] . ': ' . $ed['nazwa']);
                 go($wroc);
             } elseif ($action === 'gal_usun') {
-                pmg_db()->prepare('DELETE FROM pmg_case_galeria WHERE id = ?')->execute([$gid]);
+                $usun = pmg_db()->prepare('DELETE FROM pmg_case_galeria WHERE id = ?');
+                $usun->execute([$gid]);
+                if ($usun->rowCount() === 0) throw new RuntimeException('Nie znaleziono zdjęcia — nic nie usunięto.'); // A2 6.5
                 drop_image($g['zdjecie']);
                 drop_image($g['pelne']);
-                loguj('case', 'galeria', $eid);
+                loguj('case', 'galeria', $eid, 'Edycja ' . $ed['numer'] . ': ' . $ed['nazwa']);
                 $_SESSION['flash'] = 'Zdjęcie usunięte z galerii.';
                 go($wroc);
             }

@@ -56,7 +56,7 @@ Katalog domowy konta mieści się zwykle w `open_basedir`, więc PHP może tam c
 1. Utwórz `pmg-config.php` (patrz wyżej): dane bazy, adres nadawcy w domenie serwera, `tmp_dir`, oraz losowe hasło instalacyjne `setup_haslo` (min. 12 znaków, najlepiej 20+) — bez niego ekran pierwszego konta nie przyjmie zgłoszenia. Plik nie trafia do repozytorium.
 2. Od razu po wgraniu wejdź na `…/panel/`. Przy pustej bazie kont panel pokaże **„Pierwsze konto administratora”**: hasło instalacyjne, imię i nazwisko, e-mail (login), hasło (min. 12 znaków). Tabele w bazie tworzą się same przy pierwszym wejściu do panelu (istniejące wpisy zostają); wersja schematu jest zapisana w tabeli ustawień, więc kolejne wejścia nie wykonują już migracji. **Po każdej aktualizacji strony wejdź do panelu raz** — tylko wtedy powstają nowe tabele i kolumny (np. odcinki podcastu), bo publiczne API ich nie tworzy.
 3. Po założeniu konta usuń linię `setup_haslo` z pliku konfiguracji.
-4. Kolejne osoby: **Konta → + Nowe konto** (rola: administrator albo redaktor z wybranymi modułami: Aktualności, Członkowie, PM Session, Podcast, Case Koła, Rekrutacja; „Treści stron” ma tylko administrator). Panel pokaże link ważny 72 h — skopiuj go i przekaż tej osobie (np. na Messengerze). Zapomniane hasło = **Resetuj hasło** i nowy link. Kont się nie usuwa, tylko blokuje. Własne hasło każdy zmienia w **Moje konto**.
+4. Kolejne osoby: **Konta → + Nowe konto** (rola: administrator albo redaktor z wybranymi modułami: Aktualności, Członkowie, PM Session, Podcast, Case Koła, Rekrutacja; „Treści stron” ma tylko administrator). Panel pokaże link ważny 24 h — skopiuj go i przekaż tej osobie (np. na Messengerze). Zapomniane hasło = **Resetuj hasło** i nowy link. Kont się nie usuwa, tylko blokuje. Własne hasło każdy zmienia w **Moje konto**.
 5. Kopia bazy: **Kopia bazy danych** w menu panelu → przycisk „Pobierz kopię bazy” pobiera plik `.sql` (zawiera e-maile i skróty haseł — przechowuj bezpiecznie; nie zawiera zdjęć z `uploads/`). Pełna kopia kończy się linią `-- KONIEC KOPII` — jeśli jej nie ma, pobieranie zostało przerwane. Przywracanie: import w phpMyAdmin.
 
 ### Jedyny administrator bez hasła (procedura awaryjna)
@@ -106,7 +106,7 @@ Zmiany zapisane w panelu widać na stronie w ciągu 5 minut (pamięć podręczna
 
 Cała zawartość `site/` **oprócz**: `graphify-out/` (narzędzie lokalne), `README.md` (opcjonalnie). Na serwerze **nie nadpisuj ani nie usuwaj**: `pmg-config.php` (leży poza katalogiem strony) albo awaryjnie `api/config.php`, oraz `uploads/` (zdjęcia z panelu).
 
-Po wgraniu sprawdź ręcznie (lokalny serwer PHP ignoruje `.htaccess`, więc tego nie dało się przetestować): `…/api/lib.php` i `…/uploads/aktualnosci/x.php` → błąd 403; nieistniejący adres → strona 404 w stylu strony; nagłówek `X-Robots-Tag: noindex` na `dev.`.
+Po wgraniu sprawdź ręcznie (lokalny serwer PHP ignoruje `.htaccess`, więc tego nie dało się przetestować): `…/api/lib.php`, `…/api/config.example.php`, `…/api/dane-startowe.php`, `…/api/seed-podcast.php`, `…/api/tresci-pola.php` i `…/uploads/aktualnosci/x.php` → błąd 403, a `…/api/aktualnosci.php` → dane JSON (publiczne endpointy działają); nieistniejący adres → strona 404 w stylu strony; nagłówek `X-Robots-Tag: noindex` na `dev.`.
 
 ## Zasady przy zmianach
 

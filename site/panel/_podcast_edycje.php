@@ -11,16 +11,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'gora' || $action === 'dol') {
         $id = (int) ($_POST['id'] ?? 0);
-        if (przesun('pmg_podcast_edycje', PODCAST_EDYCJE_ORDER, $id, $action)) loguj('podcast', 'kolejnosc', $id);
+        if (przesun('pmg_podcast_edycje', PODCAST_EDYCJE_ORDER, $id, $action)) loguj('podcast', 'kolejnosc', $id, nazwa_rekordu("SELECT CONCAT('Edycja podcastu ', numer, ' (', lata, ')') FROM pmg_podcast_edycje WHERE id = ?", $id));
         go('?m=podcast&w=edycje');
 
     } elseif ($action === 'delete') {
         $id = (int) ($_POST['id'] ?? 0);
+        $nazwa = nazwa_rekordu("SELECT CONCAT('Edycja podcastu ', numer, ' (', lata, ')') FROM pmg_podcast_edycje WHERE id = ?", $id); // do dziennika, zanim wiersz zniknie
         // Jedno zapytanie: edycja z przypisanymi odcinkami nie zostanie usunięta (także gdy odcinek dodano w tej chwili).
         $st = pmg_db()->prepare('DELETE FROM pmg_podcast_edycje WHERE id = ? AND NOT EXISTS (SELECT 1 FROM pmg_odcinki WHERE edycja_id = ?)');
         $st->execute([$id, $id]);
         if ($st->rowCount() > 0) {
-            loguj('podcast', 'usuniecie', $id);
+            loguj('podcast', 'usuniecie', $id, $nazwa);
             $_SESSION['flash'] = 'Edycja usunięta.';
             go('?m=podcast&w=edycje');
         }
@@ -55,14 +56,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($id && $old) {
                 $st = pmg_db()->prepare('UPDATE pmg_podcast_edycje SET numer=?, lata=?, koordynator=?, mentorzy=?, zespol=?, opis=?, widoczna=? WHERE id=?');
                 $st->execute([$f['numer'], $f['lata'], $f['koordynator'], $f['mentorzy'], $f['zespol'], $f['opis'], $f['widoczna'], $id]);
-                loguj('podcast', 'edycja', $id);
+                loguj('podcast', 'edycja', $id, 'Edycja podcastu ' . $f['numer'] . ' (' . $f['lata'] . ')');
             } else {
                 // Nowa edycja ląduje na górze listy (na stronie najnowsza edycja jest pierwsza).
                 $kolejnosc = (int) pmg_db()->query('SELECT COALESCE(MIN(kolejnosc), 1) - 1 FROM pmg_podcast_edycje')->fetchColumn();
                 $st = pmg_db()->prepare('INSERT INTO pmg_podcast_edycje (numer, lata, koordynator, mentorzy, zespol, opis, kolejnosc, widoczna) VALUES (?,?,?,?,?,?,?,?)');
                 $st->execute([$f['numer'], $f['lata'], $f['koordynator'], $f['mentorzy'], $f['zespol'], $f['opis'], $kolejnosc, $f['widoczna']]);
                 $id = (int) pmg_db()->lastInsertId();
-                loguj('podcast', 'dodanie', $id);
+                loguj('podcast', 'dodanie', $id, 'Edycja podcastu ' . $f['numer'] . ' (' . $f['lata'] . ')');
             }
             $_SESSION['flash'] = $f['widoczna'] ? 'Zapisano. Edycja jest widoczna na stronie.' : 'Zapisano. Edycja jest ukryta na stronie (razem z jej odcinkami).';
             go('?m=podcast&w=edycje');

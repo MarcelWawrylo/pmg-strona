@@ -77,8 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $wartosciForm = $nowe;
             }
             if ($error === '') {
-                if ($zmienione) loguj('tresci', 'edycja');
-                if ($przywrocone) loguj('tresci', 'przywrocenie');
+                if ($zmienione) loguj('tresci', 'edycja', null, $zakladki[$z]['etykieta'] . ': ' . pmg_odmiana($zmienione, 'tekst', 'teksty', 'tekstów'));
+                if ($przywrocone) loguj('tresci', 'przywrocenie', null, $zakladki[$z]['etykieta'] . ': ' . pmg_odmiana($przywrocone, 'tekst', 'teksty', 'tekstów'));
                 $_SESSION['flash'] = ($zmienione || $przywrocone)
                     ? 'Zapisano' . ($zmienione ? ': zmienione teksty — ' . $zmienione : '') . ($przywrocone ? ($zmienione ? ', ' : ': ') . 'przywrócone teksty ze strony — ' . $przywrocone : '') . '. Zmiany widać na stronie w ciągu 5 minut.'
                     : 'Nic nie zmieniono.';

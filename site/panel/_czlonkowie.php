@@ -12,10 +12,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'sekcja_usun') {
         $id = (int) ($_POST['id'] ?? 0);
         try {
-            pmg_db()->prepare('DELETE FROM pmg_sekcje WHERE id = ?')->execute([$id]);
-            loguj('czlonkowie', 'usuniecie', $id);
-            $_SESSION['flash'] = 'Sekcja usunięta.';
-            go('?m=czlonkowie');
+            $st = pmg_db()->prepare('SELECT nazwa FROM pmg_sekcje WHERE id = ?'); // nazwa do dziennika, zanim wiersz zniknie
+            $st->execute([$id]);
+            $nazwa = (string) $st->fetchColumn();
+            $st = pmg_db()->prepare('DELETE FROM pmg_sekcje WHERE id = ?');
+            $st->execute([$id]);
+            if ($st->rowCount() > 0) { // A2 6.5: bez wpisu w dzienniku, gdy nic nie usunięto
+                loguj('czlonkowie', 'usuniecie', $id, 'Sekcja ' . $nazwa);
+                $_SESSION['flash'] = 'Sekcja usunięta.';
+                go('?m=czlonkowie');
+            }
+            $error = 'Nie znaleziono sekcji — nic nie usunięto.';
         } catch (PDOException $e) {
             $error = $e->getCode() === '23000' ? 'W sekcji są osoby — przenieś je najpierw.' : 'Błąd usuwania.';
         }
@@ -35,12 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($id) {
                 pmg_db()->prepare('UPDATE pmg_sekcje SET nazwa=?, kolor=?, opis=?, kolejnosc=? WHERE id=?')
                     ->execute([$f['nazwa'], $f['kolor'], $f['opis'], $f['kolejnosc'], $id]);
-                loguj('czlonkowie', 'edycja', $id);
+                loguj('czlonkowie', 'edycja', $id, 'Sekcja ' . $f['nazwa']);
             } else {
                 pmg_db()->prepare('INSERT INTO pmg_sekcje (nazwa, kolor, opis, kolejnosc) VALUES (?,?,?,?)')
                     ->execute([$f['nazwa'], $f['kolor'], $f['opis'], $f['kolejnosc']]);
                 $id = (int) pmg_db()->lastInsertId();
-                loguj('czlonkowie', 'dodanie', $id);
+                loguj('czlonkowie', 'dodanie', $id, 'Sekcja ' . $f['nazwa']);
             }
             $_SESSION['flash'] = 'Zapisano.';
             go('?m=czlonkowie');
@@ -50,14 +57,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---------- Osoby ----------
     } elseif ($action === 'osoba_usun') {
         $id = (int) ($_POST['id'] ?? 0);
-        $st = pmg_db()->prepare('SELECT zdjecie FROM pmg_osoby WHERE id = ?');
+        $st = pmg_db()->prepare('SELECT zdjecie, imie, nazwisko FROM pmg_osoby WHERE id = ?');
         $st->execute([$id]);
-        $img = $st->fetchColumn();
-        pmg_db()->prepare('DELETE FROM pmg_osoby WHERE id = ?')->execute([$id]);
-        drop_image($img ?: null);
-        loguj('czlonkowie', 'usuniecie', $id);
-        $_SESSION['flash'] = 'Osoba usunięta.';
-        go('?m=czlonkowie');
+        $osoba = $st->fetch();
+        $img = $osoba ? $osoba['zdjecie'] : null;
+        $st = pmg_db()->prepare('DELETE FROM pmg_osoby WHERE id = ?');
+        $st->execute([$id]);
+        if ($st->rowCount() > 0) { // A2 6.5: bez wpisu w dzienniku, gdy nic nie usunięto
+            drop_image($img ?: null);
+            loguj('czlonkowie', 'usuniecie', $id, $osoba['imie'] . ' ' . $osoba['nazwisko']);
+            $_SESSION['flash'] = 'Osoba usunięta.';
+            go('?m=czlonkowie');
+        }
+        $error = 'Nie znaleziono osoby — nic nie usunięto.';
     } elseif ($action === 'osoba_zapisz') {
         $id = (int) ($_POST['id'] ?? 0);
         $sekcjaRaw = trim((string) ($_POST['sekcja_id'] ?? ''));
@@ -101,13 +113,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $st->execute([$f['imie'], $f['nazwisko'], $f['funkcja'], $f['sekcja_id'], $f['koordynator'], $f['email'], $f['linkedin'], $f['zdjecie'], $f['zdjecie_alt'], $f['kolejnosc'], $f['aktywna'], $id]);
                     $noweZdjecie = null;
                     if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
-                    loguj('czlonkowie', 'edycja', $id);
+                    loguj('czlonkowie', 'edycja', $id, $f['imie'] . ' ' . $f['nazwisko']);
                 } else {
                     $st = pmg_db()->prepare('INSERT INTO pmg_osoby (imie, nazwisko, funkcja, sekcja_id, koordynator, email, linkedin, zdjecie, zdjecie_alt, kolejnosc, aktywna) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
                     $st->execute([$f['imie'], $f['nazwisko'], $f['funkcja'], $f['sekcja_id'], $f['koordynator'], $f['email'], $f['linkedin'], $f['zdjecie'], $f['zdjecie_alt'], $f['kolejnosc'], $f['aktywna']]);
                     $noweZdjecie = null;
                     $id = (int) pmg_db()->lastInsertId();
-                    loguj('czlonkowie', 'dodanie', $id);
+                    loguj('czlonkowie', 'dodanie', $id, $f['imie'] . ' ' . $f['nazwisko']);
                 }
                 $_SESSION['flash'] = 'Zapisano.';
                 go('?m=czlonkowie');

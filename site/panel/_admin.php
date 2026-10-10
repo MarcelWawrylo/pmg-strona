@@ -80,7 +80,7 @@ if ($sub === 'ustawienia') {
             $upd = $pdo->prepare('REPLACE INTO pmg_ustawienia (klucz, wartosc) VALUES (?,?)');
             foreach ($pola as $k) $upd->execute([$k, $wejscie[$k]]);
             $pdo->commit();
-            loguj('ustawienia', 'edycja');
+            loguj('ustawienia', 'edycja', null, 'Media społecznościowe i e-mail');
             $_SESSION['flash'] = 'Zapisano. Zmiany widać na stronie w ciągu 5 minut.';
             go('?m=ustawienia');
         }
@@ -129,9 +129,10 @@ if ($sub === 'ustawienia') {
 if ($sub === 'dziennik') {
     // Retencja (RODO: imię i nazwisko + akcje): wpisy starsze niż 12 miesięcy znikają przy wejściu do dziennika.
     pmg_db()->exec('DELETE FROM pmg_dziennik WHERE kiedy < NOW() - INTERVAL 12 MONTH');
+    // LEFT JOIN: wpis bez konta (nieudane logowanie na nieznany adres) też jest widoczny — jako „Nieznana osoba”.
     $wpisy = pmg_db()->query(
-        'SELECT d.kiedy, d.modul, d.akcja, d.rekord_id, u.imie_nazwisko
-         FROM pmg_dziennik d JOIN pmg_uzytkownicy u ON u.id = d.uzytkownik_id
+        'SELECT d.kiedy, d.modul, d.akcja, d.rekord_id, d.opis, u.imie_nazwisko
+         FROM pmg_dziennik d LEFT JOIN pmg_uzytkownicy u ON u.id = d.uzytkownik_id
          ORDER BY d.id DESC LIMIT 200'
     )->fetchAll();
     // Etykiety PL akcji dziennika — tylko widok; nieznany klucz pokazuje surową wartość.
@@ -139,25 +140,30 @@ if ($sub === 'dziennik') {
         'dodanie' => 'Dodanie', 'edycja' => 'Edycja', 'usuniecie' => 'Usunięcie',
         'zaproszenie' => 'Zaproszenie', 'blokada' => 'Blokada', 'odblokowanie' => 'Odblokowanie',
         'reset' => 'Reset hasła', 'haslo' => 'Zmiana własnego hasła', 'biezaca' => 'Ustawienie bieżącej edycji', 'pobranie' => 'Pobranie kopii', 'kolejnosc' => 'Zmiana kolejności', 'import' => 'Wczytanie treści ze strony', 'przywrocenie' => 'Przywrócenie tekstu ze strony',
+        'galeria' => 'Zmiana galerii', 'logowanie' => 'Logowanie', 'nieudane_logowanie' => 'Nieudane logowanie', 'haslo_z_linku' => 'Ustawienie hasła z linku',
     ];
+    $modulyDziennika = $etykietyModulow + ['konto' => 'Konto']; // 'konto' = logowania i hasło z linku
     ?>
     <div class="pmg-table-wrap">
       <table class="pmg-table">
-        <caption class="pmg-vh">Dziennik zmian</caption>
-        <thead><tr>
-          <th scope="col">Kiedy</th><th scope="col">Kto</th><th scope="col">Moduł</th><th scope="col">Akcja</th><th scope="col" class="pmg-num">Rekord</th>
-        </tr></thead>
+        <caption class="pmg-vh">Dziennik zmian, od najnowszych</caption>
+        <thead><tr><th scope="col">Zdarzenie</th></tr></thead>
         <tbody>
         <?php foreach ($wpisy as $w): ?>
+          <?php
+            // Jedno zdanie: „Kto — Czynność: „co” · Moduł · kiedy”. Starsze wpisy (sprzed schematu 10) nie mają opisu — wtedy #id.
+            $co = $w['opis'] !== '' ? '„' . $w['opis'] . '”' : ($w['rekord_id'] !== null ? '#' . (int) $w['rekord_id'] : '');
+            $kiedy = strtotime((string) $w['kiedy']);
+          ?>
           <tr>
-            <td class="pmg-td-main" data-label="Kiedy"><time datetime="<?= h($w['kiedy']) ?>"><?= h($w['kiedy']) ?></time></td>
-            <td data-label="Kto"><?= h($w['imie_nazwisko']) ?></td>
-            <td data-label="Moduł"><?= h($etykietyModulow[$w['modul']] ?? $w['modul']) ?></td>
-            <td data-label="Akcja"><?= h($pmgAkcjeDziennika[$w['akcja']] ?? $w['akcja']) ?></td>
-            <td class="pmg-num" data-label="Rekord"><?= $w['rekord_id'] !== null ? (int) $w['rekord_id'] : '—' ?></td>
+            <td data-label="Zdarzenie">
+              <strong><?= h($w['imie_nazwisko'] ?? 'Nieznana osoba') ?></strong> — <?= h($pmgAkcjeDziennika[$w['akcja']] ?? $w['akcja']) ?><?= $co !== '' ? ': ' . h($co) : '' ?>
+              · <?= h($modulyDziennika[$w['modul']] ?? $w['modul']) ?>
+              · <time datetime="<?= h(date('Y-m-d\TH:i:s', $kiedy)) ?>"><?= h(date('d.m.Y H:i', $kiedy)) ?></time>
+            </td>
           </tr>
         <?php endforeach; ?>
-        <?php if (!$wpisy): ?><tr><td colspan="5" class="pmg-empty">Brak wpisów.</td></tr><?php endif; ?>
+        <?php if (!$wpisy): ?><tr><td class="pmg-empty">Brak wpisów.</td></tr><?php endif; ?>
         </tbody>
       </table>
     </div>
@@ -173,15 +179,30 @@ const MODULY_REDAKTORA = ['aktualnosci' => 'Aktualności', 'czlonkowie' => 'Czł
 const KONTO_WLASNE = 'Nie możesz zmienić roli, zablokować ani zresetować własnego konta. Hasło zmienisz w „Moje konto”.';
 
 // Ilu jest innych aktywnych administratorów z ustawionym hasłem (poza kontem $id) — chroni ostatniego admina.
+// FOR UPDATE: w transakcji (A2 1.5) czyta najnowszy zatwierdzony stan, a nie stary obraz bazy.
 function inni_aktywni_admini($id)
 {
-    $st = pmg_db()->prepare("SELECT COUNT(*) FROM pmg_uzytkownicy WHERE rola='admin' AND aktywny=1 AND haslo IS NOT NULL AND id <> ?");
+    $st = pmg_db()->prepare("SELECT COUNT(*) FROM pmg_uzytkownicy WHERE rola='admin' AND aktywny=1 AND haslo IS NOT NULL AND id <> ? FOR UPDATE");
     $st->execute([$id]);
     return (int) $st->fetchColumn();
 }
 
+// A2 1.5: na początku transakcji blokuje wiersze administratorów i konta $id jednym zapytaniem (zawsze w kolejności id), więc
+// dwa równoczesne żądania (np. dwóch adminów degraduje się nawzajem) czekają na siebie, zamiast oba przejść sprawdzenie
+// „ostatniego administratora”. Blokada trwa do commit/rollBack.
+function zablokuj_adminow($id)
+{
+    $st = pmg_db()->prepare("SELECT id FROM pmg_uzytkownicy WHERE rola = 'admin' OR id = ? ORDER BY id FOR UPDATE");
+    $st->execute([$id]);
+    $st->fetchAll();
+}
+
+// A2 3.18: adres panelu z konfiguracji ('adres_panelu'), a nie z nagłówka Host żądania. Gdy klucza nie ma (albo nie zaczyna się
+// od http:// lub https://), link składamy jak dawniej: protokół i Host bieżącego żądania + katalog panelu.
 function link_zaproszenia($token)
 {
+    $adres = trim((string) (pmg_config()['adres_panelu'] ?? ''));
+    if (preg_match('~^https?://~', $adres)) return rtrim($adres, '/') . '/?t=' . $token;
     return ($GLOBALS['https'] ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '') . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/?t=' . $token;
 }
 
@@ -209,10 +230,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($action === 'zapros') {
             try {
                 $token = bin2hex(random_bytes(32));
-                $st = pmg_db()->prepare('INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, rola, moduly, aktywny, token_hash, token_do) VALUES (?,?,?,?,1,?,DATE_ADD(NOW(), INTERVAL 72 HOUR))');
+                $st = pmg_db()->prepare('INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, rola, moduly, aktywny, token_hash, token_do) VALUES (?,?,?,?,1,?,DATE_ADD(NOW(), INTERVAL 24 HOUR))'); // A2 3.17: link ważny 24 h
                 $st->execute([$imie, $email, $rola, $moduly, hash('sha256', $token)]);
                 $nowyId = (int) pmg_db()->lastInsertId();
-                loguj('konta', 'zaproszenie', $nowyId);
+                loguj('konta', 'zaproszenie', $nowyId, $imie);
                 $_SESSION['flash'] = 'Konto utworzone.';
                 $_SESSION['flash_link'] = link_zaproszenia($token);
                 go('?m=konta');
@@ -220,63 +241,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = $e->getCode() === '23000' ? 'Konto z tym e-mailem już istnieje.' : 'Błąd zapisu.';
             }
         } else { // edytuj
-            $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ?');
-            $st->execute([$id]);
-            $target = $st->fetch();
-            if (!$target) {
-                $error = 'Nie znaleziono konta.';
-            } else {
-                $byl_aktywnym_adminem = $target['rola'] === 'admin' && (int) $target['aktywny'] === 1 && $target['haslo'] !== null;
-                if ($byl_aktywnym_adminem && $rola !== 'admin' && inni_aktywni_admini($id) === 0) {
-                    $error = 'Nie można zdegradować ostatniego aktywnego administratora.';
+            $pdo = pmg_db();
+            $pdo->beginTransaction(); // A2 1.5: sprawdzenie ostatniego admina i zmiana w jednej transakcji z blokadą wierszy
+            try {
+                zablokuj_adminow($id);
+                $st = $pdo->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ? FOR UPDATE');
+                $st->execute([$id]);
+                $target = $st->fetch();
+                if (!$target) {
+                    $error = 'Nie znaleziono konta.';
                 } else {
-                    try {
-                        $st2 = pmg_db()->prepare('UPDATE pmg_uzytkownicy SET imie_nazwisko=?, email=?, rola=?, moduly=? WHERE id=?');
+                    $byl_aktywnym_adminem = $target['rola'] === 'admin' && (int) $target['aktywny'] === 1 && $target['haslo'] !== null;
+                    if ($byl_aktywnym_adminem && $rola !== 'admin' && inni_aktywni_admini($id) === 0) {
+                        $error = 'Nie można zdegradować ostatniego aktywnego administratora.';
+                    } else {
+                        $st2 = $pdo->prepare('UPDATE pmg_uzytkownicy SET imie_nazwisko=?, email=?, rola=?, moduly=? WHERE id=?');
                         $st2->execute([$imie, $email, $rola, $moduly, $id]);
-                        loguj('konta', 'edycja', $id);
-                        $_SESSION['flash'] = 'Zapisano.';
-                        go('?m=konta');
-                    } catch (PDOException $e) {
-                        $error = $e->getCode() === '23000' ? 'Konto z tym e-mailem już istnieje.' : 'Błąd zapisu.';
                     }
                 }
+                if ($error === '') $pdo->commit(); else $pdo->rollBack();
+            } catch (PDOException $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                $error = $e->getCode() === '23000' ? 'Konto z tym e-mailem już istnieje.' : 'Błąd zapisu.';
+            }
+            if ($error === '') {
+                loguj('konta', 'edycja', $id, $imie);
+                $_SESSION['flash'] = 'Zapisano.';
+                go('?m=konta');
             }
         }
         if ($error !== '') $edit = ['id' => $id, 'imie_nazwisko' => $imie, 'email' => $email, 'rola' => $rola, 'moduly' => $moduly];
 
     } elseif ($action === 'blokuj' || $action === 'odblokuj') {
-        $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ?');
-        $st->execute([$id]);
-        $target = $st->fetch();
-        if (!$target) {
-            $error = 'Nie znaleziono konta.';
-        } elseif ($action === 'blokuj') {
-            $jest_aktywnym_adminem = $target['rola'] === 'admin' && (int) $target['aktywny'] === 1 && $target['haslo'] !== null;
-            if ($jest_aktywnym_adminem && inni_aktywni_admini($id) === 0) {
-                $error = 'Nie można zablokować ostatniego aktywnego administratora.';
+        $pdo = pmg_db();
+        $pdo->beginTransaction(); // A2 1.5: jak przy edycji — sprawdzenie i blokada konta w jednej transakcji
+        try {
+            zablokuj_adminow($id);
+            $st = $pdo->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ? FOR UPDATE');
+            $st->execute([$id]);
+            $target = $st->fetch();
+            if (!$target) {
+                $error = 'Nie znaleziono konta.';
+            } elseif ($action === 'blokuj') {
+                $jest_aktywnym_adminem = $target['rola'] === 'admin' && (int) $target['aktywny'] === 1 && $target['haslo'] !== null;
+                if ($jest_aktywnym_adminem && inni_aktywni_admini($id) === 0) {
+                    $error = 'Nie można zablokować ostatniego aktywnego administratora.';
+                } else {
+                    $pdo->prepare('UPDATE pmg_uzytkownicy SET aktywny=0, token_hash=NULL, token_do=NULL WHERE id=?')->execute([$id]);
+                }
             } else {
-                pmg_db()->prepare('UPDATE pmg_uzytkownicy SET aktywny=0, token_hash=NULL, token_do=NULL WHERE id=?')->execute([$id]);
-                loguj('konta', 'blokada', $id);
-                $_SESSION['flash'] = 'Konto zablokowane.';
-                go('?m=konta');
+                $pdo->prepare('UPDATE pmg_uzytkownicy SET aktywny=1 WHERE id=?')->execute([$id]);
             }
-        } else {
-            pmg_db()->prepare('UPDATE pmg_uzytkownicy SET aktywny=1 WHERE id=?')->execute([$id]);
-            loguj('konta', 'odblokowanie', $id);
-            $_SESSION['flash'] = 'Konto odblokowane.';
+            if ($error === '') $pdo->commit(); else $pdo->rollBack();
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+        if ($error === '') {
+            loguj('konta', $action === 'blokuj' ? 'blokada' : 'odblokowanie', $id, $target['imie_nazwisko']);
+            $_SESSION['flash'] = $action === 'blokuj' ? 'Konto zablokowane.' : 'Konto odblokowane.';
             go('?m=konta');
         }
 
     } elseif ($action === 'reset') {
-        $st = pmg_db()->prepare("SELECT COUNT(*) FROM pmg_uzytkownicy WHERE id = ? AND rola='admin' AND aktywny=1 AND haslo IS NOT NULL");
-        $st->execute([$id]);
-        if ((int) $st->fetchColumn() && inni_aktywni_admini($id) === 0) {
-            $error = 'Nie można zresetować hasła ostatniego aktywnego administratora — najpierw dodaj drugiego.';
-        } else {
-            $token = bin2hex(random_bytes(32));
-            pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo=NULL, token_hash=?, token_do=DATE_ADD(NOW(), INTERVAL 72 HOUR) WHERE id=?')
-                ->execute([hash('sha256', $token), $id]);
-            loguj('konta', 'reset', $id);
+        $pdo = pmg_db();
+        $pdo->beginTransaction(); // A2 1.5: jak przy edycji — sprawdzenie i reset w jednej transakcji
+        try {
+            zablokuj_adminow($id);
+            $st = $pdo->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ? FOR UPDATE');
+            $st->execute([$id]);
+            $target = $st->fetch();
+            if (!$target) {
+                $error = 'Nie znaleziono konta.';
+            } elseif ($target['rola'] === 'admin' && (int) $target['aktywny'] === 1 && $target['haslo'] !== null && inni_aktywni_admini($id) === 0) {
+                $error = 'Nie można zresetować hasła ostatniego aktywnego administratora — najpierw dodaj drugiego.';
+            } else {
+                $token = bin2hex(random_bytes(32));
+                $pdo->prepare('UPDATE pmg_uzytkownicy SET haslo=NULL, token_hash=?, token_do=DATE_ADD(NOW(), INTERVAL 24 HOUR) WHERE id=?') // A2 3.17: 24 h
+                    ->execute([hash('sha256', $token), $id]);
+            }
+            if ($error === '') $pdo->commit(); else $pdo->rollBack();
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+        if ($error === '') {
+            loguj('konta', 'reset', $id, $target['imie_nazwisko']);
             $_SESSION['flash'] = 'Nowy link gotowy do przekazania.';
             $_SESSION['flash_link'] = link_zaproszenia($token);
             go('?m=konta');
@@ -301,7 +351,7 @@ if (!isset($edit)) {
 if ($edit !== null) {
     $pmgNaglowek = [
         'tytul' => $edit['id'] ? 'Edytuj konto' : 'Nowe konto',
-        'opis' => $edit['id'] ? (string) $edit['email'] : 'Po zapisaniu zobaczysz tu link do przekazania nowej osobie (ważny 72 h).',
+        'opis' => $edit['id'] ? (string) $edit['email'] : 'Po zapisaniu zobaczysz tu link do przekazania nowej osobie (ważny 24 h).',
         'wstecz' => ['href' => '?m=konta', 'etykieta' => 'Konta'],
     ];
 } else {
@@ -351,7 +401,7 @@ if ($edit !== null) {
   <?php if ($pokazLink): ?>
     <div class="pmg-card">
       <h2 class="pmg-h2">Link zaproszenia</h2>
-      <label for="link-zaproszenia">Link do przekazania tej osobie — ważny 72 h</label>
+      <label for="link-zaproszenia">Link do przekazania tej osobie — ważny 24 h</label>
       <p class="pmg-hint" id="link-zaproszenia_h">Wyślij go tej osobie — po otwarciu ustawi swoje hasło.</p>
       <div class="pmg-copy">
         <input type="text" id="link-zaproszenia" readonly value="<?= h($pokazLink) ?>" aria-describedby="link-zaproszenia_h">

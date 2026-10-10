@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 9;
+const PMG_SCHEMA = 10;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -127,10 +127,11 @@ function pmg_migrate()
         "CREATE TABLE IF NOT EXISTS pmg_dziennik (
             id INT AUTO_INCREMENT PRIMARY KEY,
             kiedy TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            uzytkownik_id INT NOT NULL,
+            uzytkownik_id INT NULL,
             modul VARCHAR(20) NOT NULL,
             akcja VARCHAR(20) NOT NULL,
             rekord_id INT NULL,
+            opis VARCHAR(200) NOT NULL DEFAULT '',
             FOREIGN KEY (uzytkownik_id) REFERENCES pmg_uzytkownicy(id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
@@ -294,6 +295,22 @@ function pmg_migrate()
     // (W6 przeniesie te uprawnienia). Tylko przy przejściu z wersji < 9, żeby kolejne migracje nie zdejmowały uprawnień nadanych później.
     if ((int) $v < 9) {
         $pdo->exec("UPDATE pmg_uzytkownicy SET moduly = TRIM(BOTH ',' FROM REPLACE(CONCAT(',', moduly, ','), ',tresci,', ',')) WHERE FIND_IN_SET('tresci', moduly) > 0");
+    }
+    // Schemat 10 (W8): dziennik w zdaniach — opis = czytelna nazwa rzeczy (np. tytuł wpisu) z chwili zdarzenia; starsze wpisy
+    // dostają pusty opis (panel pokazuje wtedy #id). uzytkownik_id NULL = nieudane logowanie na nieznany adres (adresu nie zapisujemy).
+    if ($pdo->query("SHOW COLUMNS FROM pmg_dziennik LIKE 'opis'")->fetchColumn() === false) {
+        $pdo->exec("ALTER TABLE pmg_dziennik ADD COLUMN opis VARCHAR(200) NOT NULL DEFAULT '' AFTER rekord_id");
+    }
+    $st = $pdo->query("SELECT IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pmg_dziennik' AND COLUMN_NAME = 'uzytkownik_id'");
+    if ($st->fetchColumn() === 'NO') {
+        // Klucz obcy do pmg_uzytkownicy zostaje (ten sam typ INT, zmienia się tylko NULL); sprawdzanie kluczy wyłączone tylko na czas
+        // tej zmiany, bo część wersji MariaDB/MySQL odmawia MODIFY kolumny z kluczem obcym. Istniejące wiersze się nie zmieniają.
+        $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+        try {
+            $pdo->exec('ALTER TABLE pmg_dziennik MODIFY uzytkownik_id INT NULL');
+        } finally {
+            $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+        }
     }
     // Schemat 3: biogram prelegenta do 2500 znaków (dane startowe PM Session XIV mają biogramy dłuższe niż 1500).
     $pdo->exec("ALTER TABLE pmg_prelegenci MODIFY bio VARCHAR(2500) NOT NULL DEFAULT ''");
@@ -481,7 +498,8 @@ function pmg_rate_ok($bucket, $max, $window, $key = null)
 {
     if (mt_rand(1, 100) === 1) pmg_rate_sprzatanie();
     $fh = @fopen(pmg_rate_file($bucket, $key), 'c+');
-    if ($fh === false) { error_log('pmg_rate_ok: brak zapisu w ' . pmg_tmp_dir()); return true; } // ponytail: fail-open — limit nie jest jedyną obroną
+    // A2 3.12: ostrzeżenie w logu serwera (bez klucza — może zawierać e-mail), gdy limit nie działa, bo pliku nie da się otworzyć lub zapisać.
+    if ($fh === false) { error_log('pmg_rate_ok: OSTRZEŻENIE — limit prób nie działa, brak zapisu w ' . pmg_tmp_dir()); return true; } // ponytail: fail-open — limit nie jest jedyną obroną
     flock($fh, LOCK_EX);
     $now = time();
     $hits = array_filter(explode(',', (string) stream_get_contents($fh)), function ($t) use ($now, $window) {
@@ -491,8 +509,8 @@ function pmg_rate_ok($bucket, $max, $window, $key = null)
     if ($ok) {
         $hits[] = $now;
         rewind($fh);
-        ftruncate($fh, 0);
-        fwrite($fh, implode(',', $hits));
+        $dane = implode(',', $hits);
+        if (!ftruncate($fh, 0) || fwrite($fh, $dane) !== strlen($dane)) error_log('pmg_rate_ok: OSTRZEŻENIE — limit prób nie działa, nie udał się zapis pliku w ' . pmg_tmp_dir());
     }
     flock($fh, LOCK_UN);
     fclose($fh);

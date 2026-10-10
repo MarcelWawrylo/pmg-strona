@@ -120,12 +120,27 @@ function pmg_nawigacja($m, $etykiety)
     }
 }
 
-// Wpis do dziennika zmian po każdym udanym zapisie.
-function loguj($modul, $akcja, $id = null)
+// Wpis do dziennika zmian po każdym udanym zapisie. $opis = czytelna nazwa rzeczy (np. tytuł wpisu, imię i nazwisko),
+// zapisana w chwili zdarzenia, bo rekord może potem zniknąć. Nigdy nie przekazuj tu hasła, tokenu ani wpisanego e-maila.
+function loguj($modul, $akcja, $id = null, $opis = '')
 {
     global $me;
-    pmg_db()->prepare('INSERT INTO pmg_dziennik (uzytkownik_id, modul, akcja, rekord_id) VALUES (?,?,?,?)')
-        ->execute([$me['id'], $modul, $akcja, $id]);
+    dziennik_wpis($me ? (int) $me['id'] : null, $modul, $akcja, $id, $opis);
+}
+
+// To samo bez zalogowanej osoby (logowanie, hasło z linku): $uid = konto, którego dotyczy zdarzenie, albo null (nieznane konto).
+function dziennik_wpis($uid, $modul, $akcja, $id = null, $opis = '')
+{
+    pmg_db()->prepare('INSERT INTO pmg_dziennik (uzytkownik_id, modul, akcja, rekord_id, opis) VALUES (?,?,?,?,?)')
+        ->execute([$uid, $modul, $akcja, $id, mb_substr(trim((string) $opis), 0, 200)]);
+}
+
+// Czytelna nazwa rekordu do dziennika (np. przed usunięciem). $sql = stałe zapytanie z kodu z jednym ? na id.
+function nazwa_rekordu($sql, $id)
+{
+    $st = pmg_db()->prepare($sql);
+    $st->execute([(int) $id]);
+    return (string) $st->fetchColumn();
 }
 
 // Czy ekran "pierwsze konto" może w ogóle przyjąć zgłoszenie: w config jest jednorazowe setup_haslo (min. 12 znaków).
@@ -252,7 +267,7 @@ $opisyModulow = [
     'rekrutacja' => 'Nabór otwarty lub zamknięty, link do formularza i krótki tekst na stronie Dołącz. Zmiany widać w ciągu 5 minut.',
     'tresci' => 'Nagłówki, opisy i napisy na przyciskach stron: Strona główna, O nas, PM Session, Dołącz, Kontakt i inne, w zakładkach.',
     'konta' => 'Kto ma dostęp do panelu i do których modułów.',
-    'dziennik' => 'Ostatnie 200 zapisanych zmian.',
+    'dziennik' => 'Ostatnie 200 zdarzeń: zmiany w panelu i logowania.',
     'ustawienia' => 'Linki do mediów społecznościowych i e-mail kontaktowy na stronie. Zmiany widać w ciągu 5 minut.',
     'kopia' => 'Pobiera plik .sql z pełną kopią bazy danych.',
 ];
@@ -261,8 +276,13 @@ $pmgNaglowek = []; // moduły mogą nadpisać: tytul, opis, wstecz[href,etykieta
 // ---------- $me: ładowany z bazy przy każdym żądaniu (blokada/zmiana roli działa od razu) ----------
 $me = null;
 $wygasla = false;
+$wygasla12h = false;
 if (!empty($_SESSION['uid'])) {
-    if (time() - ($_SESSION['t'] ?? 0) > 7200) {
+    // A2 3.6: najwyżej 12 h od zalogowania, niezależnie od aktywności (także ?ping z panel.js nie przedłuża ponad ten czas).
+    // Sesja sprzed tej zmiany nie ma 'od' — liczymy jej 12 h od teraz zamiast wylogowywać wszystkich naraz.
+    if (!isset($_SESSION['od'])) $_SESSION['od'] = time();
+    $wygasla12h = time() - (int) $_SESSION['od'] > 43200;
+    if (time() - ($_SESSION['t'] ?? 0) > 7200 || $wygasla12h) {
         $wygasla = true;
         session_regenerate_id(true);
         $_SESSION = [];
@@ -336,8 +356,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit('To konto już istnieje — zaloguj się.');
                 }
                 session_regenerate_id(true);
+                unset($_SESSION['csrf']); // A2 3.3: nowy token formularzy po zalogowaniu
                 $_SESSION['uid'] = (int) pmg_db()->lastInsertId();
                 $_SESSION['t'] = time();
+                $_SESSION['od'] = time(); // A2 3.6: początek sesji (limit 12 h)
                 $_SESSION['ph'] = hash('sha256', $hash);
                 go();
             }
@@ -356,7 +378,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE email = ? AND aktywny = 1');
             $st->execute([$email]);
             $u = $st->fetch();
-            $klucz = $u ? 'u' . $u['id'] : $email;
+            // A2 3.10: osobne przestrzenie nazw — wpisanie np. „u1” jako e-maila nie zużywa limitu konta o id 1.
+            $klucz = $u ? 'konto:' . $u['id'] : 'email:' . $email;
             if (!pmg_rate_ok('login_konto', 5, 900, $klucz)) { // liczone od razu — równoległe żądania nie obejdą limitu
                 $error = 'Za dużo prób logowania. Spróbuj za 15 minut.';
             } else {
@@ -376,14 +399,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo = ? WHERE id = ?')->execute([$u['haslo'], $u['id']]);
                     }
                     session_regenerate_id(true);
+                    unset($_SESSION['csrf']); // A2 3.3: nowy token formularzy po zalogowaniu
                     $_SESSION['uid'] = (int) $u['id'];
                     $_SESSION['t'] = time();
+                    $_SESSION['od'] = time(); // A2 3.6: początek sesji (limit 12 h)
                     $_SESSION['ph'] = hash('sha256', (string) $u['haslo']);
                     pmg_rate_clear('login_konto', $klucz);
                     pmg_db()->prepare('UPDATE pmg_uzytkownicy SET ostatnie_logowanie = NOW() WHERE id = ?')->execute([$u['id']]);
+                    dziennik_wpis((int) $u['id'], 'konto', 'logowanie', (int) $u['id']);
                     go();
                 } else {
                     $error = 'Nieprawidłowy e-mail lub hasło.';
+                    // A2 6.2, 6.3: nieudane logowanie w dzienniku. Nieznany adres: bez konta i BEZ wpisanego e-maila (RODO).
+                    if ($u) dziennik_wpis((int) $u['id'], 'konto', 'nieudane_logowanie', (int) $u['id'], $ma_haslo ? 'błędne hasło' : 'konto bez ustawionego hasła');
+                    else dziennik_wpis(null, 'konto', 'nieudane_logowanie', null, 'nieznany adres e-mail');
                 }
             }
         }
@@ -402,6 +431,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo = ?, token_hash = NULL, token_do = NULL WHERE id = ?')
                 ->execute([password_hash($haslo, PASSWORD_DEFAULT), $u['id']]);
+            dziennik_wpis((int) $u['id'], 'konto', 'haslo_z_linku', (int) $u['id']); // A2 6.2
+            unset($_SESSION['csrf']); // A2 3.3: nowy token formularzy po ustawieniu hasła
             $_SESSION['flash'] = 'Hasło ustawione — możesz się zalogować.';
             go();
         }
@@ -465,7 +496,7 @@ if ($flash) {
 if ($wygasla || $bladSesji) {
     echo '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>' . ($me
         ? 'Nie zapisano zmian: formularz był otwarty zbyt długo albo w innej karcie się wylogowano. Wpisz zmiany ponownie i zapisz.'
-        : 'Sesja wygasła z powodu bezczynności — zaloguj się ponownie.' . ($bladSesji ? ' Ostatnie zmiany nie zostały zapisane.' : '')) . '</p></div>';
+        : ($wygasla12h ? 'Sesja wygasła, bo minęło 12 godzin od zalogowania — zaloguj się ponownie.' : 'Sesja wygasła z powodu bezczynności — zaloguj się ponownie.') . ($bladSesji ? ' Ostatnie zmiany nie zostały zapisane.' : '')) . '</p></div>';
 }
 $pmgAlerty = ob_get_clean();
 

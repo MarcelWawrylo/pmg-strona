@@ -182,7 +182,7 @@ function pmg_import_wykonaj($modul)
         $error = 'Nie udało się wczytać treści (błąd bazy danych) — nic nie zapisano. Spróbuj ponownie albo zgłoś problem administratorowi strony.';
         return;
     }
-    if (!$nic) loguj($modul, 'import');
+    if (!$nic) loguj($modul, 'import', null, 'Treści ze strony');
     $_SESSION['flash'] = $komunikat;
     go('?m=' . $modul);
 }

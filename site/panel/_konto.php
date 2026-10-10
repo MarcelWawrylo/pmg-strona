@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Podaj imię i nazwisko.';
         } else {
             pmg_db()->prepare('UPDATE pmg_uzytkownicy SET imie_nazwisko = ? WHERE id = ?')->execute([$imie, $me['id']]);
-            loguj('konta', 'edycja', $me['id']);
+            loguj('konta', 'edycja', $me['id'], $imie);
             $_SESSION['flash'] = 'Zapisano imię i nazwisko.';
             go('?m=konto');
         }
@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nowe = (string) ($_POST['nowe'] ?? '');
         // Powtórzenie nowego hasła chroni przed literówką, po której nie dałoby się zalogować.
         $powtorz = (string) ($_POST['powtorz'] ?? '');
-        if (!pmg_rate_ok('login_konto', 5, 900, 'u' . $me['id'])) { // ten sam limit co logowanie na to konto
+        if (!pmg_rate_ok('haslo_konto', 5, 900, 'konto:' . $me['id'])) { // A2 3.10: osobny limit — złe hasło tutaj nie blokuje logowania
             $error = 'Za dużo prób. Spróbuj za 15 minut.';
         } elseif (!password_verify($obecne, (string) $me['haslo'])) {
             $error = 'Obecne hasło jest nieprawidłowe.';
@@ -34,12 +34,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hash = password_hash($nowe, PASSWORD_DEFAULT);
             pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo = ?, token_hash = NULL, token_do = NULL WHERE id = ?')
                 ->execute([$hash, $me['id']]);
-            pmg_rate_clear('login_konto', 'u' . $me['id']);
+            pmg_rate_clear('haslo_konto', 'konto:' . $me['id']);
             // Inne sesje tego konta mają stary skrót hasła w 'ph' i wygasną przy następnym kliknięciu (index.php, blok $me);
             // ta sesja dostaje nowy skrót i zostaje ważna.
             session_regenerate_id(true);
             $_SESSION['ph'] = hash('sha256', $hash);
-            loguj('konta', 'haslo', $me['id']);
+            loguj('konta', 'haslo', $me['id'], $me['imie_nazwisko']);
             $_SESSION['flash'] = 'Hasło zmienione. Na innych urządzeniach trzeba zalogować się ponownie.';
             go('?m=konto');
         }
