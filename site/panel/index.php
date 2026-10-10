@@ -263,11 +263,18 @@ if (!empty($_SESSION['uid'])) {
     }
 }
 
+// Podtrzymanie sesji z panel.js (gdy w formularzu są niezapisane zmiany): samo żądanie odświeżyło $_SESSION['t'] wyżej.
+if (isset($_GET['ping'])) { http_response_code($me ? 204 : 401); exit; }
+
 // ---------- CSRF: jedno miejsce dla każdego POST (formularze przed i po zalogowaniu) ----------
+// Zły token (najczęściej sesja wygasła przy otwartym formularzu): nic nie zapisujemy, wracamy na ten sam adres
+// i pokazujemy komunikat w wyglądzie panelu (dawniej biała strona z jednym zdaniem).
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !hash_equals(csrf(), (string) ($_POST['csrf'] ?? ''))) {
-    http_response_code(400);
-    exit('Sesja wygasła — odśwież stronę i spróbuj ponownie.');
+    $_SESSION['blad_sesji'] = 1;
+    go(isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
 }
+$bladSesji = !empty($_SESSION['blad_sesji']);
+unset($_SESSION['blad_sesji']);
 
 $error = '';
 $flash = $_SESSION['flash'] ?? '';
@@ -441,8 +448,10 @@ if ($error) {
 if ($flash) {
     echo '<div class="pmg-alert pmg-alert--success" role="status">' . pmg_ikona('sukces') . '<p>' . h($flash) . '</p></div>';
 }
-if ($wygasla) {
-    echo '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Sesja wygasła z powodu bezczynności — zaloguj się ponownie.</p></div>';
+if ($wygasla || $bladSesji) {
+    echo '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>' . ($me
+        ? 'Nie zapisano zmian: formularz był otwarty zbyt długo albo w innej karcie się wylogowano. Wpisz zmiany ponownie i zapisz.'
+        : 'Sesja wygasła z powodu bezczynności — zaloguj się ponownie.' . ($bladSesji ? ' Ostatnie zmiany nie zostały zapisane.' : '')) . '</p></div>';
 }
 $pmgAlerty = ob_get_clean();
 
