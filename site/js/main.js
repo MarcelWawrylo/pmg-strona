@@ -521,9 +521,9 @@
       var p = String(ed.data).split('-');
       var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
       var pillEl = $('.date-pill'); // stary — tylko robocza v3
-      if (pillEl) pillEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + ed.miejsce;
+      if (pillEl && ed.data) pillEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + ed.miejsce;
       var dateTimeEl = $('.pms-banner__date time');
-      if (dateTimeEl) {
+      if (dateTimeEl && ed.data) { // data null (brak daty) — zostaje to, co w HTML, bez „Invalid Date”
         dateTimeEl.textContent = fmtDate(ed.data);
         dateTimeEl.setAttribute('datetime', ed.data);
       }
@@ -536,7 +536,7 @@
       }
       var leadEl = $('.pms-banner__lead');
       if (leadEl && ed.opis) { leadEl.textContent = ed.opis; leadEl.hidden = false; }
-      $$('.pms-banner__date, .pms-banner__theme').forEach(function (el) { el.hidden = false; });
+      $$(ed.data ? '.pms-banner__date, .pms-banner__theme' : '.pms-banner__theme').forEach(function (el) { el.hidden = false; });
       document.title = document.title.replace(/PM Session \S+/, 'PM Session ' + ed.numer);
       var reveal = function (list) { // sekcja ukryta w HTML (xv) pokazuje się, gdy ma dane z panelu
         var sec = list && list.closest('[data-pms-dynamic]');

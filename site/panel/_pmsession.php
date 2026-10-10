@@ -4,11 +4,9 @@ defined('PMG_PANEL') || exit;
 
 const PMS_LICZBY = ['pms_edycji' => 'Edycji', 'pms_prelekcji' => 'Prelekcji', 'pms_prelegentow' => 'Prelegentów', 'pms_uczestnikow' => 'Uczestników', 'pms_warsztatow' => 'Warsztatów', 'pms_symulacji' => 'Symulacji'];
 
-// „Aktualna edycja – wkrótce więcej” (status 'zapowiedz'): podaje się tylko numer. Kolumna data jest DATE NOT NULL, więc brak daty
-// zapisujemy jako tę wartość techniczną (najmniejsza data w MariaDB) — panel pokazuje ją jako „—”, API jej nie podaje.
-const PMS_DATA_BRAK = '1000-01-01';
+// „Aktualna edycja – wkrótce więcej” (status 'zapowiedz'): podaje się tylko numer; brak daty = NULL (panel pokazuje „—”).
 // Warunek SQL: edycja ma komplet danych wymaganych dla „Bieżącej” i „Zakończonej” (temat, data, miejsce).
-const PMS_SQL_KOMPLET = "temat <> '' AND miejsce <> '' AND data <> '1000-01-01'";
+const PMS_SQL_KOMPLET = "temat <> '' AND miejsce <> '' AND data IS NOT NULL";
 // Statusy „aktualnej edycji” (pozycja „Aktualna edycja” w menu strony): naraz najwyżej jedna edycja w którymkolwiek z nich.
 const PMS_AKTUALNE = ['biezaca', 'zapowiedz'];
 
@@ -42,7 +40,7 @@ function pms_braki($ed)
 {
     $braki = [];
     if (trim((string) $ed['temat']) === '') $braki[] = 'temat';
-    if ((string) $ed['data'] === PMS_DATA_BRAK) $braki[] = 'datę';
+    if ($ed['data'] === null) $braki[] = 'datę';
     if (trim((string) $ed['miejsce']) === '') $braki[] = 'miejsce';
     return $braki;
 }
@@ -171,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nowaBiezaca = in_array($status, PMS_AKTUALNE, true) && $obecnyStatus !== $status;
         $statusZapisu = $nowaBiezaca ? ($obecnyStatus ?: 'szkic') : $status;
         // „Aktualna edycja – wkrótce więcej”: wymagany tylko numer. Pozostałe pola są opcjonalne (zapisujemy, co wpisano — przydadzą
-        // się przy zmianie na „Bieżącą”); brak daty = PMS_DATA_BRAK, bo kolumna data jest NOT NULL.
+        // się przy zmianie na „Bieżącą”); brak daty = NULL.
         $tylkoNumer = $status === 'zapowiedz';
 
         // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
@@ -179,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($f['temat'] === '' && !$tylkoNumer) $bledyPol['temat'] = 'Podaj temat edycji.';
         if (!data_ok($f['data']) && !($tylkoNumer && $f['data'] === '')) $bledyPol['data'] = 'Podaj poprawną datę.';
         if ($f['miejsce'] === '' && !$tylkoNumer) $bledyPol['miejsce'] = 'Podaj miejsce.';
-        $dataZapisu = $f['data'] === '' ? PMS_DATA_BRAK : $f['data'];
+        $dataZapisu = $f['data'] === '' ? null : $f['data'];
         if (!$bledyPol) {
             try {
                 $nowa = !$id;
@@ -379,7 +377,6 @@ if ($editEdycja === null && isset($_GET['edycja'])) {
         $st = pmg_db()->prepare('SELECT * FROM pmg_edycje WHERE id = ?');
         $st->execute([(int) $_GET['edycja']]);
         $editEdycja = $st->fetch() ?: null;
-        if ($editEdycja && $editEdycja['data'] === PMS_DATA_BRAK) $editEdycja['data'] = ''; // brak daty (zapowiedź) = puste pole
     }
 }
 
@@ -420,7 +417,7 @@ $wsteczEdycja = $edycjaWidok
 $opisEdycja = $edycjaWidok ? ('Edycja ' . $edycjaWidok['numer'] . ' — ' . $edycjaWidok['temat']) : '';
 $pmgStatusTekst = ['szkic' => 'Szkic', 'biezaca' => 'Bieżąca', 'zakonczona' => 'Zakończona', 'zapowiedz' => 'Wkrótce'];
 $pmgStatusWariant = ['szkic' => 'neutral', 'biezaca' => 'accent', 'zakonczona' => 'done', 'zapowiedz' => 'accent'];
-$fmtDataEdycji = function ($d) { return (string) $d === PMS_DATA_BRAK ? '—' : (string) $d; };
+$fmtDataEdycji = function ($d) { return $d === null ? '—' : (string) $d; }; // NULL = brak daty (zapowiedź)
 
 if ($editPrelegent !== null) {
     $pmgNaglowek = [
@@ -697,7 +694,7 @@ if ($editPrelegent !== null) {
           <tr>
             <td class="pmg-td-main" data-label="Numer"><a class="pmg-row-link" href="?m=pmsession&e=<?= (int) $e['id'] ?>">Edycja <?= h($e['numer']) ?></a></td>
             <td data-label="Temat"><?= h($e['temat']) ?></td>
-            <td class="pmg-num" data-label="Data"><?php if ($e['data'] === PMS_DATA_BRAK): ?>—<?php else: ?><time datetime="<?= h($e['data']) ?>"><?= h($e['data']) ?></time><?php endif; ?></td>
+            <td class="pmg-num" data-label="Data"><?php if ($e['data'] === null): ?>—<?php else: ?><time datetime="<?= h($e['data']) ?>"><?= h($e['data']) ?></time><?php endif; ?></td>
             <td data-label="Status">
               <?php $sw = $pmgStatusWariant[$e['status']] ?? 'neutral'; $st_ = $pmgStatusTekst[$e['status']] ?? 'Szkic'; ?>
               <span class="pmg-chip pmg-chip--<?= $sw ?>"><?= $st_ ?></span>
