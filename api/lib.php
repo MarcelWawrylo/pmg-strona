@@ -498,7 +498,8 @@ function pmg_rate_ok($bucket, $max, $window, $key = null)
 {
     if (mt_rand(1, 100) === 1) pmg_rate_sprzatanie();
     $fh = @fopen(pmg_rate_file($bucket, $key), 'c+');
-    if ($fh === false) { error_log('pmg_rate_ok: brak zapisu w ' . pmg_tmp_dir()); return true; } // ponytail: fail-open — limit nie jest jedyną obroną
+    // A2 3.12: ostrzeżenie w logu serwera (bez klucza — może zawierać e-mail), gdy limit nie działa, bo pliku nie da się otworzyć lub zapisać.
+    if ($fh === false) { error_log('pmg_rate_ok: OSTRZEŻENIE — limit prób nie działa, brak zapisu w ' . pmg_tmp_dir()); return true; } // ponytail: fail-open — limit nie jest jedyną obroną
     flock($fh, LOCK_EX);
     $now = time();
     $hits = array_filter(explode(',', (string) stream_get_contents($fh)), function ($t) use ($now, $window) {
@@ -508,8 +509,8 @@ function pmg_rate_ok($bucket, $max, $window, $key = null)
     if ($ok) {
         $hits[] = $now;
         rewind($fh);
-        ftruncate($fh, 0);
-        fwrite($fh, implode(',', $hits));
+        $dane = implode(',', $hits);
+        if (!ftruncate($fh, 0) || fwrite($fh, $dane) !== strlen($dane)) error_log('pmg_rate_ok: OSTRZEŻENIE — limit prób nie działa, nie udał się zapis pliku w ' . pmg_tmp_dir());
     }
     flock($fh, LOCK_UN);
     fclose($fh);
