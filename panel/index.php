@@ -68,6 +68,26 @@ function pmg_odmiana($n, $jeden, $kilka, $wiele)
     return $n . ' ' . (($r10 >= 2 && $r10 <= 4 && ($r100 < 12 || $r100 > 14)) ? $kilka : $wiele);
 }
 
+// Błędy przy polach formularza (id pola => komunikat). Moduł zbiera tu wszystkie błędy naraz;
+// błąd niezwiązany z żadnym polem (baza, limit prób) zostaje w $error.
+$bledyPol = [];
+
+// Atrybuty do wstawienia w <input>/<textarea>/<select>: aria-describedby (podpowiedź i/lub komunikat błędu)
+// oraz aria-invalid, gdy pole ma błąd. Bez podpowiedzi i bez błędu zwraca ''.
+function blad_pola($id, $podpowiedz = '')
+{
+    global $bledyPol;
+    $opis = trim((string) $podpowiedz . (isset($bledyPol[$id]) ? ' ' . $id . '_blad' : ''));
+    return ($opis !== '' ? ' aria-describedby="' . h($opis) . '"' : '') . (isset($bledyPol[$id]) ? ' aria-invalid="true"' : '');
+}
+
+// Komunikat pod polem (wstaw zaraz za polem); '' gdy pole nie ma błędu.
+function komunikat_pola($id)
+{
+    global $bledyPol;
+    return isset($bledyPol[$id]) ? '<p class="pmg-field-error" id="' . h($id) . '_blad">' . h($bledyPol[$id]) . '</p>' : '';
+}
+
 // Ikony inline SVG (viewBox 20x20, stroke 1,5) — bez bibliotek, bez CDN.
 function pmg_ikona($nazwa)
 {
@@ -486,9 +506,13 @@ $tytulBledu = ['pierwsze' => 'Nie udało się założyć konta', 'haslo' => 'Nie
 // ekranu i automatyczne testy dostawały dokładnie treść $error — tytuł ($tytulBledu) zostaje w nagłówku
 // tej samej karty, czytelny przy przejściu fokusu (tabindex/data-pmg-fokus na zewnętrznym kontenerze).
 ob_start();
-if ($error) {
+if ($error || $bledyPol) {
+    $lista = '';
+    foreach ($bledyPol as $idPola => $komunikat) $lista .= '<li><a href="#' . h($idPola) . '">' . h($komunikat) . '</a></li>';
     echo '<div class="pmg-alert pmg-alert--error" tabindex="-1" data-pmg-fokus>' . pmg_ikona('blad')
-        . '<div><h2 class="pmg-alert__title">' . h($tytulBledu) . '</h2><p role="alert">' . h($error) . '</p></div></div>';
+        . '<div><h2 class="pmg-alert__title">' . h($bledyPol ? 'Popraw ' . pmg_odmiana(count($bledyPol), 'pole', 'pola', 'pól') : $tytulBledu) . '</h2>'
+        . ($lista !== '' ? '<ul class="pmg-alert__list">' . $lista . '</ul>' : '')
+        . ($error ? '<p role="alert">' . h($error) . '</p>' : '') . '</div></div>';
 }
 if ($flash) {
     echo '<div class="pmg-alert pmg-alert--success" role="status">' . pmg_ikona('sukces') . '<p>' . h($flash) . '</p></div>';
@@ -526,7 +550,7 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title><?= h(($error !== '' ? 'Błąd: ' : '') . $ng['tytul'] . ($etykieta !== '' && $ng['tytul'] !== $etykieta ? ' · ' . $etykieta : '') . ' — Panel PMG') ?></title>
+<title><?= h(($error !== '' || $bledyPol ? 'Błąd: ' : '') . $ng['tytul'] . ($etykieta !== '' && $ng['tytul'] !== $etykieta ? ' · ' . $etykieta : '') . ' — Panel PMG') ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap">
