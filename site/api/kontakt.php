@@ -31,6 +31,17 @@ if (!pmg_rate_ok('kontakt', 5, 600)) {
     $respond(['ok' => false, 'error' => 'Za dużo wiadomości w krótkim czasie. Spróbuj za kilka minut.'], 429);
 }
 
+// Najpierw zapis w bazie (panel → Wiadomości), potem e-mail. Gość widzi sukces, jeśli udało się choć jedno z dwóch.
+// Tabelę tworzy panel (pmg_migrate, schemat 12) — przed pierwszym wejściem do panelu po aktualizacji zostaje sam e-mail.
+$id = null;
+try {
+    pmg_db()->prepare('INSERT INTO pmg_wiadomosci (utworzono, imie, email, temat, tresc) VALUES (NOW(), ?, ?, ?, ?)')
+        ->execute([$name, $email, $subject, $message]);
+    $id = (int) pmg_db()->lastInsertId();
+} catch (Throwable $e) {
+    error_log('kontakt: zapis w bazie nieudany: ' . $e->getMessage());
+}
+
 $c = pmg_config();
 $headers = implode("\r\n", [
     'From: Strona PMG <' . $c['mail_from'] . '>',
@@ -42,4 +53,13 @@ $headers = implode("\r\n", [
 $body = $message . "\n\n—\n" . $name . "\n" . $email . "\n(wiadomość z formularza na stronie PMG)";
 $sent = mail($c['mail_to'], '=?UTF-8?B?' . base64_encode('[Strona PMG] ' . $subject) . '?=', $body, $headers);
 
-$sent ? $respond(['ok' => true]) : $respond(['ok' => false, 'error' => 'Nie udało się wysłać wiadomości.'], 500);
+if ($id && $sent) {
+    try {
+        pmg_db()->prepare('UPDATE pmg_wiadomosci SET wyslano_mailem = 1 WHERE id = ?')->execute([$id]);
+    } catch (Throwable $e) {
+        error_log('kontakt: nie zapisano znacznika wysyłki: ' . $e->getMessage());
+    }
+}
+
+// mailto: strona pokaże przycisk wysyłki z programu pocztowego (tylko tu — nie przy błędzie pól ani limicie)
+($id || $sent) ? $respond(['ok' => true]) : $respond(['ok' => false, 'error' => 'Serwer nie przyjął wiadomości.', 'mailto' => true], 500);
