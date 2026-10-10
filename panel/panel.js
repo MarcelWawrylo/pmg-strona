@@ -175,6 +175,16 @@
     });
   }
 
+  // Przyciski z data-pmg-potwierdz (usunięcie zdjęcia z galerii, blokada i reset konta): okno „Czy na pewno?”
+  // przed wysłaniem. Bez JS przycisk działa jak dawniej.
+  function potwierdzenia() {
+    document.querySelectorAll('[data-pmg-potwierdz]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        if (!window.confirm(btn.getAttribute('data-pmg-potwierdz'))) e.preventDefault();
+      });
+    });
+  }
+
   // Informacja o wybranym pliku (nazwa, rozmiar); bez podglądu — CSP img-src 'self' blokuje blob:.
   function informacjaOPliku() {
     var pola = document.querySelectorAll('input[type=file]');
@@ -226,6 +236,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     wstawTekstZeStrony();
+    potwierdzenia();
     fokusNaBledzie();
     licznikZnakow();
     kopiujLink();
