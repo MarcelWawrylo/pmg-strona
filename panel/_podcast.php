@@ -27,17 +27,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'gora' || $action === 'dol') {
         $id = (int) ($_POST['id'] ?? 0);
-        if (przesun('pmg_odcinki', PODCAST_ORDER, $id, $action)) loguj('podcast', 'kolejnosc', $id);
+        if (przesun('pmg_odcinki', PODCAST_ORDER, $id, $action)) loguj('podcast', 'kolejnosc', $id, nazwa_rekordu("SELECT CONCAT('Odcinek ', numer, ': ', tytul) FROM pmg_odcinki WHERE id = ?", $id));
         go('?m=podcast');
 
     } elseif ($action === 'delete') {
         $id = (int) ($_POST['id'] ?? 0);
-        $st = pmg_db()->prepare('SELECT zdjecie FROM pmg_odcinki WHERE id = ?');
+        $st = pmg_db()->prepare('SELECT zdjecie, numer, tytul FROM pmg_odcinki WHERE id = ?'); // tytuł do dziennika, zanim wiersz zniknie
         $st->execute([$id]);
-        $img = $st->fetchColumn();
-        pmg_db()->prepare('DELETE FROM pmg_odcinki WHERE id = ?')->execute([$id]);
+        $odc = $st->fetch();
+        $img = $odc ? $odc['zdjecie'] : null;
+        $st = pmg_db()->prepare('DELETE FROM pmg_odcinki WHERE id = ?');
+        $st->execute([$id]);
+        if ($st->rowCount() === 0) { // A2 6.5: bez wpisu w dzienniku, gdy nic nie usunięto
+            $_SESSION['flash'] = 'Nie znaleziono odcinka — nic nie usunięto.';
+            go('?m=podcast');
+        }
         drop_image($img ?: null);
-        loguj('podcast', 'usuniecie', $id);
+        loguj('podcast', 'usuniecie', $id, 'Odcinek ' . $odc['numer'] . ': ' . $odc['tytul']);
         $_SESSION['flash'] = 'Odcinek usunięty.';
         go('?m=podcast');
 
@@ -90,14 +96,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $st->execute([$f['numer'], $f['tytul'], $f['data'], $f['czas_min'], $f['opis'], $f['prowadzacy'], $f['gosc'], $f['gosc_bio'], $f['spotify_id'], $f['apple_url'], $f['youtube_url'], $f['zdjecie'], $f['zdjecie_alt'], $f['opublikowany'], $f['edycja_id'], $id]);
                 $noweZdjecie = null;
                 if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
-                loguj('podcast', 'edycja', $id);
+                loguj('podcast', 'edycja', $id, 'Odcinek ' . $f['numer'] . ': ' . $f['tytul']);
             } else {
                 $kolejnosc = (int) pmg_db()->query('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_odcinki')->fetchColumn();
                 $st = pmg_db()->prepare('INSERT INTO pmg_odcinki (numer, tytul, data, czas_min, opis, prowadzacy, gosc, gosc_bio, spotify_id, apple_url, youtube_url, zdjecie, zdjecie_alt, kolejnosc, opublikowany, edycja_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
                 $st->execute([$f['numer'], $f['tytul'], $f['data'], $f['czas_min'], $f['opis'], $f['prowadzacy'], $f['gosc'], $f['gosc_bio'], $f['spotify_id'], $f['apple_url'], $f['youtube_url'], $f['zdjecie'], $f['zdjecie_alt'], $kolejnosc, $f['opublikowany'], $f['edycja_id']]);
                 $noweZdjecie = null;
                 $id = (int) pmg_db()->lastInsertId();
-                loguj('podcast', 'dodanie', $id);
+                loguj('podcast', 'dodanie', $id, 'Odcinek ' . $f['numer'] . ': ' . $f['tytul']);
             }
             $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano jako szkic (niewidoczny na stronie).';
             go('?m=podcast');

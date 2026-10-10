@@ -120,12 +120,27 @@ function pmg_nawigacja($m, $etykiety)
     }
 }
 
-// Wpis do dziennika zmian po każdym udanym zapisie.
-function loguj($modul, $akcja, $id = null)
+// Wpis do dziennika zmian po każdym udanym zapisie. $opis = czytelna nazwa rzeczy (np. tytuł wpisu, imię i nazwisko),
+// zapisana w chwili zdarzenia, bo rekord może potem zniknąć. Nigdy nie przekazuj tu hasła, tokenu ani wpisanego e-maila.
+function loguj($modul, $akcja, $id = null, $opis = '')
 {
     global $me;
-    pmg_db()->prepare('INSERT INTO pmg_dziennik (uzytkownik_id, modul, akcja, rekord_id) VALUES (?,?,?,?)')
-        ->execute([$me['id'], $modul, $akcja, $id]);
+    dziennik_wpis($me ? (int) $me['id'] : null, $modul, $akcja, $id, $opis);
+}
+
+// To samo bez zalogowanej osoby (logowanie, hasło z linku): $uid = konto, którego dotyczy zdarzenie, albo null (nieznane konto).
+function dziennik_wpis($uid, $modul, $akcja, $id = null, $opis = '')
+{
+    pmg_db()->prepare('INSERT INTO pmg_dziennik (uzytkownik_id, modul, akcja, rekord_id, opis) VALUES (?,?,?,?,?)')
+        ->execute([$uid, $modul, $akcja, $id, mb_substr(trim((string) $opis), 0, 200)]);
+}
+
+// Czytelna nazwa rekordu do dziennika (np. przed usunięciem). $sql = stałe zapytanie z kodu z jednym ? na id.
+function nazwa_rekordu($sql, $id)
+{
+    $st = pmg_db()->prepare($sql);
+    $st->execute([(int) $id]);
+    return (string) $st->fetchColumn();
 }
 
 // Czy ekran "pierwsze konto" może w ogóle przyjąć zgłoszenie: w config jest jednorazowe setup_haslo (min. 12 znaków).
@@ -252,7 +267,7 @@ $opisyModulow = [
     'rekrutacja' => 'Nabór otwarty lub zamknięty, link do formularza i krótki tekst na stronie Dołącz. Zmiany widać w ciągu 5 minut.',
     'tresci' => 'Nagłówki, opisy i napisy na przyciskach stron: Strona główna, O nas, PM Session, Dołącz, Kontakt i inne, w zakładkach.',
     'konta' => 'Kto ma dostęp do panelu i do których modułów.',
-    'dziennik' => 'Ostatnie 200 zapisanych zmian.',
+    'dziennik' => 'Ostatnie 200 zdarzeń: zmiany w panelu i logowania.',
     'ustawienia' => 'Linki do mediów społecznościowych i e-mail kontaktowy na stronie. Zmiany widać w ciągu 5 minut.',
     'kopia' => 'Pobiera plik .sql z pełną kopią bazy danych.',
 ];
@@ -381,9 +396,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['ph'] = hash('sha256', (string) $u['haslo']);
                     pmg_rate_clear('login_konto', $klucz);
                     pmg_db()->prepare('UPDATE pmg_uzytkownicy SET ostatnie_logowanie = NOW() WHERE id = ?')->execute([$u['id']]);
+                    dziennik_wpis((int) $u['id'], 'konto', 'logowanie', (int) $u['id']);
                     go();
                 } else {
                     $error = 'Nieprawidłowy e-mail lub hasło.';
+                    // A2 6.2, 6.3: nieudane logowanie w dzienniku. Nieznany adres: bez konta i BEZ wpisanego e-maila (RODO).
+                    if ($u) dziennik_wpis((int) $u['id'], 'konto', 'nieudane_logowanie', (int) $u['id'], $ma_haslo ? 'błędne hasło' : 'konto bez ustawionego hasła');
+                    else dziennik_wpis(null, 'konto', 'nieudane_logowanie', null, 'nieznany adres e-mail');
                 }
             }
         }
@@ -402,6 +421,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo = ?, token_hash = NULL, token_do = NULL WHERE id = ?')
                 ->execute([password_hash($haslo, PASSWORD_DEFAULT), $u['id']]);
+            dziennik_wpis((int) $u['id'], 'konto', 'haslo_z_linku', (int) $u['id']); // A2 6.2
             $_SESSION['flash'] = 'Hasło ustawione — możesz się zalogować.';
             go();
         }

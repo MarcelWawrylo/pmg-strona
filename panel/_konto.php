@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Podaj imię i nazwisko.';
         } else {
             pmg_db()->prepare('UPDATE pmg_uzytkownicy SET imie_nazwisko = ? WHERE id = ?')->execute([$imie, $me['id']]);
-            loguj('konta', 'edycja', $me['id']);
+            loguj('konta', 'edycja', $me['id'], $imie);
             $_SESSION['flash'] = 'Zapisano imię i nazwisko.';
             go('?m=konto');
         }
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // ta sesja dostaje nowy skrót i zostaje ważna.
             session_regenerate_id(true);
             $_SESSION['ph'] = hash('sha256', $hash);
-            loguj('konta', 'haslo', $me['id']);
+            loguj('konta', 'haslo', $me['id'], $me['imie_nazwisko']);
             $_SESSION['flash'] = 'Hasło zmienione. Na innych urządzeniach trzeba zalogować się ponownie.';
             go('?m=konto');
         }
