@@ -467,8 +467,8 @@ if ($editPrelegent !== null) {
     <label for="prelegent">Prelegent <span class="pmg-opt">(opcjonalnie)</span></label>
     <p class="pmg-hint" id="prelegent_h">Tekst dowolny, np. Jan Kowalski albo Jan Kowalski + Anna Nowak. Zostaw puste dla punktów bez prelegenta (np. Rejestracja).</p>
     <input type="text" id="prelegent" name="prelegent" maxlength="150" value="<?= $v('prelegent') ?>" aria-describedby="prelegent_h">
-    <label for="znacznik">Znacznik pod godziną <span class="pmg-opt">(opcjonalnie)</span></label>
-    <p class="pmg-hint" id="znacznik_h">Mały napis pod godziną, np. „3 sesje równoległe”. Wpisz go przy jednym z punktów tej godziny (wystarczy przy pierwszym). Puste pole = bez znacznika.</p>
+    <label for="znacznik">Dopisek pod godziną <span class="pmg-opt">(opcjonalnie)</span></label>
+    <p class="pmg-hint" id="znacznik_h">Mały napis pod godziną, np. „3 sesje równoległe”. Wpisz go przy jednym z punktów tej godziny (wystarczy przy pierwszym). Puste pole = bez dopisku.</p>
     <input type="text" id="znacznik" name="znacznik" maxlength="40" value="<?= $v('znacznik') ?>" aria-describedby="znacznik_h">
     <div class="pmg-form-actions">
       <button class="pmg-btn pmg-btn--primary" type="submit">Zapisz</button>
@@ -553,7 +553,7 @@ if ($editPrelegent !== null) {
           </tr>
         <?php endforeach; ?>
         <?php if (!$prelegenci): ?>
-          <tr><td colspan="3" class="pmg-empty">Brak prelegentów.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&e=<?= $eid ?>&p=nowy">+ Dodaj prelegenta</a></td></tr>
+          <tr><td colspan="3" class="pmg-empty">Brak prelegentów.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&e=<?= $eid ?>&p=nowy">+ Dodaj pierwszego prelegenta</a></td></tr>
         <?php endif; ?>
         </tbody>
       </table>
@@ -563,7 +563,7 @@ if ($editPrelegent !== null) {
   <div class="pmg-card" id="harmonogram">
     <div class="pmg-card__head">
       <h2 class="pmg-h2">Harmonogram</h2>
-      <a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&e=<?= $eid ?>&h=nowy">+ Punkt harmonogramu</a>
+      <a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&e=<?= $eid ?>&h=nowy">+ Nowy punkt harmonogramu</a>
     </div>
     <div class="pmg-table-wrap pmg-table-wrap--flush">
       <table class="pmg-table pmg-table--klikalna">
@@ -579,7 +579,7 @@ if ($editPrelegent !== null) {
           </tr>
         <?php endforeach; ?>
         <?php if (!$harmonogram): ?>
-          <tr><td colspan="3" class="pmg-empty">Brak punktów harmonogramu.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&e=<?= $eid ?>&h=nowy">+ Dodaj punkt</a></td></tr>
+          <tr><td colspan="3" class="pmg-empty">Brak punktów harmonogramu.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&e=<?= $eid ?>&h=nowy">+ Dodaj pierwszy punkt harmonogramu</a></td></tr>
         <?php endif; ?>
         </tbody>
       </table>
@@ -619,7 +619,7 @@ if ($editPrelegent !== null) {
           </tr>
         <?php endforeach; ?>
         <?php if (!$edycjeLista): ?>
-          <tr><td colspan="7" class="pmg-empty">Nie ma jeszcze żadnej edycji. Najpierw dodaj edycję (numer, temat, data, miejsce), potem w jej widoku dodasz prelegentów i harmonogram.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&edycja=nowa">+ Dodaj edycję</a></td></tr>
+          <tr><td colspan="7" class="pmg-empty">Nie ma jeszcze żadnej edycji. Najpierw dodaj edycję (numer, temat, data, miejsce), potem w jej widoku dodasz prelegentów i harmonogram.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&edycja=nowa">+ Dodaj pierwszą edycję</a></td></tr>
         <?php endif; ?>
         </tbody>
       </table>
