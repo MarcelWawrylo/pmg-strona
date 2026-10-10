@@ -101,7 +101,7 @@ if ($edit !== null) {
     $pmgNaglowek = [
         'tytul' => 'Edycje podcastu',
         'opis' => 'Odcinki na stronie są pogrupowane według edycji, w kolejności z tej listy.',
-        'wstecz' => ['href' => '?m=podcast', 'etykieta' => 'Podcast'],
+        'wstecz' => ['href' => '?m=podcast', 'etykieta' => 'Odcinki podcastu'],
         'akcje' => [
             ['href' => '?m=podcast&w=edycje&nowa', 'etykieta' => '+ Nowa edycja', 'rodzaj' => 'primary'],
             ['href' => '../podcast.html', 'etykieta' => 'Zobacz stronę', 'rodzaj' => 'text', 'nowaKarta' => true],

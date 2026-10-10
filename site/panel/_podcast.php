@@ -154,7 +154,7 @@ if ($edit !== null) {
     $pmgNaglowek = [
         'tytul' => $edit['id'] ? 'Edytuj odcinek' : 'Nowy odcinek',
         'opis' => $edit['id'] ? (string) $edit['tytul'] : 'Odcinek bez zaznaczenia „Opublikuj na stronie” zostaje szkicem.',
-        'wstecz' => ['href' => '?m=podcast', 'etykieta' => 'Podcast'],
+        'wstecz' => ['href' => '?m=podcast', 'etykieta' => 'Odcinki podcastu'],
     ];
     // Strona podcastu nie ma kotwic do odcinków (okno odcinka otwiera się kliknięciem), więc link prowadzi do całej listy.
     if (!empty($edit['id']) && !empty($edit['opublikowany'])) {

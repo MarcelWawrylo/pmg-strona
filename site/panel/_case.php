@@ -265,7 +265,7 @@ if ($edit !== null) {
     $pmgNaglowek = [
         'tytul' => $edit['id'] ? 'Edytuj edycję ' . $edit['numer'] : 'Nowa edycja Case Koła',
         'opis' => $edit['id'] ? (string) $edit['nazwa'] : 'Karta w hubie i podstrona powstaną po zapisaniu. Puste pola tekstowe są pomijane na stronie.',
-        'wstecz' => ['href' => '?m=case', 'etykieta' => 'Case Koła'],
+        'wstecz' => ['href' => '?m=case', 'etykieta' => 'Edycje Case Koła'],
     ];
     if ($edit['id'] && !empty($edit['widoczna'])) { // ukrytej edycji nie ma na stronie, więc bez linku
         $url = $edit['adres_strony'] !== '' ? $edit['adres_strony'] : 'case-kola-edycja.html?nr=' . (int) $edit['numer'];

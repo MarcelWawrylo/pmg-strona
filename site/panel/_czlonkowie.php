@@ -220,13 +220,13 @@ if ($editOsoba !== null) {
     $pmgNaglowek = [
         'tytul' => $editOsoba['id'] ? 'Edytuj osobę' : 'Nowa osoba',
         'opis' => $editOsoba['id'] ? trim($editOsoba['imie'] . ' ' . $editOsoba['nazwisko']) : '',
-        'wstecz' => ['href' => '?m=czlonkowie', 'etykieta' => 'Członkowie'],
+        'wstecz' => ['href' => '?m=czlonkowie', 'etykieta' => 'Członkowie — osoby i sekcje'],
     ];
 } elseif ($editSekcja !== null) {
     $pmgNaglowek = [
         'tytul' => $editSekcja['id'] ? 'Edytuj sekcję' : 'Nowa sekcja',
         'opis' => $editSekcja['id'] ? (string) $editSekcja['nazwa'] : '',
-        'wstecz' => ['href' => '?m=czlonkowie', 'etykieta' => 'Członkowie'],
+        'wstecz' => ['href' => '?m=czlonkowie', 'etykieta' => 'Członkowie — osoby i sekcje'],
     ];
 } else {
     $pmgNaglowek = [
