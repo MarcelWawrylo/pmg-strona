@@ -409,7 +409,9 @@
      (api/pmsession.php?numer=…), nigdy „bieżącą” z innej strony. Bez data-edycja API zwraca bieżącą edycję.
      Fallback: brak backendu / błąd / edycja: null (nieznana albo szkic) = strona zostaje statyczna.
      Prelegenci i harmonogram aktualizowane niezależnie od banera — pusta lista jednego z nich zostawia
-     odpowiedni fragment statyczny. Sekcje z [data-pms-dynamic] (ukryte w HTML) pokazują się dopiero po wypełnieniu. */
+     odpowiedni fragment statyczny. Sekcje z [data-pms-dynamic] (ukryte w HTML) pokazują się dopiero po wypełnieniu.
+     Edycja w statusie „Aktualna edycja – wkrótce więcej” (edycja.status === 'zapowiedz', API podaje tylko numer): nagłówek
+     „PM Session <numer>” i box [data-pms-soon] jak w pm-session-xv.html, bez daty, tematu, prelegentów i harmonogramu. */
   function initPmSession() {
     var speakersList = $('.speakers');
     var scheduleTableBody = $('.schedule-table tbody');
@@ -483,19 +485,47 @@
       }).join('');
     };
 
+    var showSoon = function (numer) {
+      var titleEl = $('.pms-banner__title');
+      if (titleEl) titleEl.textContent = 'PM Session ' + numer;
+      document.title = document.title.replace(/PM Session \S+/, 'PM Session ' + numer);
+      $$('.pms-banner__date, .pms-banner__theme, .pms-banner__lead').forEach(function (el) { el.hidden = true; });
+      [speakersList, scheduleTableBody, scheduleList].forEach(function (list) { // statyczny program (np. xiv) też znika
+        var sec = list && list.closest('section');
+        if (sec) sec.hidden = true;
+      });
+      $$('[data-pms-wrap]').forEach(function (el) { el.hidden = true; });
+      var soon = $$('[data-pms-soon]');
+      if (soon.length) { soon.forEach(function (el) { el.hidden = false; }); return; } // pm-session-xv.html: box z HTML (tekst z panelu „Teksty na stronie”)
+      var banner = $('.pms-banner');
+      if (!banner) return;
+      var box = document.createElement('div');
+      box.className = 'pms-next';
+      box.setAttribute('data-pms-soon', '');
+      box.innerHTML = '<div class="container"><div class="pms-next__box"><div class="pms-next__icon"><picture><source type="image/webp" srcset="' +
+        esc(siteRoot) + 'img/logo-pm-session-sygnet-56.webp 56w, ' + esc(siteRoot) + 'img/logo-pm-session-sygnet-112.webp 112w" sizes="56px"><img src="' +
+        esc(siteRoot) + 'img/logo-pm-session-sygnet-56.png" srcset="' + esc(siteRoot) + 'img/logo-pm-session-sygnet-56.png 56w, ' + esc(siteRoot) +
+        'img/logo-pm-session-sygnet-112.png 112w" sizes="56px" width="112" height="111" alt="Logo PM Session"></picture></div><p class="pms-next__text"></p></div></div>';
+      box.querySelector('.pms-next__text').textContent = 'Więcej informacji o ' + numer + ' edycji konferencji PM Session wkrótce!';
+      banner.parentNode.insertBefore(box, banner.nextSibling);
+    };
+
     api('pmsession.php' + (/^[IVXLC]{1,10}$/.test(pageEdition) ? '?numer=' + pageEdition : '')).then(function (data) {
       if (!data || !data.edycja) return;
       var ed = data.edycja;
       if (pageEdition && ed.numer !== pageEdition) return; // zła edycja w odpowiedzi (np. stara pamięć podręczna) — nie nakładamy
+      if (ed.status === 'zapowiedz') { showSoon(ed.numer); return; }
 
       var titleEl = $('.pms-banner__title');
       if (titleEl) titleEl.textContent = 'PM Session ' + ed.numer;
-      var p = String(ed.data).split('-');
-      var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
       var pillEl = $('.date-pill'); // stary — tylko robocza v3
-      if (pillEl) pillEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + ed.miejsce;
+      if (pillEl && ed.data) {
+        var p = String(ed.data).split('-');
+        var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        pillEl.textContent = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + ed.miejsce;
+      }
       var dateTimeEl = $('.pms-banner__date time');
-      if (dateTimeEl) {
+      if (dateTimeEl && ed.data) { // data null (brak daty) — zostaje to, co w HTML, bez „Invalid Date”
         dateTimeEl.textContent = fmtDate(ed.data);
         dateTimeEl.setAttribute('datetime', ed.data);
       }
@@ -508,7 +538,7 @@
       }
       var leadEl = $('.pms-banner__lead');
       if (leadEl && ed.opis) { leadEl.textContent = ed.opis; leadEl.hidden = false; }
-      $$('.pms-banner__date, .pms-banner__theme').forEach(function (el) { el.hidden = false; });
+      $$(ed.data ? '.pms-banner__date, .pms-banner__theme' : '.pms-banner__theme').forEach(function (el) { el.hidden = false; });
       document.title = document.title.replace(/PM Session \S+/, 'PM Session ' + ed.numer);
       var reveal = function (list) { // sekcja ukryta w HTML (xv) pokazuje się, gdy ma dane z panelu
         var sec = list && list.closest('[data-pms-dynamic]');
@@ -1460,7 +1490,7 @@
   };
   var cardHtml = function (e) {
     var tall = e.logo_styl === 'jasne-wysokie', light = tall || e.logo_styl === 'jasne';
-    var cls = 'case-card__media case-card__media--logo' + (tall ? ' case-card__media--logo-tall' : '') + (light ? ' case-card__media--logo-light' : '');
+    var cls = 'case-card__media case-card__media--logo' + (tall ? ' case-card__media--logo-tall' : '') + (light ? ' case-card__media--logo-light' : '') + (e.linia ? ' case-card__media--linia' : '');
     return '<li class="is-in" data-reveal><a class="case-card card card--hover" href="' + esc(e.url) + '">' +
       '<div class="' + cls + '">' + (e.logo ? cardLogo(e, light) : '') + '</div>' +
       '<div class="case-card__body"><h2 class="case-card__title">' + esc(e.tytul) + '</h2><p class="case-card__edition">Edycja ' + Number(e.numer) + '</p>' +
@@ -1590,7 +1620,7 @@
 
 /* ---------- PM Session: podmenu edycji z panelu ---------- */
 /* #subnav-pms: pierwsza pozycja („Czym jest PM Session?”) zostaje z HTML, dalej edycje z api/pmsession.php?lista=1:
-   „Aktualna edycja” dla bieżącej i „PM Session <numer>” dla zakończonych (tylko te z własnym plikiem pm-session-<numer>.html,
+   „Aktualna edycja” dla bieżącej (także „Aktualna edycja – wkrótce więcej”, status zapowiedz) i „PM Session <numer>” dla zakończonych (tylko te z własnym plikiem pm-session-<numer>.html,
    szkice nigdy). Bez backendu (GitHub Pages), przy błędzie albo pustej bazie edycji zostaje statyczne menu z HTML. */
 (function () {
   'use strict';
@@ -1608,7 +1638,7 @@
       var li = document.createElement('li'), a = document.createElement('a');
       a.className = 'site-nav__sublink';
       a.href = PMG.root + e.adres; // od katalogu strony, nie od bieżącego adresu (404.html wyświetla się pod dowolną ścieżką)
-      a.textContent = e.status === 'biezaca' ? 'Aktualna edycja' : 'PM Session ' + e.numer;
+      a.textContent = e.status === 'biezaca' || e.status === 'zapowiedz' ? 'Aktualna edycja' : 'PM Session ' + e.numer;
       if (e.adres === file) a.setAttribute('aria-current', 'page');
       li.appendChild(a);
       subnav.appendChild(li);

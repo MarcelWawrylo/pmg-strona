@@ -1,7 +1,9 @@
 <?php
 // Edycja PM Session (edycja + prelegenci + harmonogram) jako JSON (czyta js/main.js).
-// Bez parametru: bieżąca edycja (status='biezaca', dokładnie jedna albo brak).
-// ?numer=XIV: edycja o tym numerze (cyfry rzymskie) — tylko bieżąca albo zakończona; szkic nigdy nie jest publiczny.
+// Bez parametru: aktualna edycja (status 'biezaca' albo 'zapowiedz' — panel pilnuje, by była najwyżej jedna).
+// ?numer=XIV: edycja o tym numerze (cyfry rzymskie) — tylko bieżąca, zapowiedź albo zakończona; szkic nigdy nie jest publiczny.
+// Pole edycja.status mówi, którą wersję strony pokazać. Zapowiedź („Aktualna edycja – wkrótce więcej”) ma tylko numer i status:
+// bez tematu, daty, miejsca, opisu, prelegentów i harmonogramu (strona pokazuje nagłówek i komunikat „wkrótce”).
 // Każda strona edycji (pm-session-xiv.html, pm-session-xv.html) prosi o własny numer, więc nie dostaje danych innej edycji.
 require __DIR__ . '/lib.php';
 
@@ -20,14 +22,14 @@ function pms_prelegent_pub($p)
     ];
 }
 
-// ?lista=1: edycje do podmenu PM Session w nagłówku strony (js/main.js). Tylko bieżąca i zakończone, które mają własny plik
+// ?lista=1: edycje do podmenu PM Session w nagłówku strony (js/main.js). Tylko bieżąca/zapowiedź i zakończone, które mają własny plik
 // pm-session-<numer>.html (jak pms_adres_strony() w panelu); szkic nigdy. Zwraca wyłącznie numer, status i adres strony.
 // 'wszystkich' = liczba edycji w bazie (także szkiców): gdy 0 (baza przed importem), menu zostaje w wersji statycznej z HTML.
 if (($_GET['lista'] ?? '') === '1') {
     try {
         $pdo = pmg_db();
         $lista = [];
-        foreach ($pdo->query("SELECT numer, status FROM pmg_edycje WHERE status IN ('biezaca','zakonczona') ORDER BY status = 'biezaca' DESC, data DESC, id DESC")->fetchAll() as $r) {
+        foreach ($pdo->query("SELECT numer, status FROM pmg_edycje WHERE status IN ('biezaca','zapowiedz','zakonczona') ORDER BY status IN ('biezaca','zapowiedz') DESC, data DESC, id DESC")->fetchAll() as $r) {
             if (!preg_match('~^[IVXLC]{1,10}$~', $r['numer'])) continue;
             $plik = 'pm-session-' . strtolower($r['numer']) . '.html';
             if (!is_file(__DIR__ . '/../' . $plik)) continue;
@@ -48,15 +50,15 @@ if ($numer !== '' && !preg_match('~^[IVXLC]{1,10}$~', $numer)) {
 
 try {
     if ($numer === '') {
-        $edycjaRow = pmg_db()->query("SELECT id, numer, temat, data, miejsce, opis FROM pmg_edycje WHERE status = 'biezaca' LIMIT 1")->fetch();
+        $edycjaRow = pmg_db()->query("SELECT id, numer, temat, data, miejsce, opis, status FROM pmg_edycje WHERE status IN ('biezaca','zapowiedz') ORDER BY status = 'biezaca' DESC LIMIT 1")->fetch();
     } else {
-        $st0 = pmg_db()->prepare("SELECT id, numer, temat, data, miejsce, opis FROM pmg_edycje WHERE numer = ? AND status IN ('biezaca','zakonczona') LIMIT 1");
+        $st0 = pmg_db()->prepare("SELECT id, numer, temat, data, miejsce, opis, status FROM pmg_edycje WHERE numer = ? AND status IN ('biezaca','zapowiedz','zakonczona') LIMIT 1");
         $st0->execute([$numer]);
         $edycjaRow = $st0->fetch();
     }
     $prelegenci = [];
     $harmonogram = [];
-    if ($edycjaRow) {
+    if ($edycjaRow && $edycjaRow['status'] !== 'zapowiedz') {
         $st = pmg_db()->prepare('SELECT imie_nazwisko, temat, bio, opis, plec, notatka, zdjecie, zdjecie_alt, linkedin FROM pmg_prelegenci WHERE edycja_id = ? ORDER BY kolejnosc, id');
         $st->execute([$edycjaRow['id']]);
         foreach ($st->fetchAll() as $p) $prelegenci[] = pms_prelegent_pub($p);
@@ -72,8 +74,15 @@ try {
 }
 
 header('Cache-Control: public, max-age=300');
+if (!$edycjaRow) {
+    $edycjaPub = null;
+} elseif ($edycjaRow['status'] === 'zapowiedz') {
+    $edycjaPub = ['numer' => $edycjaRow['numer'], 'status' => 'zapowiedz'];
+} else {
+    $edycjaPub = ['numer' => $edycjaRow['numer'], 'status' => $edycjaRow['status'], 'temat' => $edycjaRow['temat'], 'data' => $edycjaRow['data'], 'miejsce' => $edycjaRow['miejsce'], 'opis' => $edycjaRow['opis']];
+}
 pmg_json([
-    'edycja' => $edycjaRow ? ['numer' => $edycjaRow['numer'], 'temat' => $edycjaRow['temat'], 'data' => $edycjaRow['data'], 'miejsce' => $edycjaRow['miejsce'], 'opis' => $edycjaRow['opis']] : null,
+    'edycja' => $edycjaPub,
     'prelegenci' => $prelegenci,
     'harmonogram' => $harmonogram,
 ]);

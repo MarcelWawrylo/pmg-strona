@@ -94,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $f['numer'] = (int) ($_POST['numer'] ?? 0);
         $f['logo_styl'] = (string) ($_POST['logo_styl'] ?? 'ciemne');
+        $f['linia_pod_logo'] = empty($_POST['linia_pod_logo']) ? 0 : 1; // checkbox: brak w POST = bez kreski
         $f['widoczna'] = empty($_POST['widoczna']) ? 0 : 1;
         $old = $id ? case_edycja($id) : null;
         $nowe = []; // pliki wgrane w tym żądaniu — usuwane, jeśli zapis się nie uda
@@ -130,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if ($bledyPol) throw new BladPol();
             if ($f['hero'] === null) $f['hero_alt'] = '';
-            $kolumny = ['numer', 'nazwa', 'tytul_karty', 'naglowek', 'adres_strony', 'opis_meta', 'logo', 'logo_styl', 'hero', 'hero_alt', 'o_partnerze', 'wyzwanie', 'co_zrobilismy', 'rezultat', 'w_toku', 'widoczna'];
+            $kolumny = ['numer', 'nazwa', 'tytul_karty', 'naglowek', 'adres_strony', 'opis_meta', 'logo', 'logo_styl', 'linia_pod_logo', 'hero', 'hero_alt', 'o_partnerze', 'wyzwanie', 'co_zrobilismy', 'rezultat', 'w_toku', 'widoczna'];
             $wartosci = [];
             foreach ($kolumny as $k) $wartosci[] = $f[$k];
             if ($id && $old) {
@@ -247,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($edit === null) {
     if (isset($_GET['nowa'])) {
         $nastepny = (int) pmg_db()->query('SELECT COALESCE(MAX(numer), 0) + 1 FROM pmg_case_edycje')->fetchColumn();
-        $edit = ['id' => 0, 'numer' => $nastepny, 'logo_styl' => 'ciemne', 'widoczna' => 1];
+        $edit = ['id' => 0, 'numer' => $nastepny, 'logo_styl' => 'ciemne', 'linia_pod_logo' => 1, 'widoczna' => 1];
     } elseif (isset($_GET['id'])) {
         $edit = case_edycja($_GET['id']);
     }
@@ -313,6 +314,8 @@ if ($edit !== null) {
           <option value="<?= h($k) ?>"<?= ($edit['logo_styl'] ?? 'ciemne') === $k ? ' selected' : '' ?>><?= h($etykieta) ?></option>
         <?php endforeach; ?>
       </select><?= komunikat_pola('logo_styl') ?>
+      <label class="pmg-check"><input type="checkbox" name="linia_pod_logo" value="1"<?= !empty($edit['linia_pod_logo']) ? ' checked' : '' ?> aria-describedby="linia_pod_logo_h"><span>Kreska między logo a opisem na karcie</span></label>
+      <p class="pmg-hint pmg-hint--check" id="linia_pod_logo_h">Cienka pozioma linia oddzielająca pole z logo od dolnej części karty (tytuł, edycja, „Dowiedz się więcej”) w hubie Case Koła. Przydaje się zwłaszcza przy logo na białej płytce, które bez kreski zlewa się z białym opisem.</p>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-strona">
