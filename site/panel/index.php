@@ -32,7 +32,8 @@ pmg_migrate();
 const KOLORY = ['pink' => 'Różowy', 'purple' => 'Fioletowy', 'blue' => 'Niebieski', 'violet' => 'Liliowy'];
 const ZDJECIA = ['aktualnosci' => [16 / 9, 1600], 'czlonkowie' => [1, 800], 'pmsession' => [4 / 3, 1600], 'podcast' => [16 / 9, 1600], 'case' => [16 / 9, 1600], 'case-logo' => [null, 800]];
 const MODULY = [
-    'aktualnosci' => 'aktualnosci', 'czlonkowie' => 'czlonkowie', 'pmsession' => 'pmsession', 'podcast' => 'podcast', 'case' => 'case', 'tresci' => 'tresci',
+    'aktualnosci' => 'aktualnosci', 'czlonkowie' => 'czlonkowie', 'pmsession' => 'pmsession', 'podcast' => 'podcast', 'case' => 'case', 'rekrutacja' => 'rekrutacja',
+    'tresci' => 'admin', // „Treści stron” tylko dla administratorów (teksty całej witryny razem ze stopką) do czasu W6
     'konta' => 'admin', 'dziennik' => 'admin', 'ustawienia' => 'admin', 'kopia' => 'admin',
     'konto' => 'konto', // „Moje konto”: każdy zalogowany (wyjątek w routerze)
 ];
@@ -75,6 +76,7 @@ function pmg_ikona($nazwa)
         'aktualnosci' => 'M3.5 4.5h10v11a1.5 1.5 0 0 0 1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z M13.5 8h3v7.5A1.5 1.5 0 0 1 15 17 M6.5 7.5h4 M6.5 10.5h4 M6.5 13.5h2.5',
         'case' => 'M3.5 4.5h13v11h-13Z M3.5 8.5h13 M6.5 11.5h3 M6.5 13.5h6',
         'tresci' => 'M3.5 5h13 M3.5 9h13 M3.5 13h6 M12.5 16l.5-2.5 4-4 2 2-4 4Z',
+        'rekrutacja' => 'M8 9.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M2.5 16.5a5.5 5.5 0 0 1 9.5-3.75 M15 11v6 M12 14h6',
         'podcast' => 'M10 12.5a2.5 2.5 0 0 0 2.5-2.5V5.5a2.5 2.5 0 0 0-5 0V10a2.5 2.5 0 0 0 2.5 2.5Z M5.5 9.5a4.5 4.5 0 0 0 9 0 M10 14v3 M7.5 17h5',
         'czlonkowie' => 'M7.5 9.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M2.5 16.5a5 5 0 0 1 10 0 M13 3.75a2.75 2.75 0 0 1 0 5.5 M14.75 11.75a5 5 0 0 1 2.75 4.75',
         'pmsession' => 'M3.5 5.5A1.5 1.5 0 0 1 5 4h10a1.5 1.5 0 0 1 1.5 1.5v10A1.5 1.5 0 0 1 15 17H5a1.5 1.5 0 0 1-1.5-1.5Z M3.5 8.5h13 M7 2.5v3 M13 2.5v3 M7 12h2.5',
@@ -101,7 +103,7 @@ function pmg_ikona($nazwa)
 // Nawigacja modułów (echo; wywoływana dwa razy — sidebar i menu mobilne — jedna kopia jest zawsze ukryta CSS-em).
 function pmg_nawigacja($m, $etykiety)
 {
-    $grupy = ['Treści' => ['aktualnosci', 'czlonkowie', 'pmsession', 'podcast', 'case', 'tresci'], 'Administracja' => ['konta', 'dziennik', 'ustawienia', 'kopia']];
+    $grupy = ['Treści' => ['aktualnosci', 'czlonkowie', 'pmsession', 'podcast', 'case', 'rekrutacja', 'tresci'], 'Administracja' => ['konta', 'dziennik', 'ustawienia', 'kopia']];
     echo '<ul class="pmg-nav__list"><li><a class="pmg-nav__item" href="index.php"' . ($m === '' ? ' aria-current="page"' : '') . '>' . pmg_ikona('start') . '<span>Start</span></a></li></ul>';
     foreach ($grupy as $nazwa => $klucze) {
         $widoczne = array_filter($klucze, function ($mk) { return wolno(MODULY[$mk]); });
@@ -227,7 +229,7 @@ function zdjecie($modul, $old)
 
 // ---------- Etykiety i opisy modułów (nad routerem — moduły ich potrzebują) ----------
 $etykietyModulow = [
-    'aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła', 'tresci' => 'Treści stron',
+    'aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła', 'rekrutacja' => 'Rekrutacja', 'tresci' => 'Treści stron',
     'konta' => 'Konta', 'dziennik' => 'Dziennik zmian', 'ustawienia' => 'Ustawienia strony', 'kopia' => 'Kopia bazy danych',
 ];
 $opisyModulow = [
@@ -236,10 +238,11 @@ $opisyModulow = [
     'pmsession' => 'Edycje konferencji, prelegenci, harmonogram i liczby na stronie PM Session.',
     'podcast' => 'Odcinki na stronie Podcast: tytuł, opis, goście, linki do Spotify i Apple Podcasts.',
     'case' => 'Edycje Case Koła: karty w hubie i treść podstron (opis partnera, wyzwanie, rozwiązanie, rezultat, galeria).',
+    'rekrutacja' => 'Nabór otwarty lub zamknięty, link do formularza i krótki tekst na stronie Dołącz. Zmiany widać w ciągu 5 minut.',
     'tresci' => 'Nagłówki, opisy i napisy na przyciskach stron: Strona główna, O nas, PM Session, Dołącz, Kontakt i inne, w zakładkach.',
     'konta' => 'Kto ma dostęp do panelu i do których modułów.',
     'dziennik' => 'Ostatnie 200 zapisanych zmian.',
-    'ustawienia' => 'Linki do mediów społecznościowych, e-mail kontaktowy i rekrutacja na stronie. Zmiany widać w ciągu 5 minut.',
+    'ustawienia' => 'Linki do mediów społecznościowych i e-mail kontaktowy na stronie. Zmiany widać w ciągu 5 minut.',
     'kopia' => 'Pobiera plik .sql z pełną kopią bazy danych.',
 ];
 $pmgNaglowek = []; // moduły mogą nadpisać: tytul, opis, wstecz[href,etykieta], akcje[[href,etykieta,rodzaj,plus?,nowaKarta?]], chip[tekst,wariant]
@@ -419,7 +422,7 @@ if ($me && $m !== '') {
         $tresc = '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nie masz dostępu do tego modułu. Jeśli to pomyłka, poproś administratora.</p></div>'
             . '<p class="pmg-after-alert"><a class="pmg-btn pmg-btn--secondary" href="index.php">Wróć do strony startowej</a></p>';
     } else {
-        $plik = __DIR__ . '/_' . (MODULY[$m] === 'admin' ? 'admin' : $m) . '.php';
+        $plik = __DIR__ . '/_' . (MODULY[$m] === 'admin' && $m !== 'tresci' ? 'admin' : $m) . '.php'; // tresci: tylko admin, ale własny plik
         if (!is_file($plik)) {
             $tresc = '<div class="pmg-alert pmg-alert--info">' . pmg_ikona('info') . '<p>Moduł w przygotowaniu.</p></div>';
         } else {
@@ -467,6 +470,7 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
       $pmgLiczby[$mk] = pmg_odmiana($a, 'odcinek', 'odcinki', 'odcinków') . ($b ? ' · ' . pmg_odmiana($b, 'szkic', 'szkice', 'szkiców') : ''); }
   if ($mk === 'case') { $a = $db->query('SELECT COUNT(*) FROM pmg_case_edycje')->fetchColumn(); $b = (int) $db->query('SELECT COUNT(*) FROM pmg_case_edycje WHERE widoczna = 0')->fetchColumn();
       $pmgLiczby[$mk] = pmg_odmiana($a, 'edycja', 'edycje', 'edycji') . ($b ? ' · ' . $b . ' ukryta' : ''); }
+  if ($mk === 'rekrutacja') { $pmgLiczby[$mk] = $db->query("SELECT wartosc FROM pmg_ustawienia WHERE klucz = 'rekrutacja_otwarta'")->fetchColumn() === '0' ? 'Zamknięta' : 'Otwarta'; }
   if ($mk === 'tresci') { $a = (int) $db->query("SELECT COUNT(*) FROM pmg_tresci WHERE wartosc <> ''")->fetchColumn();
       $pmgLiczby[$mk] = $a ? pmg_odmiana($a, 'zmieniony tekst', 'zmienione teksty', 'zmienionych tekstów') : 'teksty ze strony bez zmian'; }
   if ($mk === 'konta') { $a = $db->query('SELECT COUNT(*) FROM pmg_uzytkownicy')->fetchColumn(); $b = (int) $db->query('SELECT COUNT(*) FROM pmg_uzytkownicy WHERE haslo IS NULL')->fetchColumn();
