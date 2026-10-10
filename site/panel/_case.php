@@ -356,7 +356,7 @@ if ($edit !== null) {
               <button class="pmg-btn pmg-btn--primary pmg-btn--sm" type="submit" name="a" value="gal_zapisz">Zapisz zdjęcie</button>
               <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gal_gora" formnovalidate<?= $i === 0 ? ' disabled' : '' ?> aria-label="Przesuń wyżej: zdjęcie <?= $i + 1 ?>"><span aria-hidden="true">↑</span></button>
               <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gal_dol" formnovalidate<?= $i === count($galeria) - 1 ? ' disabled' : '' ?> aria-label="Przesuń niżej: zdjęcie <?= $i + 1 ?>"><span aria-hidden="true">↓</span></button>
-              <button class="pmg-btn pmg-btn--danger pmg-btn--sm" type="submit" name="a" value="gal_usun" formnovalidate>Usuń zdjęcie<span class="pmg-vh"> <?= $i + 1 ?></span></button>
+              <button class="pmg-btn pmg-btn--danger pmg-btn--sm" type="submit" name="a" value="gal_usun" formnovalidate data-pmg-potwierdz="Usunąć zdjęcie <?= $i + 1 ?> z galerii? Tego nie da się cofnąć.">Usuń zdjęcie<span class="pmg-vh"> <?= $i + 1 ?></span></button>
             </div>
           </div>
         </form>
