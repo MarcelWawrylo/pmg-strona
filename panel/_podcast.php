@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$id]);
             $old = $st->fetch() ?: null;
         }
-        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi naraz wszystkie błędy pól (błąd pliku dopiero po ich poprawieniu, bo plik wgrywamy na końcu).
         if ($f['numer'] < 1 || $f['numer'] > 9999) $bledyPol['numer'] = 'Numer odcinka: liczba od 1 do 9999.';
         if ($f['tytul'] === '') $bledyPol['tytul'] = 'Uzupełnij tytuł odcinka.';
         if (!data_ok($f['data'])) $bledyPol['data'] = 'Podaj poprawną datę odcinka.';
@@ -245,7 +245,7 @@ if ($edit !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
       <h2 class="pmg-form-section__title" id="sek-zdjecie">Zdjęcie</h2>
       <label for="zdjecie">Zdjęcie 16:9 (JPG, PNG albo WebP) <span class="pmg-opt">(opcjonalnie)</span></label>
-      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1600 × 900 px.</p>
+      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9. Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1600 × 900 px.</p>
       <?php if (!empty($edit['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--16x9"><img src="../<?= h($edit['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>
