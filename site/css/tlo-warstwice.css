@@ -1,0 +1,36 @@
+/* Wariant E „Warstwice” (mapa drogowa projektu) — tło sekcji „Struktura koła”.
+   Dwa canvasy rysuje js/tlo-warstwice.js jednorazowo; życie daje wolny dryf CSS (sam transform), bez pętli JS.
+   Każdy selektor wymaga data-tlo="warstwice", więc nic nie wycieka na inne sekcje i strony. Kontener ma ujemny z-index
+   w kontekście #struktura (isolation: isolate) — nigdy nie leży nad treścią. */
+
+#struktura[data-tlo="warstwice"] > .tlo-warstwice {
+  --czas-a: 70s; --czas-b: 95s;                         /* czas dryfu w jedną stronę: warstwa a, warstwa b */
+  --dryf-x: 2%; --dryf-y: 1.5%; --dryf-skala: 1.03;     /* amplituda dryfu (% canvasu); musi się mieścić w nadmiarze 6% */
+  position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  /* Górna krawędź zlewa się z tłem strony nad sekcją (#F7F6F3). Maska na kontenerze, nie na canvasach — nie dryfuje
+     razem z nimi; dół bez maski, bo graniczy z ciemną stopką. */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 200px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 200px);
+}
+/* Canvas większy o 6% z każdej strony (BLEED w JS), żeby dryf nie odsłaniał krawędzi; samo inset nie rozciąga canvasa */
+#struktura[data-tlo="warstwice"] .tlo-warstwice canvas { position: absolute; inset: -6%; width: 112%; height: 112%; display: block; }
+
+/* Ruch tylko od 961 px i bez prefers-reduced-motion; poza tym statyczne warstwice (ten sam rysunek) */
+@media (min-width: 961px) and (prefers-reduced-motion: no-preference) {
+  #struktura[data-tlo="warstwice"] .tlo-warstwice canvas {
+    will-change: transform; animation: tlo-warstwice-dryf var(--czas-a) ease-in-out infinite alternate; animation-play-state: paused;
+  }
+  /* b wolniej i w przeciwnym kierunku = paralaksa */
+  #struktura[data-tlo="warstwice"] .tlo-warstwice .tlo-warstwice__b { animation-duration: var(--czas-b); animation-direction: alternate-reverse; }
+  /* data-widoczna ustawia JS, gdy sekcja jest na ekranie, a karta aktywna; bez niej animacja stoi (zero kosztu) */
+  #struktura[data-tlo="warstwice"] .tlo-warstwice[data-widoczna] canvas { animation-play-state: running; }
+  @keyframes tlo-warstwice-dryf {
+    from { transform: translate3d(calc(var(--dryf-x) * -1), calc(var(--dryf-y) * -1), 0) scale(1); }
+    to { transform: translate3d(var(--dryf-x), var(--dryf-y), 0) scale(var(--dryf-skala)); }
+  }
+}
+
+/* Tryb wysokiego kontrastu (Windows): dekoracja nie może przeszkadzać w czytaniu */
+@media (forced-colors: active) {
+  #struktura[data-tlo="warstwice"] .tlo-warstwice { display: none; }
+}
