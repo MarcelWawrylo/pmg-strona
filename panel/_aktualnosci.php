@@ -212,7 +212,7 @@ if ($edit !== null) {
     $pmgNaglowek = [
         'tytul' => $edit['id'] ? 'Edytuj wpis' : 'Nowy wpis',
         'opis' => $edit['id'] ? (string) $edit['tytul'] : 'Wpis bez zaznaczenia „Opublikuj na stronie” zostaje szkicem.',
-        'wstecz' => ['href' => '?m=aktualnosci', 'etykieta' => 'Aktualności'],
+        'wstecz' => ['href' => '?m=aktualnosci', 'etykieta' => 'Wszystkie aktualności'],
     ];
     // Link do wpisu na stronie tylko dla zapisanego, opublikowanego wpisu (szkic nie jest widoczny publicznie).
     if (!empty($edit['id']) && !empty($edit['opublikowany']) && !empty($edit['slug'])) {

@@ -334,8 +334,8 @@ if ($edycjaWidok !== null) {
 $fmtGodzina = function ($g) { return substr((string) $g, 0, 5); };
 
 $wsteczEdycja = $edycjaWidok
-    ? ['href' => '?m=pmsession&e=' . $eid, 'etykieta' => 'Edycja ' . $edycjaWidok['numer']]
-    : ['href' => '?m=pmsession', 'etykieta' => 'PM Session'];
+    ? ['href' => '?m=pmsession&e=' . $eid, 'etykieta' => 'PM Session ' . $edycjaWidok['numer']]
+    : ['href' => '?m=pmsession', 'etykieta' => 'PM Session — wszystkie edycje'];
 $opisEdycja = $edycjaWidok ? ('Edycja ' . $edycjaWidok['numer'] . ' — ' . $edycjaWidok['temat']) : '';
 $pmgStatusTekst = ['szkic' => 'Szkic', 'biezaca' => 'Bieżąca', 'zakonczona' => 'Zakończona'];
 $pmgStatusWariant = ['szkic' => 'neutral', 'biezaca' => 'accent', 'zakonczona' => 'done'];
@@ -356,7 +356,10 @@ if ($editPrelegent !== null) {
     $pmgNaglowek = [
         'tytul' => $editEdycja['id'] ? 'Edytuj edycję ' . $editEdycja['numer'] : 'Nowa edycja',
         'opis' => '',
-        'wstecz' => ['href' => '?m=pmsession', 'etykieta' => 'PM Session'],
+        // edytowana edycja: wracamy do jej widoku (prelegenci, harmonogram); nowa: do listy edycji
+        'wstecz' => !empty($editEdycja['id'])
+            ? ['href' => '?m=pmsession&e=' . (int) $editEdycja['id'], 'etykieta' => 'PM Session ' . $editEdycja['numer']]
+            : ['href' => '?m=pmsession', 'etykieta' => 'PM Session — wszystkie edycje'],
     ];
     if (!empty($editEdycja['id']) && pms_widoczna($editEdycja['status'] ?? '')) {
         $pmgNaglowek['akcje'] = [['href' => pms_adres_strony($editEdycja['numer']), 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
@@ -365,7 +368,7 @@ if ($editPrelegent !== null) {
     $pmgNaglowek = [
         'tytul' => 'Edycja ' . $edycjaWidok['numer'],
         'opis' => $edycjaWidok['temat'] . ' · ' . $edycjaWidok['data'] . ' · ' . $edycjaWidok['miejsce'],
-        'wstecz' => ['href' => '?m=pmsession', 'etykieta' => 'Wszystkie edycje'],
+        'wstecz' => ['href' => '?m=pmsession', 'etykieta' => 'PM Session — wszystkie edycje'],
         'chip' => ['tekst' => $pmgStatusTekst[$edycjaWidok['status']] ?? 'Szkic', 'wariant' => $pmgStatusWariant[$edycjaWidok['status']] ?? 'neutral'],
         'akcje' => [
             ['href' => '?m=pmsession&edycja=' . (int) $edycjaWidok['id'], 'etykieta' => 'Edytuj edycję', 'rodzaj' => 'secondary'],
