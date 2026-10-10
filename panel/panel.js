@@ -174,7 +174,18 @@
       f.addEventListener('change', function () { zmieniony = true; });
     });
     setInterval(function () {
-      if (zmieniony) fetch('index.php?ping=1', { credentials: 'same-origin', cache: 'no-store' }).catch(function () {});
+      if (zmieniony) fetch('index.php?ping=1', { credentials: 'same-origin', cache: 'no-store' }).then(function (r) {
+        // 401: sesja już wygasła (np. minęło 12 h od zalogowania), więc „Zapisz” się nie uda — ostrzegamy nad formularzem.
+        if (r.status !== 401 || document.getElementById('pmg-sesja-wygasla')) return;
+        var ostrzezenie = document.createElement('div');
+        var tekst = document.createElement('p');
+        ostrzezenie.id = 'pmg-sesja-wygasla';
+        ostrzezenie.className = 'pmg-alert pmg-alert--error';
+        ostrzezenie.setAttribute('role', 'alert');
+        tekst.textContent = 'Sesja wygasła. Skopiuj wpisany tekst (np. do notatnika), zanim klikniesz „Zapisz” — zapis się nie uda i trzeba będzie zalogować się ponownie.';
+        ostrzezenie.appendChild(tekst);
+        formularze[0].parentNode.insertBefore(ostrzezenie, formularze[0]);
+      }).catch(function () {});
     }, 10 * 60 * 1000);
   }
 
