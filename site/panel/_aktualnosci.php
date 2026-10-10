@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('aktualnosci', 'dodanie', $id);
             }
-            $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano.' : 'Zapisano jako szkic (niewidoczny na stronie).';
+            $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano jako szkic (niewidoczny na stronie).';
             go('?m=aktualnosci');
         } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
             error_log('aktualnosci zapis: ' . $e->getMessage());
@@ -190,6 +190,10 @@ if ($edit !== null) {
         'opis' => $edit['id'] ? (string) $edit['tytul'] : 'Wpis bez zaznaczenia „Opublikuj” zostaje szkicem.',
         'wstecz' => ['href' => '?m=aktualnosci', 'etykieta' => 'Aktualności'],
     ];
+    // Link do wpisu na stronie tylko dla zapisanego, opublikowanego wpisu (szkic nie jest widoczny publicznie).
+    if (!empty($edit['id']) && !empty($edit['opublikowany']) && !empty($edit['slug'])) {
+        $pmgNaglowek['akcje'] = [['href' => '../aktualnosci.html#wpis-' . rawurlencode((string) $edit['slug']), 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
+    }
 } else {
     $wpisy = pmg_db()->query('SELECT id, data, tytul, opublikowany FROM pmg_aktualnosci ORDER BY data DESC, id DESC')->fetchAll();
     $pmgNaglowek = [
