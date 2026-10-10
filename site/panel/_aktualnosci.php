@@ -210,7 +210,7 @@ if ($edit !== null && !empty($edit['id'])) {
 if ($edit !== null) {
     $pmgNaglowek = [
         'tytul' => $edit['id'] ? 'Edytuj wpis' : 'Nowy wpis',
-        'opis' => $edit['id'] ? (string) $edit['tytul'] : 'Wpis bez zaznaczenia „Opublikuj” zostaje szkicem.',
+        'opis' => $edit['id'] ? (string) $edit['tytul'] : 'Wpis bez zaznaczenia „Opublikuj na stronie” zostaje szkicem.',
         'wstecz' => ['href' => '?m=aktualnosci', 'etykieta' => 'Aktualności'],
     ];
     // Link do wpisu na stronie tylko dla zapisanego, opublikowanego wpisu (szkic nie jest widoczny publicznie).
@@ -283,7 +283,7 @@ if ($edit !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-publikacja">
       <h2 class="pmg-form-section__title" id="sek-publikacja">Publikacja</h2>
       <label class="pmg-check"><input type="checkbox" name="opublikowany" value="1"<?= !empty($edit['opublikowany']) ? ' checked' : '' ?> aria-describedby="opublikowany_h"><span>Opublikuj na stronie</span></label>
-      <p class="pmg-hint pmg-hint--check" id="opublikowany_h">Bez zaznaczenia wpis zostaje szkicem — niewidoczny na stronie.</p>
+      <p class="pmg-hint pmg-hint--check" id="opublikowany_h">Bez zaznaczenia = szkic, niewidoczny na stronie.</p>
     </section>
 
     <div class="pmg-form-actions">

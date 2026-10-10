@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $id = (int) pmg_db()->lastInsertId();
                     loguj('czlonkowie', 'dodanie', $id, $f['imie'] . ' ' . $f['nazwisko']);
                 }
-                $_SESSION['flash'] = 'Zapisano.';
+                $_SESSION['flash'] = $f['aktywna'] ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano jako szkic (niewidoczny na stronie).';
                 go('?m=czlonkowie');
             } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
                 error_log('czlonkowie zapis: ' . $e->getMessage());
@@ -236,9 +236,9 @@ if ($editOsoba !== null) {
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-widocznosc">
-      <h2 class="pmg-form-section__title" id="sek-widocznosc">Widoczność</h2>
-      <label class="pmg-check"><input type="checkbox" name="aktywna" value="1"<?= ($editOsoba['id'] ?? 0) === 0 || !empty($editOsoba['aktywna']) ? ' checked' : '' ?> aria-describedby="aktywna_h"><span>Aktywna</span></label>
-      <p class="pmg-hint pmg-hint--check" id="aktywna_h">Odznacz, żeby ukryć osobę na stronie bez usuwania.</p>
+      <h2 class="pmg-form-section__title" id="sek-widocznosc">Publikacja</h2>
+      <label class="pmg-check"><input type="checkbox" name="aktywna" value="1"<?= ($editOsoba['id'] ?? 0) === 0 || !empty($editOsoba['aktywna']) ? ' checked' : '' ?> aria-describedby="aktywna_h"><span>Opublikuj na stronie</span></label>
+      <p class="pmg-hint pmg-hint--check" id="aktywna_h">Bez zaznaczenia = szkic, niewidoczny na stronie (osoba zostaje w panelu).</p>
     </section>
 
     <div class="pmg-form-actions">
@@ -299,7 +299,7 @@ if ($editOsoba !== null) {
             <td data-label="Funkcja"><?= h($o['funkcja']) ?></td>
             <td data-label="E-mail"><?= h($o['email']) ?></td>
             <td class="pmg-num" data-label="Kolejność"><?= (int) $o['kolejnosc'] ?></td>
-            <td data-label="Status"><?php if (!$o['aktywna']): ?><span class="pmg-chip pmg-chip--outline">Ukryta</span><?php else: ?><span class="pmg-muted">Widoczna</span><?php endif; ?></td>
+            <td data-label="Status"><?php if (!$o['aktywna']): ?><span class="pmg-chip pmg-chip--neutral">Szkic</span><?php else: ?><span class="pmg-chip pmg-chip--success">Opublikowany</span><?php endif; ?></td>
           </tr>
         <?php endforeach; ?>
         <?php if (!$bylZarzad): ?>
@@ -332,7 +332,7 @@ if ($editOsoba !== null) {
               <td data-label="Funkcja"><?= h($o['funkcja']) ?></td>
               <td data-label="E-mail"><?= h($o['email']) ?></td>
               <td class="pmg-num" data-label="Kolejność"><?= (int) $o['kolejnosc'] ?></td>
-              <td data-label="Status"><?php if ($o['koordynator']): ?><span class="pmg-chip pmg-chip--purple">Koordynator/-ka</span> <?php endif; ?><?php if (!$o['aktywna']): ?><span class="pmg-chip pmg-chip--outline">Ukryta</span><?php elseif (!$o['koordynator']): ?><span class="pmg-muted">Widoczna</span><?php endif; ?></td>
+              <td data-label="Status"><?php if ($o['koordynator']): ?><span class="pmg-chip pmg-chip--purple">Koordynator/-ka</span> <?php endif; ?><?php if (!$o['aktywna']): ?><span class="pmg-chip pmg-chip--neutral">Szkic</span><?php else: ?><span class="pmg-chip pmg-chip--success">Opublikowany</span><?php endif; ?></td>
             </tr>
           <?php endforeach; ?>
           <?php if (!$osoby): ?>
