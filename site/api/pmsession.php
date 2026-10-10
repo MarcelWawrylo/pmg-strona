@@ -20,6 +20,27 @@ function pms_prelegent_pub($p)
     ];
 }
 
+// ?lista=1: edycje do podmenu PM Session w nagłówku strony (js/main.js). Tylko bieżąca i zakończone, które mają własny plik
+// pm-session-<numer>.html (jak pms_adres_strony() w panelu); szkic nigdy. Zwraca wyłącznie numer, status i adres strony.
+// 'wszystkich' = liczba edycji w bazie (także szkiców): gdy 0 (baza przed importem), menu zostaje w wersji statycznej z HTML.
+if (isset($_GET['lista'])) {
+    try {
+        $pdo = pmg_db();
+        $lista = [];
+        foreach ($pdo->query("SELECT numer, status FROM pmg_edycje WHERE status IN ('biezaca','zakonczona') ORDER BY status = 'biezaca' DESC, data DESC, id DESC")->fetchAll() as $r) {
+            if (!preg_match('~^[IVXLC]{1,10}$~', $r['numer'])) continue;
+            $plik = 'pm-session-' . strtolower($r['numer']) . '.html';
+            if (!is_file(__DIR__ . '/../' . $plik)) continue;
+            $lista[] = ['numer' => $r['numer'], 'status' => $r['status'], 'adres' => $plik];
+        }
+        $wszystkich = (int) $pdo->query('SELECT COUNT(*) FROM pmg_edycje')->fetchColumn();
+    } catch (PDOException $e) {
+        pmg_json(['error' => 'db'], 500);
+    }
+    header('Cache-Control: public, max-age=300');
+    pmg_json(['edycje' => $lista, 'wszystkich' => $wszystkich]);
+}
+
 $numer = isset($_GET['numer']) ? strtoupper(trim((string) $_GET['numer'])) : '';
 if ($numer !== '' && !preg_match('~^[IVXLC]{1,10}$~', $numer)) {
     pmg_json(['error' => 'numer'], 400);
