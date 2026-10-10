@@ -299,7 +299,7 @@ a, button, summary, label, input, select, textarea {
 
 /* ===================== 10. Pola ===================== */
 input[type=text], input[type=email], input[type=password], input[type=date], input[type=time],
-input[type=number], input[type=url], select, textarea {
+input[type=number], input[type=url], input[type=search], select, textarea {
   width: 100%; min-height: 44px; padding: 10px 12px;
   font: 400 16px/1.4 var(--pmg-font-body); color: var(--pmg-text);
   background: #FFF; border: 1px solid var(--pmg-border-strong); border-radius: var(--pmg-r);
@@ -308,15 +308,15 @@ input[type=number], input[type=url], select, textarea {
 }
 @media (hover: hover) {
   input[type=text]:hover, input[type=email]:hover, input[type=password]:hover, input[type=date]:hover,
-  input[type=time]:hover, input[type=number]:hover, input[type=url]:hover, select:hover, textarea:hover {
+  input[type=time]:hover, input[type=number]:hover, input[type=url]:hover, input[type=search]:hover, select:hover, textarea:hover {
     border-color: var(--pmg-border-hover);
   }
 }
 input[type=text]:focus, input[type=email]:focus, input[type=password]:focus, input[type=date]:focus,
-input[type=time]:focus, input[type=number]:focus, input[type=url]:focus, select:focus, textarea:focus,
+input[type=time]:focus, input[type=number]:focus, input[type=url]:focus, input[type=search]:focus, select:focus, textarea:focus,
 input[type=text]:focus-visible, input[type=email]:focus-visible, input[type=password]:focus-visible,
 input[type=date]:focus-visible, input[type=time]:focus-visible, input[type=number]:focus-visible,
-input[type=url]:focus-visible, select:focus-visible, textarea:focus-visible {
+input[type=url]:focus-visible, input[type=search]:focus-visible, select:focus-visible, textarea:focus-visible {
   border-color: var(--pmg-focus); outline: 3px solid var(--pmg-focus); outline-offset: 1px;
 }
 [aria-invalid="true"] { border-color: var(--pmg-danger); box-shadow: inset 0 0 0 1px var(--pmg-danger); }
