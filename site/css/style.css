@@ -1762,11 +1762,12 @@ button.site-footer__switch--btn, button.map-consent__settings {
 }
 button.map-consent__settings { font: 500 13.5px/1.55 var(--font-body); }
 button.map-consent__settings[hidden] { display: none; }
+/* pływająca pigułka jak header po przewinięciu (to samo tło, cień i zaokrąglenie), wyśrodkowana nad dolną krawędzią */
 .cookie-bar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px;
-  padding: 16px var(--gutter); background: var(--color-surface); color: var(--color-ink);
-  border-top: 1px solid var(--color-border); box-shadow: 0 -6px 24px rgba(0, 0, 0, .08);
+  position: fixed; left: 0; right: 0; bottom: 12px; z-index: 90; width: min(1120px, calc(100% - 20px)); margin: 0 auto;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 24px; text-align: center;
+  padding: 12px 12px 12px 28px; border-radius: var(--radius-pill); color: var(--color-ink);
+  background: rgba(247,246,243,.99); box-shadow: 0 14px 34px -14px rgba(20,20,40,.35), 0 0 0 1px rgba(20,20,20,.06);
   opacity: 0; transform: translateY(12px); transition: opacity .25s ease, transform .25s ease;
 }
 .cookie-bar[hidden] { display: none; }
@@ -1782,6 +1783,7 @@ button.map-consent__settings[hidden] { display: none; }
 .cookie-bar__btn:hover { background: var(--color-ink); color: #fff; }
 .cookie-bar__btn:focus-visible, .cookie-bar a:focus-visible { outline: 3px solid var(--color-blue); outline-offset: 3px; }
 @media (max-width: 640px) {
+  .cookie-bar { padding: 16px 16px 14px; border-radius: 28px; } /* kilka linii tekstu: pełna pigułka ucięłaby rogi */
   .cookie-bar__actions { width: 100%; }
   .cookie-bar__btn { flex: 1 1 0; min-width: 0; }
 }
