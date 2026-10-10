@@ -1115,9 +1115,12 @@
           '<h1 class="blog-article__title" id="' + id + '-title" tabindex="-1">' + esc(p.tytul) + '</h1>' +
           '<p class="blog-article__lead">' + esc(p.lead || p.zajawka) + '</p>' + img(p, 'blog-article__img', SIZES.article, true) +
           '<div class="blog-article__body">' + body(p.tresc) + '</div>' +
+          (p.galeria && p.galeria.length && PMG.galleryHtml ? '<section class="blog-article__gallery" aria-labelledby="' + id + '-galeria"><h2 class="blog-article__h2" id="' + id + '-galeria">Galeria</h2>' +
+            '<div class="gallery gallery--small">' + p.galeria.map(function (g) { return PMG.galleryHtml(g); }).join('') + '</div></section>' : '') +
           (p.autor ? '<div class="blog-article__foot"><p class="blog-article__author">Autor: <b>' + esc(p.autor) + '</b></p></div>' : '') +
           '</article>';
       }).join('');
+      if (PMG.initLightbox) PMG.initLightbox(wrap);
     }
 
     function route() {
@@ -1464,6 +1467,7 @@
     return '<figure class="gallery__item"><button class="gallery__button" type="button" data-lightbox-trigger data-full="' + esc(abs(full)) + '" data-caption="' + cap + '" aria-label="Powiększ zdjęcie: ' + cap + '">' +
       PMG.picture(o, g.zdjecie, { sizes: GALLERY_SIZES, fw: 1200, fh: 675, alt: g.podpis, lazy: true }) + '</button><figcaption class="gallery__caption">' + cap + '</figcaption></figure>';
   };
+  PMG.galleryHtml = galleryHtml; // używa go też widok artykułu w Aktualnościach (blok „Aktualności” wyżej w tym pliku)
   var sectionsHtml = function (e) {
     var out = [];
     var bg = function () { return out.length % 2 ? 'bg-warm' : 'bg-surface'; }; // tła na przemian, także gdy sekcji brakuje
