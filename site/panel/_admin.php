@@ -175,7 +175,11 @@ if ($sub === 'dziennik') {
 if ($sub !== 'konta') { echo '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nieznany widok.</p></div>'; return; }
 
 $error = '';
-const MODULY_REDAKTORA = ['aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła', 'rekrutacja' => 'Rekrutacja'];
+// Uprawnienia redaktora w kolejności menu (wartości kolumny SET moduly). Biała lista przy zapisie: 'tresci' ani 'admin' przez POST nie przejdą.
+const MODULY_REDAKTORA = [
+    'glowna' => 'Strona główna', 'czlonkowie' => 'O nas', 'aktualnosci' => 'Aktualności', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła',
+    'dolacz' => 'Dołącz (teksty strony)', 'rekrutacja' => 'Rekrutacja (nabór i link na stronie Dołącz)', 'kontakt' => 'Kontakt',
+];
 const KONTO_WLASNE = 'Nie możesz zmienić roli, zablokować ani zresetować własnego konta. Hasło zmienisz w „Moje konto”.';
 
 // Ilu jest innych aktywnych administratorów z ustawionym hasłem (poza kontem $id) — chroni ostatniego admina.
@@ -219,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
         $rola = ($_POST['rola'] ?? '') === 'admin' ? 'admin' : 'redaktor';
         $moduly = implode(',', array_intersect((array) ($_POST['moduly'] ?? []), array_keys(MODULY_REDAKTORA)));
-        // Przy własnym koncie pola roli i modułów są wyłączone (nie przychodzą w POST); rola i moduły zostają bez zmian.
+        // Przy własnym koncie pola roli i stron są wyłączone (nie przychodzą w POST); rola i uprawnienia zostają bez zmian.
         $zmianaWlasnejRoli = $ja && isset($_POST['rola']) && $rola !== $me['rola'];
         if ($ja) { $rola = $me['rola']; $moduly = $me['moduly']; }
 
@@ -378,15 +382,15 @@ if ($edit !== null) {
     <?php $wlasne = (int) $edit['id'] === (int) $me['id']; ?>
     <fieldset class="pmg-fieldset"<?= $wlasne ? ' disabled' : '' ?>>
       <legend class="pmg-legend">Rola</legend>
-      <p class="pmg-hint" id="rola_h"><?= $wlasne ? 'To Twoje konto: roli i modułów nie zmienisz sam(a). Może to zrobić inny administrator.' : 'Administrator ma dostęp do wszystkich modułów oraz do kont, dziennika i kopii bazy.' ?></p>
+      <p class="pmg-hint" id="rola_h"><?= $wlasne ? 'To Twoje konto: roli i stron nie zmienisz sam(a). Może to zrobić inny administrator.' : 'Administrator ma dostęp do wszystkich stron oraz do stopki, kont, dziennika i kopii bazy.' ?></p>
       <div class="pmg-options">
         <label class="pmg-option"><input type="radio" name="rola" value="redaktor" aria-describedby="rola_h"<?= $edit['rola'] === 'redaktor' ? ' checked' : '' ?>><span>Redaktor</span></label>
         <label class="pmg-option"><input type="radio" name="rola" value="admin" aria-describedby="rola_h"<?= $edit['rola'] === 'admin' ? ' checked' : '' ?>><span>Administrator</span></label>
       </div>
     </fieldset>
     <fieldset class="pmg-fieldset"<?= $wlasne ? ' disabled' : '' ?>>
-      <legend class="pmg-legend">Moduły (dla redaktora)</legend>
-      <p class="pmg-hint" id="moduly_h">Dotyczy tylko roli Redaktor.</p>
+      <legend class="pmg-legend">Strony (dla redaktora)</legend>
+      <p class="pmg-hint" id="moduly_h">Dotyczy tylko roli Redaktor. Strona = wszystko na tej stronie razem z jej tekstami. Stopka, e-mail i media należą do administratora.</p>
       <div class="pmg-options">
         <?php $wybrane = explode(',', $edit['moduly']); foreach (MODULY_REDAKTORA as $mk => $ml): ?>
           <label class="pmg-option"><input type="checkbox" name="moduly[]" value="<?= $mk ?>" aria-describedby="moduly_h"<?= in_array($mk, $wybrane, true) ? ' checked' : '' ?>><span><?= h($ml) ?></span></label>
@@ -416,7 +420,7 @@ if ($edit !== null) {
     <table class="pmg-table pmg-table--klikalna">
       <caption class="pmg-vh">Konta</caption>
       <thead><tr>
-        <th scope="col">Imię i nazwisko</th><th scope="col">Rola</th><th scope="col">Moduły</th><th scope="col">Status</th><th scope="col">Akcje</th>
+        <th scope="col">Imię i nazwisko</th><th scope="col">Rola</th><th scope="col">Strony</th><th scope="col">Status</th><th scope="col">Akcje</th>
       </tr></thead>
       <tbody>
       <?php foreach (pmg_db()->query('SELECT * FROM pmg_uzytkownicy ORDER BY imie_nazwisko') as $k): ?>
@@ -439,7 +443,7 @@ if ($edit !== null) {
             <?php if ((int) $k['id'] === (int) $me['id']): ?><span class="pmg-chip pmg-chip--accent">To Ty</span><?php endif; ?>
           </td>
           <td data-label="Rola"><?= $k['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?></td>
-          <td data-label="Moduły"><?= h($modulyTekst) ?></td>
+          <td data-label="Strony"><?= h($modulyTekst) ?></td>
           <td data-label="Status"><span class="pmg-chip <?= $statusKlasa ?>"><?= $statusTekst ?></span></td>
           <td class="pmg-td-actions" data-label="Akcje">
             <a class="pmg-btn pmg-btn--text pmg-btn--sm" href="?m=konta&id=<?= (int) $k['id'] ?>">Edytuj<span class="pmg-vh"> <?= h($k['imie_nazwisko']) ?></span></a>
