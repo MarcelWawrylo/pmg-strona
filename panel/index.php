@@ -224,6 +224,17 @@ function pierwsze_ok($cfg)
     return mb_strlen((string) ($cfg['setup_haslo'] ?? '')) >= 12;
 }
 
+// „Nie pamiętasz hasła?” działa tylko przy 'reset_hasla_mailem' => true ORAZ poprawnych 'mail_from' i 'adres_panelu'
+// (link w mailu nigdy z nagłówka Host — ten przysyła przeglądarka). Włączone, ale niekompletne: ostrzeżenie w logu serwera.
+function reset_mailem_ok()
+{
+    $c = pmg_config();
+    if (empty($c['reset_hasla_mailem'])) return false;
+    $ok = filter_var(trim((string) ($c['mail_from'] ?? '')), FILTER_VALIDATE_EMAIL) && preg_match('~^https?://~', trim((string) ($c['adres_panelu'] ?? '')));
+    if (!$ok) error_log("reset hasła mailem: OSTRZEŻENIE — włączony, ale brak poprawnych 'mail_from' lub 'adres_panelu'; funkcja wyłączona");
+    return (bool) $ok;
+}
+
 // Prawdziwa data w formacie RRRR-MM-DD (odrzuca np. 2026-02-31, które przeszłoby sam wzorzec).
 function data_ok($v)
 {
@@ -579,6 +590,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             go();
         }
     }
+
+    // „Nie pamiętasz hasła?”: zawsze ten sam komunikat, żeby formularz nie zdradzał, czy adres ma konto.
+    if (!$me && $action === 'przypomnij' && reset_mailem_ok()) {
+        $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
+        if (!pmg_rate_ok('reset_ip', 5, 900)) {
+            $error = 'Za dużo prób. Spróbuj za 15 minut.';
+        } else {
+            // Tylko aktywne konto z hasłem: konto bez hasła czeka na link od administratora (nie nadpisujemy go cudzym żądaniem).
+            $st = pmg_db()->prepare('SELECT id, email FROM pmg_uzytkownicy WHERE email = ? AND aktywny = 1 AND haslo IS NOT NULL');
+            $st->execute([$email]);
+            $u = $st->fetch();
+            // Kubełek po id konta (jak przy logowaniu — warianty z akcentami trafiają w to samo konto); po przekroczeniu cisza.
+            if ($u && pmg_rate_ok('reset_konto', 3, 3600, 'konto:' . $u['id'])) {
+                $token = bin2hex(random_bytes(32));
+                // Hasła NIE czyścimy: obcy, wpisując czyjś e-mail, nie zablokuje mu konta. Stare hasło działa do ustawienia nowego.
+                pmg_db()->prepare('UPDATE pmg_uzytkownicy SET token_hash = ?, token_do = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ?')
+                    ->execute([hash('sha256', $token), $u['id']]);
+                $c = pmg_config();
+                $link = rtrim(trim((string) $c['adres_panelu']), '/') . '/?t=' . $token;
+                $trescMaila = "Cześć,\n\nktoś (prawdopodobnie Ty) poprosił o nowe hasło do panelu strony PMG.\n\n"
+                    . "Ustaw nowe hasło tutaj (link działa 1 godzinę i tylko raz):\n" . $link . "\n\n"
+                    . "Jeśli to nie Ty, zignoruj tę wiadomość — obecne hasło nadal działa.\n\n— Panel PMG\n";
+                $naglowki = implode("\r\n", [
+                    'From: Panel PMG <' . trim((string) $c['mail_from']) . '>',
+                    'MIME-Version: 1.0',
+                    'Content-Type: text/plain; charset=UTF-8',
+                    'Content-Transfer-Encoding: 8bit',
+                ]);
+                $wyslano = mail($u['email'], '=?UTF-8?B?' . base64_encode('Panel PMG: nowe hasło') . '?=', $trescMaila, $naglowki);
+                if (!$wyslano) error_log('reset hasła mailem: nie udało się wysłać wiadomości (konto id ' . (int) $u['id'] . ')');
+                dziennik_wpis((int) $u['id'], 'konto', 'reset', (int) $u['id'], 'prośba o reset hasła mailem' . ($wyslano ? '' : ' — mail nie wyszedł'));
+            }
+            $_SESSION['flash'] = 'Jeśli ten adres ma konto w panelu, wysłaliśmy na niego link do ustawienia nowego hasła. Link działa 1 godzinę. Nie przyszedł? Sprawdź spam albo poproś administratora o link.';
+            go();
+        }
+    }
 }
 
 // ---------- Widok bez zalogowania ----------
@@ -587,6 +634,7 @@ if (!$me) {
     $liczbaKont = (int) pmg_db()->query('SELECT COUNT(*) FROM pmg_uzytkownicy')->fetchColumn();
     if ($liczbaKont === 0) $widok = 'pierwsze';
     elseif (isset($_GET['t'])) $widok = 'haslo';
+    elseif (isset($_GET['reset']) && reset_mailem_ok()) $widok = 'reset';
     else $widok = 'logowanie';
 }
 
@@ -647,9 +695,9 @@ if ($me && $m !== '') {
 // ---------- Dane do szablonu (nagłówek strony, tytuł, alerty, liczby na start) ----------
 $etykieta = $me ? ($etykietyModulow[$m] ?? '') : '';
 $ng = $pmgNaglowek + ['tytul' => $etykieta !== '' ? $etykieta : 'Start', 'opis' => $opisyModulow[$m] ?? '', 'akcje' => [], 'wstecz' => null, 'chip' => null];
-if (!$me) $ng = ['tytul' => ['pierwsze' => 'Pierwsze konto administratora', 'haslo' => 'Ustaw hasło'][$widok] ?? 'Zaloguj się', 'opis' => '', 'akcje' => [], 'wstecz' => null, 'chip' => null];
+if (!$me) $ng = ['tytul' => ['pierwsze' => 'Pierwsze konto administratora', 'haslo' => 'Ustaw hasło', 'reset' => 'Nie pamiętasz hasła?'][$widok] ?? 'Zaloguj się', 'opis' => '', 'akcje' => [], 'wstecz' => null, 'chip' => null];
 if ($me && $m === '') $ng['opis'] = 'Wybierz stronę, żeby dodać lub zmienić jej treść.';
-$tytulBledu = ['pierwsze' => 'Nie udało się założyć konta', 'haslo' => 'Nie udało się ustawić hasła', 'logowanie' => 'Nie udało się zalogować'][$widok] ?? 'Nie udało się zapisać';
+$tytulBledu = ['pierwsze' => 'Nie udało się założyć konta', 'haslo' => 'Nie udało się ustawić hasła', 'logowanie' => 'Nie udało się zalogować', 'reset' => 'Nie udało się wysłać'][$widok] ?? 'Nie udało się zapisać';
 
 // Alerty (§5.10). Uwaga: rola "alert" jest na samym tekście komunikatu (nie na tytule), żeby czytnik
 // ekranu i automatyczne testy dostawały dokładnie treść $error — tytuł ($tytulBledu) zostaje w nagłówku
@@ -824,6 +872,20 @@ if ($me && $m === '') { $db = pmg_db(); foreach ($pmgKafelki as $mk) {
       <p class="pmg-auth-foot">Masz już hasło? <a href="index.php">Przejdź do logowania</a></p>
     </div>
 
+  <?php elseif ($widok === 'reset'): ?>
+    <div class="pmg-card pmg-card--auth">
+      <h1 class="pmg-h1"><?= h($ng['tytul']) ?></h1>
+      <p>Wpisz e-mail, którym logujesz się do panelu. Wyślemy na niego link do ustawienia nowego hasła.</p>
+      <?= $pmgAlerty ?>
+      <form method="post">
+        <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="przypomnij">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" name="email" autocomplete="username" required<?= $error === '' ? ' autofocus' : '' ?>>
+        <button class="pmg-btn pmg-btn--primary" type="submit">Wyślij link</button>
+      </form>
+      <p class="pmg-auth-foot"><a href="index.php">Wróć do logowania</a></p>
+    </div>
+
   <?php else: ?>
     <div class="pmg-card pmg-card--auth">
       <h1 class="pmg-h1"><?= h($ng['tytul']) ?></h1>
@@ -837,7 +899,8 @@ if ($me && $m === '') { $db = pmg_db(); foreach ($pmgKafelki as $mk) {
         <input type="password" id="haslo" name="haslo" autocomplete="current-password" required>
         <button class="pmg-btn pmg-btn--primary" type="submit">Zaloguj</button>
       </form>
-      <p class="pmg-auth-foot">Nie masz hasła? Poproś administratora o link.</p>
+      <?php if (reset_mailem_ok()): ?><p class="pmg-auth-foot"><a href="index.php?reset">Nie pamiętasz hasła?</a></p>
+      <?php else: ?><p class="pmg-auth-foot">Nie masz hasła? Poproś administratora o link.</p><?php endif; ?>
     </div>
   <?php endif; ?>
 </main>
