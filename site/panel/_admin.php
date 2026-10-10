@@ -418,9 +418,9 @@ if ($edit !== null) {
             <?php if ((int) $k['id'] === (int) $me['id']): ?>
               <a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=konto">Moje konto</a>
             <?php else: ?>
-            <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="reset"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit"><?= $k['haslo'] === null ? 'Link zaproszenia' : 'Resetuj hasło' ?></button></form>
+            <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="reset"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit"<?= $k['haslo'] === null ? '' : ' data-pmg-potwierdz="' . h('Zresetować hasło: ' . $k['imie_nazwisko'] . '? Obecne hasło przestanie działać od razu, a Ty dostaniesz nowy link do przekazania.') . '"' ?>><?= $k['haslo'] === null ? 'Link zaproszenia' : 'Resetuj hasło' ?></button></form>
             <?php if ($k['aktywny']): ?>
-              <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="blokuj"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="pmg-btn pmg-btn--danger-outline pmg-btn--sm" type="submit">Zablokuj</button></form>
+              <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="blokuj"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="pmg-btn pmg-btn--danger-outline pmg-btn--sm" type="submit" data-pmg-potwierdz="<?= h('Zablokować konto: ' . $k['imie_nazwisko'] . '? Ta osoba od razu straci dostęp do panelu.') ?>">Zablokuj</button></form>
             <?php else: ?>
               <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="odblokuj"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit">Odblokuj</button></form>
             <?php endif; ?>
