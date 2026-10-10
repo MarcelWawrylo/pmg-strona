@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 7;
+const PMG_SCHEMA = 8;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -269,6 +269,21 @@ function pmg_migrate()
             wartosc TEXT NOT NULL,
             data_zmiany DATETIME NOT NULL,
             kto VARCHAR(100) NOT NULL DEFAULT ''
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    foreach ($tabele as $sql) $pdo->exec($sql);
+    // Schemat 8: galeria zdjęć wpisu Aktualności (pod treścią artykułu). Zdjęcia: uploads/aktualnosci/… z panelu; podpis jest też opisem (alt).
+    // Klucz obcy wymaga InnoDB u rodzica, a pmg_aktualnosci (z dawnego pmg_db()) nie ma jawnego ENGINE — na starszej bazie mógł być MyISAM.
+    if (strcasecmp((string) $pdo->query("SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pmg_aktualnosci'")->fetchColumn(), 'InnoDB') !== 0) {
+        $pdo->exec('ALTER TABLE pmg_aktualnosci ENGINE=InnoDB');
+    }
+    $tabele = [];
+    $tabele[] = "CREATE TABLE IF NOT EXISTS pmg_aktualnosci_galeria (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            wpis_id INT NOT NULL,
+            zdjecie VARCHAR(200) NOT NULL,
+            podpis VARCHAR(200) NOT NULL,
+            kolejnosc SMALLINT NOT NULL DEFAULT 0,
+            FOREIGN KEY (wpis_id) REFERENCES pmg_aktualnosci(id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     foreach ($tabele as $sql) $pdo->exec($sql);
 

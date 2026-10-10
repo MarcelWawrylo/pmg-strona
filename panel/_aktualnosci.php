@@ -2,6 +2,8 @@
 // Moduł Aktualności: lista, dodawanie / edycja / usuwanie wpisów. Wołany wyłącznie z index.php (?m=aktualnosci).
 defined('PMG_PANEL') || exit;
 
+const AKT_GALERIA_MAX = 12;
+
 function slugify($text)
 {
     $text = strtr(mb_strtolower($text, 'UTF-8'), ['ą' => 'a', 'ć' => 'c', 'ę' => 'e', 'ł' => 'l', 'ń' => 'n', 'ó' => 'o', 'ś' => 's', 'ź' => 'z', 'ż' => 'z']);
@@ -19,8 +21,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $st = pmg_db()->prepare('SELECT zdjecie FROM pmg_aktualnosci WHERE id = ?');
         $st->execute([$id]);
         $img = $st->fetchColumn();
-        pmg_db()->prepare('DELETE FROM pmg_aktualnosci WHERE id = ?')->execute([$id]);
+        $st = pmg_db()->prepare('SELECT zdjecie FROM pmg_aktualnosci_galeria WHERE wpis_id = ?');
+        $st->execute([$id]);
+        $pliki = $st->fetchAll(PDO::FETCH_COLUMN);
+        $pdo = pmg_db();
+        $pdo->beginTransaction(); // wiersze galerii najpierw (klucz obcy); przy błędzie nic nie znika, pliki zostają
+        try {
+            $pdo->prepare('DELETE FROM pmg_aktualnosci_galeria WHERE wpis_id = ?')->execute([$id]);
+            $pdo->prepare('DELETE FROM pmg_aktualnosci WHERE id = ?')->execute([$id]);
+            $pdo->commit();
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('aktualnosci usuniecie: ' . $e->getMessage());
+            $_SESSION['flash'] = 'Nie udało się usunąć wpisu (błąd bazy danych). Nic nie usunięto.';
+            go('?m=aktualnosci&id=' . $id);
+        }
         drop_image($img ?: null);
+        foreach ($pliki as $p) drop_image($p);
         loguj('aktualnosci', 'usuniecie', $id);
         $_SESSION['flash'] = 'Wpis usunięty.';
         go('?m=aktualnosci');
@@ -29,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'save') {
         $id = (int) ($_POST['id'] ?? 0);
         $f = [];
-        foreach (['tytul' => 200, 'lead' => 600, 'zajawka' => 400, 'kategoria' => 40, 'autor' => 100, 'zdjecie_alt' => 200] as $k => $max) {
+        foreach (['tytul' => 200, 'lead' => 600, 'zajawka' => 400, 'autor' => 100, 'zdjecie_alt' => 200] as $k => $max) {
             $f[$k] = mb_substr(trim((string) ($_POST[$k] ?? '')), 0, $max);
         }
         $f['tresc'] = trim(str_replace("\r\n", "\n", (string) ($_POST['tresc'] ?? '')));
@@ -50,8 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $f['zdjecie'] = zdjecie('aktualnosci', $stareZdjecie);
             if ($f['zdjecie'] !== $stareZdjecie) $noweZdjecie = $f['zdjecie'];
             if ($id && $old) {
-                $st = pmg_db()->prepare('UPDATE pmg_aktualnosci SET data=?, kategoria=?, kolor=?, tytul=?, lead=?, zajawka=?, tresc=?, zdjecie=?, zdjecie_alt=?, autor=?, opublikowany=? WHERE id=?');
-                $st->execute([$f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $id]);
+                $st = pmg_db()->prepare('UPDATE pmg_aktualnosci SET data=?, kolor=?, tytul=?, lead=?, zajawka=?, tresc=?, zdjecie=?, zdjecie_alt=?, autor=?, opublikowany=? WHERE id=?');
+                $st->execute([$f['data'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $id]);
                 $noweZdjecie = null;
                 if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
                 loguj('aktualnosci', 'edycja', $id);
@@ -59,8 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $base = $slug = slugify($f['tytul']);
                 $st = pmg_db()->prepare('SELECT 1 FROM pmg_aktualnosci WHERE slug = ?');
                 for ($n = 2; $st->execute([$slug]) && $st->fetchColumn(); $n++) $slug = $base . '-' . $n;
-                $st = pmg_db()->prepare('INSERT INTO pmg_aktualnosci (slug, data, kategoria, kolor, tytul, lead, zajawka, tresc, zdjecie, zdjecie_alt, autor, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
-                $st->execute([$slug, $f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany']]);
+                $st = pmg_db()->prepare('INSERT INTO pmg_aktualnosci (slug, data, kolor, tytul, lead, zajawka, tresc, zdjecie, zdjecie_alt, autor, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+                $st->execute([$slug, $f['data'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany']]);
                 $noweZdjecie = null;
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('aktualnosci', 'dodanie', $id);
@@ -76,6 +93,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = $e->getMessage();
             $edit = array_merge($old ?: [], $f, ['id' => $id]);
         }
+
+    // ---------- Galeria ----------
+    } elseif (strpos($action, 'gal_') === 0) {
+        $wid = (int) ($_POST['wpis_id'] ?? 0);
+        $gid = (int) ($_POST['id'] ?? 0);
+        $st = pmg_db()->prepare('SELECT * FROM pmg_aktualnosci WHERE id = ?');
+        $st->execute([$wid]);
+        $ed = $st->fetch() ?: null;
+        if (!$ed) {
+            $_SESSION['flash'] = 'Nie znaleziono tego wpisu.';
+            go('?m=aktualnosci');
+        }
+        $wroc = '?m=aktualnosci&id=' . $wid . '#galeria';
+        $st = pmg_db()->prepare('SELECT * FROM pmg_aktualnosci_galeria WHERE id = ? AND wpis_id = ?');
+        $st->execute([$gid, $wid]);
+        $g = $st->fetch() ?: null;
+        $noweGal = null; // plik wgrany w tym żądaniu — usuwany, jeśli zapis do bazy się nie uda
+        try {
+            if ($action === 'gal_dodaj') {
+                $podpis = mb_substr(trim((string) ($_POST['podpis'] ?? '')), 0, 200);
+                $ile = pmg_db()->prepare('SELECT COUNT(*) FROM pmg_aktualnosci_galeria WHERE wpis_id = ?');
+                $ile->execute([$wid]);
+                if ((int) $ile->fetchColumn() >= AKT_GALERIA_MAX) throw new RuntimeException('Galeria może mieć najwyżej ' . AKT_GALERIA_MAX . ' zdjęć.');
+                if (empty($_FILES['plik']['name'])) throw new RuntimeException('Wybierz plik ze zdjęciem.');
+                if ($podpis === '') throw new RuntimeException('Dodaj podpis zdjęcia (to także opis dla osób niewidomych).');
+                $plik = $noweGal = save_image($_FILES['plik'], 'aktualnosci');
+                $kol = pmg_db()->prepare('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_aktualnosci_galeria WHERE wpis_id = ?');
+                $kol->execute([$wid]);
+                pmg_db()->prepare('INSERT INTO pmg_aktualnosci_galeria (wpis_id, zdjecie, podpis, kolejnosc) VALUES (?,?,?,?)')
+                    ->execute([$wid, $plik, $podpis, (int) $kol->fetchColumn()]);
+                $noweGal = null;
+                loguj('aktualnosci', 'galeria', $wid);
+                $_SESSION['flash'] = 'Zdjęcie dodane do galerii.';
+                go($wroc);
+            } elseif (!$g) {
+                throw new RuntimeException('Nie znaleziono zdjęcia.');
+            } elseif ($action === 'gal_zapisz') {
+                $podpis = mb_substr(trim((string) ($_POST['podpis'] ?? '')), 0, 200);
+                if ($podpis === '') throw new RuntimeException('Podpis zdjęcia nie może być pusty (to także opis dla osób niewidomych).');
+                $nowe = null;
+                if (!empty($_FILES['plik']['name'])) $nowe = $noweGal = save_image($_FILES['plik'], 'aktualnosci');
+                if ($nowe !== null) {
+                    pmg_db()->prepare('UPDATE pmg_aktualnosci_galeria SET podpis = ?, zdjecie = ? WHERE id = ?')->execute([$podpis, $nowe, $gid]);
+                    $noweGal = null;
+                    drop_image($g['zdjecie']);
+                } else {
+                    pmg_db()->prepare('UPDATE pmg_aktualnosci_galeria SET podpis = ? WHERE id = ?')->execute([$podpis, $gid]);
+                }
+                loguj('aktualnosci', 'galeria', $wid);
+                $_SESSION['flash'] = 'Zapisano zdjęcie.';
+                go($wroc);
+            } elseif ($action === 'gal_gora' || $action === 'gal_dol') {
+                if (przesun('pmg_aktualnosci_galeria', 'kolejnosc, id', $gid, $action === 'gal_gora' ? 'gora' : 'dol', 'wpis_id', $wid)) loguj('aktualnosci', 'galeria', $wid);
+                go($wroc);
+            } elseif ($action === 'gal_usun') {
+                pmg_db()->prepare('DELETE FROM pmg_aktualnosci_galeria WHERE id = ?')->execute([$gid]);
+                drop_image($g['zdjecie']);
+                loguj('aktualnosci', 'galeria', $wid);
+                $_SESSION['flash'] = 'Zdjęcie usunięte z galerii.';
+                go($wroc);
+            }
+        } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
+            error_log('aktualnosci galeria: ' . $e->getMessage());
+            drop_image($noweGal);
+            $error = 'Błąd zapisu galerii.';
+            $edit = $ed;
+        } catch (RuntimeException $e) {
+            $error = $e->getMessage();
+            $edit = $ed;
+        }
     }
 }
 
@@ -89,6 +176,13 @@ if ($edit === null) {
     }
 }
 $v = function ($k) use (&$edit) { return h($edit[$k] ?? ''); };
+
+$galeria = [];
+if ($edit !== null && !empty($edit['id'])) {
+    $st = pmg_db()->prepare('SELECT * FROM pmg_aktualnosci_galeria WHERE wpis_id = ? ORDER BY kolejnosc, id');
+    $st->execute([(int) $edit['id']]);
+    $galeria = $st->fetchAll();
+}
 
 if ($edit !== null) {
     $pmgNaglowek = [
@@ -127,11 +221,8 @@ if ($edit !== null) {
       <textarea id="tresc" name="tresc" aria-describedby="tresc_h" required><?= $v('tresc') ?></textarea>
     </section>
 
-    <section class="pmg-form-section" aria-labelledby="sek-kategoria">
-      <h2 class="pmg-form-section__title" id="sek-kategoria">Data, kategoria i kolor</h2>
-      <label for="kategoria">Kategoria <span class="pmg-opt">(opcjonalnie)</span></label>
-      <p class="pmg-hint" id="kategoria_h">Np. Życie koła, Wydarzenie, Rekrutacja. Strona na razie nie wyświetla kategorii, więc pole można zostawić puste.</p>
-      <input type="text" id="kategoria" name="kategoria" maxlength="40" value="<?= $v('kategoria') ?>" aria-describedby="kategoria_h">
+    <section class="pmg-form-section" aria-labelledby="sek-data">
+      <h2 class="pmg-form-section__title" id="sek-data">Data, kolor i autor</h2>
       <label for="kolor">Kolor wpisu (akcent na kafelku)</label>
       <select id="kolor" name="kolor"><?php foreach (KOLORY as $k => $n): ?><option value="<?= $k ?>"<?= ($edit['kolor'] ?? '') === $k ? ' selected' : '' ?>><?= $n ?></option><?php endforeach; ?></select>
       <label for="data">Data wpisu</label>
@@ -165,11 +256,51 @@ if ($edit !== null) {
       <a class="pmg-btn pmg-btn--secondary" href="?m=aktualnosci">Anuluj</a>
     </div>
   </form>
+
+  <div class="pmg-card" id="galeria">
+    <div class="pmg-card__head"><h2 class="pmg-h2">Galeria</h2></div>
+  <?php if ($edit['id']): ?>
+    <p class="pmg-hint">Zdjęcia 16:9 pod treścią artykułu, w małych kafelkach; po kliknięciu powiększają się. Kolejność zmieniasz strzałkami. Do <?= AKT_GALERIA_MAX ?> zdjęć. Bez zdjęć sekcji galerii nie ma. Każde zdjęcie zapisuje się własnym przyciskiem; zmian we wpisie powyżej te przyciski nie zapisują, więc najpierw kliknij „Zapisz” przy wpisie.</p>
+    <?php foreach ($galeria as $i => $g): ?>
+      <form class="pmg-gal" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="wpis_id" value="<?= (int) $edit['id'] ?>"><input type="hidden" name="id" value="<?= (int) $g['id'] ?>">
+        <figure class="pmg-photo pmg-photo--16x9 pmg-gal__foto"><img src="../<?= h($g['zdjecie']) ?>" alt=""></figure>
+        <div class="pmg-gal__pola">
+          <label for="gal-podpis-<?= (int) $g['id'] ?>">Podpis zdjęcia <?= $i + 1 ?> (także opis dla osób niewidomych)</label>
+          <input type="text" id="gal-podpis-<?= (int) $g['id'] ?>" name="podpis" maxlength="200" value="<?= h($g['podpis']) ?>" required>
+          <label for="gal-plik-<?= (int) $g['id'] ?>">Podmień plik <span class="pmg-opt">(opcjonalnie)</span></label>
+          <input type="file" id="gal-plik-<?= (int) $g['id'] ?>" name="plik" accept="image/jpeg,image/png,image/webp">
+          <div class="pmg-gal__akcje">
+            <button class="pmg-btn pmg-btn--primary pmg-btn--sm" type="submit" name="a" value="gal_zapisz">Zapisz zdjęcie</button>
+            <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gal_gora" formnovalidate<?= $i === 0 ? ' disabled' : '' ?> aria-label="Przesuń wyżej: zdjęcie <?= $i + 1 ?>"><span aria-hidden="true">↑</span></button>
+            <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gal_dol" formnovalidate<?= $i === count($galeria) - 1 ? ' disabled' : '' ?> aria-label="Przesuń niżej: zdjęcie <?= $i + 1 ?>"><span aria-hidden="true">↓</span></button>
+            <button class="pmg-btn pmg-btn--danger pmg-btn--sm" type="submit" name="a" value="gal_usun" formnovalidate>Usuń zdjęcie<span class="pmg-vh"> <?= $i + 1 ?></span></button>
+          </div>
+        </div>
+      </form>
+    <?php endforeach; ?>
+    <?php if (count($galeria) < AKT_GALERIA_MAX): ?>
+      <form class="pmg-gal pmg-gal--nowe" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="wpis_id" value="<?= (int) $edit['id'] ?>"><input type="hidden" name="a" value="gal_dodaj">
+        <h3 class="pmg-gal__tytul">Dodaj zdjęcie</h3>
+        <label for="gal-nowe-plik">Zdjęcie 16:9 (JPG, PNG albo WebP)</label>
+        <p class="pmg-hint" id="gal-nowe-h">Maks. 10 MB, proporcje 16:9, np. 1200 × 675 px.</p>
+        <input type="file" id="gal-nowe-plik" name="plik" accept="image/jpeg,image/png,image/webp" aria-describedby="gal-nowe-h" required>
+        <label for="gal-nowe-podpis">Podpis zdjęcia (także opis dla osób niewidomych)</label>
+        <input type="text" id="gal-nowe-podpis" name="podpis" maxlength="200" required>
+        <div class="pmg-form-actions"><button class="pmg-btn pmg-btn--secondary" type="submit">Dodaj do galerii</button></div>
+      </form>
+    <?php endif; ?>
+  <?php else: ?>
+    <p class="pmg-hint">Galerię zdjęć dodasz po pierwszym zapisaniu wpisu: zapisz go, a potem otwórz z listy Aktualności.</p>
+  <?php endif; ?>
+  </div>
+
   <?php if ($edit['id']): ?>
     <form method="post" class="pmg-danger-zone" aria-labelledby="usun-h">
       <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
       <h2 class="pmg-danger-zone__title" id="usun-h">Strefa usuwania</h2>
-      <p class="pmg-hint">Wpis i jego zdjęcie znikną ze strony i z panelu. Tego nie da się cofnąć.</p>
+      <p class="pmg-hint">Wpis, jego zdjęcie i galeria znikną ze strony i z panelu. Tego nie da się cofnąć.</p>
       <label class="pmg-check"><input type="checkbox" required><span>Tak, usuń ten wpis na stałe</span></label>
       <button class="pmg-btn pmg-btn--danger" type="submit">Usuń wpis</button>
     </form>
