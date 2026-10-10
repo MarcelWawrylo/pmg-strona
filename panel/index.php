@@ -300,6 +300,21 @@ function save_image($file, $modul)
     if (!function_exists($open) || !function_exists('imagejpeg')) throw new BladPliku('Serwer nie obsługuje przetwarzania zdjęć (brak biblioteki GD) — zgłoś to administratorowi strony.');
     $src = @$open($file['tmp_name']);
     if ($src === false) throw new BladPliku('Nie udało się odczytać zdjęcia — plik jest uszkodzony. Spróbuj zapisać go ponownie (np. jako JPG).');
+    // Zdjęcie z telefonu bywa zapisane bokiem ze znacznikiem EXIF Orientation, którego GD nie czyta: obracamy przed kadrowaniem.
+    // Bez rozszerzenia exif zostaje dawne zachowanie (bez obrotu).
+    // shortcut: pomijamy lustrzane odbicia (Orientation 2/4/5/7), aparaty ich praktycznie nie zapisują; dodać imageflip(), gdyby się pojawiły.
+    if ($types[$info[2]] === 'jpg' && function_exists('exif_read_data') && function_exists('imagerotate')) {
+        $exif = @exif_read_data($file['tmp_name']);
+        $orientacja = is_array($exif) && isset($exif['Orientation']) ? (int) $exif['Orientation'] : 1;
+        $kat = [3 => 180, 6 => -90, 8 => 90][$orientacja] ?? 0;
+        $obrocone = $kat ? @imagerotate($src, $kat, 0) : false;
+        if ($obrocone !== false) {
+            imagedestroy($src);
+            $src = $obrocone;
+            $w = imagesx($src);
+            $hgt = imagesy($src);
+        }
+    }
     // Wycinek źródła: domyślnie całe zdjęcie. Gdy proporcje odbiegają od wymaganych o więcej niż 0,03, bierzemy
     // największy wyśrodkowany prostokąt o wymaganych proporcjach (np. 4000×3000 na 16:9 → 4000×2250, ucięte 375 px u góry i u dołu).
     $sx = 0;
