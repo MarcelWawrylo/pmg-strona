@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 13;
+const PMG_SCHEMA = 14;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -246,6 +246,7 @@ function pmg_migrate()
             opis_meta VARCHAR(300) NOT NULL DEFAULT '',
             logo VARCHAR(200) NULL,
             logo_styl VARCHAR(20) NOT NULL DEFAULT 'ciemne',
+            linia_pod_logo TINYINT(1) NOT NULL DEFAULT 1,
             hero VARCHAR(200) NULL,
             hero_alt VARCHAR(200) NOT NULL DEFAULT '',
             o_partnerze TEXT NOT NULL,
@@ -359,6 +360,13 @@ function pmg_migrate()
     if ((int) $v < 13) {
         $pdo->exec("ALTER TABLE pmg_edycje MODIFY status ENUM('szkic','biezaca','zakonczona','zapowiedz') NOT NULL DEFAULT 'szkic'");
     }
+    // Schemat 14: kreska między logo a opisem na karcie Case Koła (przełącznik w panelu). Dotąd była tylko przy jasnym logo
+    // (białe tło mediów), więc istniejące edycje dostają 1 dla 'jasne'/'jasne-wysokie' i 0 dla 'ciemne' — wygląd bez zmian.
+    // Tylko przy dodaniu kolumny, żeby kolejne migracje nie nadpisywały wyboru z panelu.
+    if ($pdo->query("SHOW COLUMNS FROM pmg_case_edycje LIKE 'linia_pod_logo'")->fetchColumn() === false) {
+        $pdo->exec("ALTER TABLE pmg_case_edycje ADD COLUMN IF NOT EXISTS linia_pod_logo TINYINT(1) NOT NULL DEFAULT 1 AFTER logo_styl");
+        $pdo->exec("UPDATE pmg_case_edycje SET linia_pod_logo = IF(logo_styl IN ('jasne','jasne-wysokie'), 1, 0)");
+    }
 
     // Dane startowe: 4 odcinki, które do tej pory były wpisane na sztywno w podcast.html. Tylko przy pierwszym
     // utworzeniu tabeli — późniejsze usunięcie odcinków w panelu ich nie przywraca.
@@ -417,6 +425,7 @@ function pmg_case_karta($e, $root = null)
         'adres_strony' => $e['adres_strony'],
         'url' => $e['adres_strony'] !== '' ? $e['adres_strony'] : 'case-kola-edycja.html?nr=' . (int) $e['numer'],
         'logo' => $e['logo'], 'logo_obraz' => pmg_obraz($e['logo'], $root), 'logo_styl' => $e['logo_styl'],
+        'linia' => (int) ($e['linia_pod_logo'] ?? 0), // 1 = kreska między logo a opisem na karcie w hubie
     ];
 }
 

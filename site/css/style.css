@@ -590,7 +590,9 @@ html.nav-open body { overflow: hidden; }
 /* QUBIT i Debate Lab: logo ma białe tło wbudowane w plik — tło kafla białe, żeby się z nim zlewało (Solvro i PWR Racing Team bez zmian) */
 .hub-grid .case-card__media--logo-light { background: #fff; }
 /* QUBIT i Debate Lab: kafelek z jasnym tłem mediów dostaje białe body i ciemny tekst jak Solvro i PWR Racing Team */
-.hub-grid .case-card__media--logo-light + .case-card__body { border-top: 1px solid #141414; }
+.hub-grid .case-card__media--linia + .case-card__body { border-top: 1px solid #141414; }
+/* kreska przy ciemnym tle mediów (#141414): ciemna linia zlałaby się z mediami, więc szara — kontrast ok. 5:1 do mediów i 3,6:1 do białego opisu */
+.hub-grid .case-card__media--linia:not(.case-card__media--logo-light) + .case-card__body { border-top-color: #8A867C; }
 .hub-grid .case-card { display: flex; flex-direction: column; }
 .hub-grid .case-card__body { flex: 1 0 auto; display: flex; flex-direction: column; } /* link „Dowiedz się więcej” na dole karty */
 .case-card__media--logo { display: flex; align-items: center; justify-content: center; padding: 20px; }
