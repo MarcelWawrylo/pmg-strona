@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 12;
+const PMG_SCHEMA = 13;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -171,7 +171,7 @@ function pmg_migrate()
             data DATE NOT NULL,
             miejsce VARCHAR(200) NOT NULL,
             opis VARCHAR(600) NOT NULL DEFAULT '',
-            status ENUM('szkic','biezaca','zakonczona') NOT NULL DEFAULT 'szkic'
+            status ENUM('szkic','biezaca','zakonczona','zapowiedz') NOT NULL DEFAULT 'szkic'
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         // notatka: odstępstwo od projektu (decyzja orkiestratora) — opcjonalna, np. "Wspólny warsztat z ...".
@@ -353,6 +353,11 @@ function pmg_migrate()
     }
     if ($pdo->query("SHOW COLUMNS FROM pmg_harmonogram LIKE 'znacznik'")->fetchColumn() === false) {
         $pdo->exec("ALTER TABLE pmg_harmonogram ADD COLUMN IF NOT EXISTS znacznik VARCHAR(40) NOT NULL DEFAULT '' AFTER prelegent");
+    }
+    // Schemat 13: status edycji PM Session 'zapowiedz' („Aktualna edycja – wkrótce więcej”: tylko numer, bez programu).
+    // Nowa wartość dopisana NA KOŃCU ENUM, więc zapisane statusy się nie zmieniają.
+    if ((int) $v < 13) {
+        $pdo->exec("ALTER TABLE pmg_edycje MODIFY status ENUM('szkic','biezaca','zakonczona','zapowiedz') NOT NULL DEFAULT 'szkic'");
     }
 
     // Dane startowe: 4 odcinki, które do tej pory były wpisane na sztywno w podcast.html. Tylko przy pierwszym
