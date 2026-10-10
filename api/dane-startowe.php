@@ -6,7 +6,9 @@
 // Plik zwraca tablicę (nie JSON): na serwerze z PHP otwarty w przeglądarce nic nie wypisuje (na GitHub Pages widać go jako tekst,
 // ale to te same, publiczne treści co w HTML). Zdjęcia: ścieżki do istniejących plików w img/
 // (strona składa adres jako katalog_strony + ścieżka, panel jako ../ + ścieżka) — nic nie jest kopiowane do uploads/.
-// Pominięte, bo ich nie ma w HTML: rekrutacja_tekst (zostaje pusty), edycja XV.
+// Pominięte, bo ich nie ma w HTML: rekrutacja_tekst (zostaje pusty) oraz edycja XV — pm-session-xv.html ma tylko numer
+// (temat, data i miejsce są tam puste, a w bazie i w panelu wymagane; prelegentów i harmonogramu jeszcze nie ma). XV dodaje się
+// ręcznie w panelu: PM Session → + Nowa edycja, numer XV, status „Bieżąca edycja” (XIV zmieni się wtedy na zakończoną).
 // Case Koła: 4 edycje (karty z case-kola.html, treść z case-kola-*.html).
 // Treści stron: klucz => tekst domyślny z HTML (lista pól wygenerowana w tresci-pola.php).
 return [
