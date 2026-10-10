@@ -429,7 +429,7 @@ if (isset($_GET['ping'])) { http_response_code($me ? 204 : 401); exit; }
 // Zły token (najczęściej sesja wygasła przy otwartym formularzu): nic nie zapisujemy, wracamy na ten sam adres
 // i pokazujemy komunikat w wyglądzie panelu (dawniej biała strona z jednym zdaniem).
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !hash_equals(csrf(), (string) ($_POST['csrf'] ?? ''))) {
-    $_SESSION['blad_sesji'] = 1;
+    $_SESSION['blad_sesji'] = ($_POST['a'] ?? '') === 'login' ? 'login' : 1; // 'login': nieaktualna druga karta logowania
     go(isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
 }
 // ---------- Stare adresy (sprzed W6) → nowe strony i zakładki ----------
@@ -445,10 +445,12 @@ if ($me && in_array($_GET['m'] ?? '', ['tresci', 'ustawienia', 'rekrutacja'], tr
     } else {
         $q = ($q['m'] === 'ustawienia' ? ['m' => 'stopka'] : ['m' => 'dolacz', 'w' => 'rekrutacja']) + $q;
     }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') $_SESSION['blad_sesji'] = 1; // formularz otwarty przed wdrożeniem: pokaż „Nie zapisano zmian…”
     go('?' . http_build_query($q));
 }
 
-$bladSesji = !empty($_SESSION['blad_sesji']);
+// Zły token z formularza logowania, a osoba jest już zalogowana (zalogowała się w innej karcie): nic nie przepadło, bez komunikatu.
+$bladSesji = !empty($_SESSION['blad_sesji']) && !($me && $_SESSION['blad_sesji'] === 'login');
 unset($_SESSION['blad_sesji']);
 if (!empty($_SESSION['wygasla12h'])) $wygasla12h = true;
 unset($_SESSION['wygasla12h']);
