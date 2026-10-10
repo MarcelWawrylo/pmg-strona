@@ -108,15 +108,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($obecnyStatus === 'biezaca') $status = 'biezaca';
         }
 
-        if (!preg_match('~^[IVXLC]+$~', $f['numer'])) {
-            $error = 'Numer edycji: użyj tylko cyfr rzymskich (I, V, X, L, C), np. XIV.';
-        } elseif ($f['temat'] === '') {
-            $error = 'Podaj temat edycji.';
-        } elseif (!data_ok($f['data'])) {
-            $error = 'Podaj poprawną datę.';
-        } elseif ($f['miejsce'] === '') {
-            $error = 'Podaj miejsce.';
-        } else {
+        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+        if (!preg_match('~^[IVXLC]+$~', $f['numer'])) $bledyPol['numer'] = 'Numer edycji: użyj tylko cyfr rzymskich (I, V, X, L, C), np. XIV.';
+        if ($f['temat'] === '') $bledyPol['temat'] = 'Podaj temat edycji.';
+        if (!data_ok($f['data'])) $bledyPol['data'] = 'Podaj poprawną datę.';
+        if ($f['miejsce'] === '') $bledyPol['miejsce'] = 'Podaj miejsce.';
+        if (!$bledyPol) {
             try {
                 if ($id) {
                     pmg_db()->prepare('UPDATE pmg_edycje SET numer=?, temat=?, data=?, miejsce=?, opis=?, status=? WHERE id=?')
@@ -137,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = $e->getCode() === '23000' ? 'Edycja o tym numerze już istnieje.' : 'Błąd zapisu.';
             }
         }
-        if ($error !== '') $editEdycja = array_merge($f, ['id' => $id, 'status' => $obecnyStatus ?: $status]);
+        if ($error !== '' || $bledyPol) $editEdycja = array_merge($f, ['id' => $id, 'status' => $obecnyStatus ?: $status]);
 
     // ---------- Prelegenci ----------
     } elseif ($action === 'prelegent_gora' || $action === 'prelegent_dol') {
@@ -186,16 +183,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$id]);
             $old = $st->fetch() ?: null;
         }
-        if (!$stE->fetchColumn()) {
-            $error = 'Nieprawidłowa edycja.';
-        } elseif ($f['imie_nazwisko'] === '') {
-            $error = 'Podaj imię i nazwisko.';
-        } elseif ($f['temat'] === '') {
-            $error = 'Podaj temat wystąpienia.';
-        } elseif (!url_ok($f['linkedin'])) {
-            $error = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
-        }
-        if ($error === '') {
+        if (!$stE->fetchColumn()) $error = 'Nieprawidłowa edycja.'; // nie dotyczy żadnego pola
+        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+        if ($f['imie_nazwisko'] === '') $bledyPol['imie_nazwisko'] = 'Podaj imię i nazwisko.';
+        if ($f['temat'] === '') $bledyPol['temat'] = 'Podaj temat wystąpienia.';
+        if (!url_ok($f['linkedin'])) $bledyPol['linkedin'] = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        blad_opisu_zdjecia($old['zdjecie'] ?? null);
+        if ($error === '' && !$bledyPol) {
             $noweZdjecie = null; // plik wgrany w tym żądaniu — usuwany, jeśli zapis do bazy się nie uda
             try {
                 $stareZdjecie = $old['zdjecie'] ?? null;
@@ -221,11 +215,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 drop_image($noweZdjecie);
                 $f['zdjecie'] = $old['zdjecie'] ?? null;
                 $error = 'Błąd zapisu — nic nie zapisano. Spróbuj ponownie.';
-            } catch (RuntimeException $e) {
-                $error = $e->getMessage();
+            } catch (BladPliku $e) {
+                $bledyPol['zdjecie'] = $e->getMessage();
             }
         }
-        if ($error !== '') $editPrelegent = array_merge($old ?: [], $f, ['id' => $id, 'edycja_id' => $edycjaId]);
+        if ($error !== '' || $bledyPol) $editPrelegent = array_merge($old ?: [], $f, ['id' => $id, 'edycja_id' => $edycjaId]);
 
     // ---------- Harmonogram ----------
     } elseif ($action === 'harmonogram_usun') {
@@ -253,13 +247,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
         $stE = pmg_db()->prepare('SELECT 1 FROM pmg_edycje WHERE id = ?');
         $stE->execute([$edycjaId]);
-        if (!$stE->fetchColumn()) {
-            $error = 'Nieprawidłowa edycja.';
-        } elseif (!preg_match('~^([01]\d|2[0-3]):[0-5]\d$~', $f['godzina'])) {
-            $error = 'Podaj poprawną godzinę.';
-        } elseif ($f['tytul'] === '') {
-            $error = 'Podaj tytuł punktu harmonogramu.';
-        } else {
+        if (!$stE->fetchColumn()) $error = 'Nieprawidłowa edycja.'; // nie dotyczy żadnego pola
+        if (!preg_match('~^([01]\d|2[0-3]):[0-5]\d$~', $f['godzina'])) $bledyPol['godzina'] = 'Podaj poprawną godzinę.';
+        if ($f['tytul'] === '') $bledyPol['tytul'] = 'Podaj tytuł punktu harmonogramu.';
+        if ($error === '' && !$bledyPol) {
             if ($id) {
                 pmg_db()->prepare('UPDATE pmg_harmonogram SET godzina=?, tytul=?, prelegent=?, znacznik=? WHERE id=?')
                     ->execute([$f['godzina'], $f['tytul'], $f['prelegent'], $f['znacznik'], $id]);
@@ -273,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['flash'] = pms_komunikat_zapisu($edycjaId);
             go('?m=pmsession&e=' . $edycjaId);
         }
-        if ($error !== '') $editHarmonogram = array_merge($f, ['id' => $id, 'edycja_id' => $edycjaId]);
+        if ($error !== '' || $bledyPol) $editHarmonogram = array_merge($f, ['id' => $id, 'edycja_id' => $edycjaId]);
 
     // ---------- Liczby "PM Session w liczbach" ----------
     } elseif ($action === 'liczby_zapisz') {
@@ -281,12 +272,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach (PMS_LICZBY as $k => $etykieta) {
             $v = trim((string) ($_POST[$k] ?? ''));
             if ($v !== '' && !preg_match('~^\d{1,6}$~', $v)) {
-                $error = $etykieta . ': podaj liczbę (do 6 cyfr) albo zostaw puste pole.';
-                break;
+                $bledyPol[$k] = $etykieta . ': podaj liczbę (do 6 cyfr) albo zostaw puste pole.';
             }
             $wejscie[$k] = $v;
         }
-        if ($error === '') {
+        if (!$bledyPol) {
             $pdo = pmg_db();
             $pdo->beginTransaction();
             $upd = $pdo->prepare('REPLACE INTO pmg_ustawienia (klucz, wartosc) VALUES (?,?)');
@@ -402,10 +392,10 @@ if ($editPrelegent !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-wystapienie">
       <h2 class="pmg-form-section__title" id="sek-wystapienie">Wystąpienie</h2>
       <label for="imie_nazwisko">Imię i nazwisko</label>
-      <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" value="<?= $v('imie_nazwisko') ?>" required>
+      <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" value="<?= $v('imie_nazwisko') ?>" required<?= blad_pola('imie_nazwisko') ?>><?= komunikat_pola('imie_nazwisko') ?>
       <label for="temat">Temat wystąpienia</label>
       <p class="pmg-hint" id="temat_h">Np. Prelekcja: „Tytuł” albo Warsztat: „Tytuł”.</p>
-      <input type="text" id="temat" name="temat" maxlength="300" value="<?= $v('temat') ?>" required aria-describedby="temat_h" data-pmg-licznik>
+      <input type="text" id="temat" name="temat" maxlength="300" value="<?= $v('temat') ?>" required<?= blad_pola('temat', 'temat_h') ?> data-pmg-licznik><?= komunikat_pola('temat') ?>
       <label for="notatka">Notatka <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="notatka_h">Np. „Wspólny warsztat z Anną Nowak”. Widoczna nad tematem na stronie.</p>
       <input type="text" id="notatka" name="notatka" maxlength="200" value="<?= $v('notatka') ?>" aria-describedby="notatka_h">
@@ -435,7 +425,7 @@ if ($editPrelegent !== null) {
       </fieldset>
       <label for="linkedin">LinkedIn <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="linkedin_h">Pełny adres zaczynający się od https://. Pole opcjonalne.</p>
-      <input type="text" id="linkedin" name="linkedin" maxlength="200" value="<?= $v('linkedin') ?>" aria-describedby="linkedin_h">
+      <input type="text" id="linkedin" name="linkedin" maxlength="200" value="<?= $v('linkedin') ?>"<?= blad_pola('linkedin', 'linkedin_h') ?>><?= komunikat_pola('linkedin') ?>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
@@ -445,10 +435,10 @@ if ($editPrelegent !== null) {
       <?php if (!empty($editPrelegent['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--4x3"><img src="../<?= h($editPrelegent['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>
-      <input type="file" id="zdjecie" name="zdjecie" accept="image/jpeg,image/png,image/webp" aria-describedby="zdjecie_h">
+      <input type="file" id="zdjecie" name="zdjecie" accept="image/jpeg,image/png,image/webp"<?= blad_pola('zdjecie', 'zdjecie_h') ?>><?= komunikat_pola('zdjecie') ?>
       <label for="zdjecie_alt">Opis zdjęcia (co na nim widać — dla osób niewidomych)</label>
       <p class="pmg-hint" id="zdjecie_alt_h">Wymagany, jeśli dodajesz lub masz już zapisane zdjęcie.</p>
-      <input type="text" id="zdjecie_alt" name="zdjecie_alt" maxlength="200" value="<?= $v('zdjecie_alt') ?>" aria-describedby="zdjecie_alt_h">
+      <input type="text" id="zdjecie_alt" name="zdjecie_alt" maxlength="200" value="<?= $v('zdjecie_alt') ?>"<?= blad_pola('zdjecie_alt', 'zdjecie_alt_h') ?>><?= komunikat_pola('zdjecie_alt') ?>
     </section>
 
     <div class="pmg-form-actions">
@@ -470,9 +460,9 @@ if ($editPrelegent !== null) {
   <form class="pmg-card" method="post" data-pmg-niezapisane>
     <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="harmonogram_zapisz"><input type="hidden" name="id" value="<?= (int) $editHarmonogram['id'] ?>"><input type="hidden" name="edycja_id" value="<?= (int) $editHarmonogram['edycja_id'] ?>">
     <label for="godzina">Godzina</label>
-    <input type="time" id="godzina" name="godzina" value="<?= $v('godzina') !== '' ? h($fmtGodzina($editHarmonogram['godzina'])) : '' ?>" required>
+    <input type="time" id="godzina" name="godzina" value="<?= $v('godzina') !== '' ? h($fmtGodzina($editHarmonogram['godzina'])) : '' ?>" required<?= blad_pola('godzina') ?>><?= komunikat_pola('godzina') ?>
     <label for="tytul">Tytuł</label>
-    <input type="text" id="tytul" name="tytul" maxlength="300" value="<?= $v('tytul') ?>" required>
+    <input type="text" id="tytul" name="tytul" maxlength="300" value="<?= $v('tytul') ?>" required<?= blad_pola('tytul') ?>><?= komunikat_pola('tytul') ?>
     <label for="prelegent">Prelegent <span class="pmg-opt">(opcjonalnie)</span></label>
     <p class="pmg-hint" id="prelegent_h">Tekst dowolny, np. Jan Kowalski albo Jan Kowalski + Anna Nowak. Zostaw puste dla punktów bez prelegenta (np. Rejestracja).</p>
     <input type="text" id="prelegent" name="prelegent" maxlength="150" value="<?= $v('prelegent') ?>" aria-describedby="prelegent_h">
@@ -499,13 +489,13 @@ if ($editPrelegent !== null) {
     <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="edycja_zapisz"><input type="hidden" name="id" value="<?= (int) $editEdycja['id'] ?>">
     <label for="numer">Numer (cyfry rzymskie)</label>
     <p class="pmg-hint" id="numer_h">Np. XIV.</p>
-    <input type="text" id="numer" name="numer" maxlength="10" value="<?= $v('numer') ?>" required aria-describedby="numer_h">
+    <input type="text" id="numer" name="numer" maxlength="10" value="<?= $v('numer') ?>" required<?= blad_pola('numer', 'numer_h') ?>><?= komunikat_pola('numer') ?>
     <label for="temat">Temat</label>
-    <input type="text" id="temat" name="temat" maxlength="200" value="<?= $v('temat') ?>" required>
+    <input type="text" id="temat" name="temat" maxlength="200" value="<?= $v('temat') ?>" required<?= blad_pola('temat') ?>><?= komunikat_pola('temat') ?>
     <label for="data">Data</label>
-    <input type="date" id="data" name="data" value="<?= $v('data') ?>" required>
+    <input type="date" id="data" name="data" value="<?= $v('data') ?>" required<?= blad_pola('data') ?>><?= komunikat_pola('data') ?>
     <label for="miejsce">Miejsce</label>
-    <input type="text" id="miejsce" name="miejsce" maxlength="200" value="<?= $v('miejsce') ?>" required>
+    <input type="text" id="miejsce" name="miejsce" maxlength="200" value="<?= $v('miejsce') ?>" required<?= blad_pola('miejsce') ?>><?= komunikat_pola('miejsce') ?>
     <label for="opis">Opis pod nagłówkiem strony <span class="pmg-opt">(opcjonalnie)</span></label>
     <p class="pmg-hint" id="opis_h">1–3 zdania pod tematem na stronie tej edycji. Puste pole = zostaje tekst wpisany w stronie. Maks. 600 znaków.</p>
     <textarea id="opis" name="opis" maxlength="600" aria-describedby="opis_h" data-pmg-licznik><?= $v('opis') ?></textarea>
@@ -648,7 +638,7 @@ if ($editPrelegent !== null) {
       <?php foreach (PMS_LICZBY as $k => $etykieta): ?>
         <div class="pmg-field">
           <label for="<?= $k ?>"><?= h($etykieta) ?></label>
-          <input type="text" inputmode="numeric" id="<?= $k ?>" name="<?= $k ?>" maxlength="6" value="<?= h($liczby[$k]) ?>" class="pmg-num-input">
+          <input type="text" inputmode="numeric" id="<?= $k ?>" name="<?= $k ?>" maxlength="6" value="<?= h($wejscie[$k] ?? $liczby[$k]) ?>" class="pmg-num-input"<?= blad_pola($k) ?>><?= komunikat_pola($k) ?>
         </div>
       <?php endforeach; ?>
     </div>
