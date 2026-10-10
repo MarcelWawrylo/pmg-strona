@@ -21,6 +21,21 @@ function ustaw_biezaca($id)
     return true;
 }
 
+// Numer edycji, która jest teraz bieżąca (inna niż $id) — do komunikatu, która edycja przestanie być bieżąca. null = brak.
+function pms_poprzednia_biezaca($id)
+{
+    $st = pmg_db()->prepare("SELECT numer FROM pmg_edycje WHERE status = 'biezaca' AND id <> ? LIMIT 1");
+    $st->execute([(int) $id]);
+    $numer = $st->fetchColumn();
+    return $numer === false ? null : $numer;
+}
+
+// Komunikat po ustawieniu bieżącej edycji: która jest teraz bieżąca i która przestała nią być.
+function pms_komunikat_biezacej($numer, $poprzednia)
+{
+    return 'Edycja ' . $numer . ' jest teraz bieżąca.' . ($poprzednia !== null ? ' Edycja ' . $poprzednia . ' przestała być bieżąca (ma teraz status „Zakończona”).' : '');
+}
+
 // Edycja jest widoczna na stronie, gdy jest bieżąca (pm-session.html) albo zakończona i ma własny plik pm-session-<numer>.html.
 // Zakończoną bez własnego pliku API podaje (patrz api/pmsession.php), ale żadna strona jej nie pokazuje. Szkic nigdy.
 function pms_widoczna($status, $numer)
@@ -56,10 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ---------- Edycje ----------
     if ($action === 'edycja_biezaca') {
         $id = (int) ($_POST['id'] ?? 0);
+        $poprzednia = pms_poprzednia_biezaca($id);
         if (!ustaw_biezaca($id)) {
             $error = 'Nie znaleziono edycji.';
         } else {
-            $_SESSION['flash'] = 'Ustawiono jako bieżącą edycję.';
+            $_SESSION['flash'] = pms_komunikat_biezacej(nazwa_rekordu('SELECT numer FROM pmg_edycje WHERE id = ?', $id), $poprzednia);
             go('?m=pmsession');
         }
 
@@ -99,16 +115,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'miejsce' => mb_substr(trim((string) ($_POST['miejsce'] ?? '')), 0, 200),
             'opis' => mb_substr(trim(str_replace("\r\n", "\n", (string) ($_POST['opis'] ?? ''))), 0, 600),
         ];
-        // Formularz udostępnia tylko szkic/zakonczona; nieprawidłowa wartość -> szkic.
-        $status = ($_POST['status'] ?? '') === 'zakonczona' ? 'zakonczona' : 'szkic';
+        // Status z formularza: szkic, biezaca albo zakonczona; nieznana wartość (spreparowany POST) -> szkic.
+        $status = in_array($_POST['status'] ?? '', ['szkic', 'biezaca', 'zakonczona'], true) ? $_POST['status'] : 'szkic';
         $obecnyStatus = null;
         if ($id) {
             $st = pmg_db()->prepare('SELECT status FROM pmg_edycje WHERE id = ?');
             $st->execute([$id]);
             $obecnyStatus = $st->fetchColumn();
-            // Bieżącej edycji formularz NIGDY nie zmienia statusu — nawet przy spreparowanym POST-cie.
-            if ($obecnyStatus === 'biezaca') $status = 'biezaca';
         }
+        // „Bieżąca” ustawia wyłącznie ustaw_biezaca() (po zapisie pól), żeby stara bieżąca w tej samej transakcji stała się zakończona.
+        // Do tego wywołania wiersz zachowuje dotychczasowy status (nowa edycja: szkic). Zdjęcie statusu bieżącej jest dozwolone:
+        // strona bez bieżącej edycji działa (każda strona edycji pobiera swój numer, a menu pomija wtedy „Aktualną edycję”).
+        $nowaBiezaca = $status === 'biezaca' && $obecnyStatus !== 'biezaca';
+        $statusZapisu = $nowaBiezaca ? ($obecnyStatus ?: 'szkic') : $status;
 
         // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
         if (!preg_match('~^[IVXLC]+$~', $f['numer'])) $bledyPol['numer'] = 'Numer edycji: użyj tylko cyfr rzymskich (I, V, X, L, C), np. XIV.';
@@ -117,26 +136,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($f['miejsce'] === '') $bledyPol['miejsce'] = 'Podaj miejsce.';
         if (!$bledyPol) {
             try {
+                $nowa = !$id;
                 if ($id) {
                     pmg_db()->prepare('UPDATE pmg_edycje SET numer=?, temat=?, data=?, miejsce=?, opis=?, status=? WHERE id=?')
-                        ->execute([$f['numer'], $f['temat'], $f['data'], $f['miejsce'], $f['opis'], $status, $id]);
-                    loguj('pmsession', 'edycja', $id, 'Edycja ' . $f['numer'] . ': ' . $f['temat']);
+                        ->execute([$f['numer'], $f['temat'], $f['data'], $f['miejsce'], $f['opis'], $statusZapisu, $id]);
+                    loguj('pmsession', 'edycja', $id, 'Edycja ' . $f['numer'] . ': ' . $f['temat'] . ($obecnyStatus === 'biezaca' && $status !== 'biezaca' ? ' (zdjęto status bieżącej)' : ''));
                 } else {
                     pmg_db()->prepare('INSERT INTO pmg_edycje (numer, temat, data, miejsce, opis, status) VALUES (?,?,?,?,?,?)')
-                        ->execute([$f['numer'], $f['temat'], $f['data'], $f['miejsce'], $f['opis'], $status]);
+                        ->execute([$f['numer'], $f['temat'], $f['data'], $f['miejsce'], $f['opis'], $statusZapisu]);
                     $id = (int) pmg_db()->lastInsertId();
                     loguj('pmsession', 'dodanie', $id, 'Edycja ' . $f['numer'] . ': ' . $f['temat']);
+                }
+                $komunikatBiezacej = '';
+                if ($nowaBiezaca) {
+                    $poprzednia = pms_poprzednia_biezaca($id);
+                    ustaw_biezaca($id); // transakcja + wpis „Ustawienie bieżącej edycji” w dzienniku
+                    $komunikatBiezacej = ' ' . pms_komunikat_biezacej($f['numer'], $poprzednia);
+                } elseif ($obecnyStatus === 'biezaca' && $status !== 'biezaca') {
+                    $komunikatBiezacej = ' Edycja ' . $f['numer'] . ' nie jest już bieżąca — żadna edycja nie jest teraz bieżąca, więc w menu strony nie ma pozycji „Aktualna edycja”.';
+                }
+                $naStronie = pms_widoczna($status, $f['numer']) ? ' Na stronie zmiana pojawi się w ciągu 5 minut.' : '';
+                if ($nowa) {
                     // nowa edycja: od razu widok tej edycji (prelegenci i harmonogram), żeby dalszy krok był oczywisty
-                    $_SESSION['flash'] = 'Edycja zapisana. Dodaj teraz prelegentów i harmonogram.' . (pms_widoczna($status, $f['numer']) ? ' Na stronie zmiana pojawi się w ciągu 5 minut.' : '');
+                    $_SESSION['flash'] = 'Edycja zapisana.' . $komunikatBiezacej . ' Dodaj teraz prelegentów i harmonogram.' . $naStronie;
                     go('?m=pmsession&e=' . $id);
                 }
-                $_SESSION['flash'] = pms_widoczna($status, $f['numer']) ? 'Zapisano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano.';
+                $_SESSION['flash'] = 'Zapisano.' . $komunikatBiezacej . $naStronie;
                 go('?m=pmsession');
             } catch (PDOException $e) {
                 $error = $e->getCode() === '23000' ? 'Edycja o tym numerze już istnieje.' : 'Błąd zapisu.';
             }
         }
-        if ($error !== '' || $bledyPol) $editEdycja = array_merge($f, ['id' => $id, 'status' => $obecnyStatus ?: $status]);
+        // status = wybór z formularza (zostaje zaznaczony po błędzie), status_w_bazie = obecny stan (strefa usuwania).
+        if ($error !== '' || $bledyPol) $editEdycja = array_merge($f, ['id' => $id, 'status' => $status, 'status_w_bazie' => $obecnyStatus ?: 'szkic']);
 
     // ---------- Prelegenci ----------
     } elseif ($action === 'prelegent_gora' || $action === 'prelegent_dol') {
@@ -507,24 +539,22 @@ if ($editPrelegent !== null) {
     <label for="opis">Opis pod nagłówkiem strony <span class="pmg-opt">(opcjonalnie)</span></label>
     <p class="pmg-hint" id="opis_h">1–3 zdania pod tematem na stronie tej edycji. Puste pole = zostaje tekst wpisany w stronie. Maks. 600 znaków.</p>
     <textarea id="opis" name="opis" maxlength="600" aria-describedby="opis_h" data-pmg-licznik><?= $v('opis') ?></textarea>
-    <?php if (($editEdycja['status'] ?? '') === 'biezaca'): ?>
-      <div class="pmg-alert pmg-alert--info" role="status"><?= pmg_ikona('info') ?><p>To jest bieżąca edycja — status zmienia się przyciskiem „Ustaw jako bieżącą” na liście edycji, nie w tym formularzu.</p></div>
-    <?php else: ?>
-      <fieldset class="pmg-fieldset" aria-describedby="status_h">
-        <legend class="pmg-legend">Status</legend>
-        <p class="pmg-hint" id="status_h">Szkic: edycji nie widać na stronie. Zakończona: edycja ma swoją stronę, ale nie jest już pokazywana jako aktualna. Bieżącą edycję (jedną naraz, pokazywaną na stronie PM Session) ustawiasz przyciskiem na liście edycji.</p>
-        <div class="pmg-options">
-          <label class="pmg-option"><input type="radio" name="status" value="szkic"<?= ($editEdycja['status'] ?? 'szkic') !== 'zakonczona' ? ' checked' : '' ?>><span>Szkic</span></label>
-          <label class="pmg-option"><input type="radio" name="status" value="zakonczona"<?= ($editEdycja['status'] ?? '') === 'zakonczona' ? ' checked' : '' ?>><span>Zakończona</span></label>
-        </div>
-      </fieldset>
-    <?php endif; ?>
+    <?php $statusFormularza = in_array($editEdycja['status'] ?? '', ['biezaca', 'zakonczona'], true) ? $editEdycja['status'] : 'szkic'; ?>
+    <fieldset class="pmg-fieldset" aria-describedby="status_h">
+      <legend class="pmg-legend">Status</legend>
+      <p class="pmg-hint" id="status_h">Szkic: edycji nie widać na stronie. Bieżąca edycja: tylko jedna naraz, w menu strony jako „Aktualna edycja”; wybranie jej tutaj zmienia dotychczasową bieżącą edycję na zakończoną. Zakończona: edycja ma swoją stronę i w menu pozycję „PM Session” z numerem. W menu są tylko edycje z własnym plikiem strony (np. pm-session-xv.html). Status bieżącej możesz też zdjąć: strona działa bez bieżącej edycji, z menu znika wtedy tylko „Aktualna edycja”.</p>
+      <div class="pmg-options">
+        <label class="pmg-option"><input type="radio" name="status" value="szkic"<?= $statusFormularza === 'szkic' ? ' checked' : '' ?>><span>Szkic</span></label>
+        <label class="pmg-option"><input type="radio" name="status" value="biezaca"<?= $statusFormularza === 'biezaca' ? ' checked' : '' ?>><span>Bieżąca edycja</span></label>
+        <label class="pmg-option"><input type="radio" name="status" value="zakonczona"<?= $statusFormularza === 'zakonczona' ? ' checked' : '' ?>><span>Zakończona</span></label>
+      </div>
+    </fieldset>
     <div class="pmg-form-actions">
       <button class="pmg-btn pmg-btn--primary" type="submit">Zapisz</button>
       <a class="pmg-btn pmg-btn--secondary" href="?m=pmsession">Anuluj</a>
     </div>
   </form>
-  <?php if ($editEdycja['id'] && ($editEdycja['status'] ?? '') !== 'biezaca'): ?>
+  <?php if ($editEdycja['id'] && ($editEdycja['status_w_bazie'] ?? $editEdycja['status'] ?? '') !== 'biezaca'): ?>
     <form method="post" class="pmg-danger-zone" aria-labelledby="usun-h">
       <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="edycja_usun"><input type="hidden" name="id" value="<?= (int) $editEdycja['id'] ?>">
       <h2 class="pmg-danger-zone__title" id="usun-h">Strefa usuwania</h2>
