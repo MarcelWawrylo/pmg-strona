@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'gora' || $action === 'dol') {
         $id = (int) ($_POST['id'] ?? 0);
         if (przesun('pmg_podcast_edycje', PODCAST_EDYCJE_ORDER, $id, $action)) loguj('podcast', 'kolejnosc', $id, nazwa_rekordu("SELECT CONCAT('Edycja podcastu ', numer, ' (', lata, ')') FROM pmg_podcast_edycje WHERE id = ?", $id));
-        go('?m=podcast&w=edycje');
+        go_po_przesunieciu('?m=podcast&w=edycje', $id, $action);
 
     } elseif ($action === 'delete') {
         $id = (int) ($_POST['id'] ?? 0);
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('podcast', 'dodanie', $id, 'Edycja podcastu ' . $f['numer'] . ' (' . $f['lata'] . ')');
             }
-            $_SESSION['flash'] = $f['widoczna'] ? 'Zapisano. Edycja jest widoczna na stronie.' : 'Zapisano. Edycja jest ukryta na stronie (razem z jej odcinkami).';
+            $_SESSION['flash'] = $f['widoczna'] ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano jako szkic (niewidoczny na stronie, razem z odcinkami tej edycji).';
             go('?m=podcast&w=edycje');
         } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
             $error = $e->getCode() === '23000' ? 'Edycja o tym numerze już istnieje.' : 'Błąd zapisu.';
@@ -101,7 +101,7 @@ if ($edit !== null) {
     $pmgNaglowek = [
         'tytul' => 'Edycje podcastu',
         'opis' => 'Odcinki na stronie są pogrupowane według edycji, w kolejności z tej listy.',
-        'wstecz' => ['href' => '?m=podcast', 'etykieta' => 'Podcast'],
+        'wstecz' => ['href' => '?m=podcast', 'etykieta' => 'Odcinki podcastu'],
         'akcje' => [
             ['href' => '?m=podcast&w=edycje&nowa', 'etykieta' => '+ Nowa edycja', 'rodzaj' => 'primary'],
             ['href' => '../podcast.html', 'etykieta' => 'Zobacz stronę', 'rodzaj' => 'text', 'nowaKarta' => true],
@@ -140,9 +140,9 @@ if ($edit !== null) {
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-widocznosc">
-      <h2 class="pmg-form-section__title" id="sek-widocznosc">Widoczność</h2>
-      <label class="pmg-check"><input type="checkbox" name="widoczna" value="1"<?= !empty($edit['widoczna']) ? ' checked' : '' ?> aria-describedby="widoczna_h"><span>Pokaż edycję na stronie</span></label>
-      <p class="pmg-hint pmg-hint--check" id="widoczna_h">Bez zaznaczenia edycja jest ukryta razem ze wszystkimi swoimi odcinkami. Kolejność edycji zmieniasz strzałkami na liście.</p>
+      <h2 class="pmg-form-section__title" id="sek-widocznosc">Publikacja</h2>
+      <label class="pmg-check"><input type="checkbox" name="widoczna" value="1"<?= !empty($edit['widoczna']) ? ' checked' : '' ?> aria-describedby="widoczna_h"><span>Opublikuj na stronie</span></label>
+      <p class="pmg-hint pmg-hint--check" id="widoczna_h">Bez zaznaczenia = szkic, niewidoczny na stronie (razem ze wszystkimi odcinkami tej edycji). Kolejność edycji zmieniasz strzałkami na liście.</p>
     </section>
 
     <div class="pmg-form-actions">
@@ -164,19 +164,19 @@ if ($edit !== null) {
   <div class="pmg-table-wrap">
     <table class="pmg-table pmg-table--klikalna">
       <caption class="pmg-vh">Edycje podcastu</caption>
-      <thead><tr><th scope="col" class="pmg-num">Nr</th><th scope="col">Lata</th><th scope="col">Odcinki</th><th scope="col">Widoczność</th><th scope="col">Kolejność</th></tr></thead>
+      <thead><tr><th scope="col" class="pmg-num">Nr</th><th scope="col">Lata</th><th scope="col">Odcinki</th><th scope="col">Status</th><th scope="col">Kolejność</th></tr></thead>
       <tbody>
-      <?php foreach ($edycje as $i => $r): ?>
-        <tr>
+      <?php foreach ($edycje as $i => $r): $wylG = $i === 0; $wylD = $i === count($edycje) - 1; ?>
+        <tr id="wiersz-<?= (int) $r['id'] ?>">
           <td class="pmg-num" data-label="Nr"><?= (int) $r['numer'] ?></td>
           <td class="pmg-td-main" data-label="Lata"><a class="pmg-row-link" href="?m=podcast&amp;w=edycje&amp;id=<?= (int) $r['id'] ?>">Edycja <?= (int) $r['numer'] ?><?= $r['lata'] !== '' ? ' (' . h($r['lata']) . ')' : '' ?></a></td>
           <td class="pmg-num" data-label="Odcinki"><?= (int) $r['odcinkow'] ?></td>
-          <td data-label="Widoczność"><?php if ($r['widoczna']): ?><span class="pmg-chip pmg-chip--success">Widoczna</span><?php else: ?><span class="pmg-chip pmg-chip--neutral">Ukryta</span><?php endif; ?></td>
+          <td data-label="Status"><?php if ($r['widoczna']): ?><span class="pmg-chip pmg-chip--success">Opublikowany</span><?php else: ?><span class="pmg-chip pmg-chip--neutral">Szkic</span><?php endif; ?></td>
           <td class="pmg-td-actions" data-label="Kolejność">
             <form method="post">
               <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
-              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gora"<?= $i === 0 ? ' disabled' : '' ?> aria-label="Przesuń wyżej: edycja <?= (int) $r['numer'] ?>"><span aria-hidden="true">↑</span></button>
-              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="dol"<?= $i === count($edycje) - 1 ? ' disabled' : '' ?> aria-label="Przesuń niżej: edycja <?= (int) $r['numer'] ?>"><span aria-hidden="true">↓</span></button>
+              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gora"<?= $wylG ? ' disabled' : '' ?><?= fokus_strzalki((int) $r['id'], 'gora', $wylG, $wylD) ?> aria-label="Przesuń wyżej: edycja <?= (int) $r['numer'] ?>"><span aria-hidden="true">↑</span></button>
+              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="dol"<?= $wylD ? ' disabled' : '' ?><?= fokus_strzalki((int) $r['id'], 'dol', $wylG, $wylD) ?> aria-label="Przesuń niżej: edycja <?= (int) $r['numer'] ?>"><span aria-hidden="true">↓</span></button>
             </form>
           </td>
         </tr>

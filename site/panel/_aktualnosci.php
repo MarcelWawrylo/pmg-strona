@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
         if ($f['tytul'] === '') $bledyPol['tytul'] = 'Uzupełnij tytuł.';
-        if ($f['lead'] === '') $bledyPol['lead'] = 'Uzupełnij lead.';
+        if ($f['lead'] === '') $bledyPol['lead'] = 'Uzupełnij wstęp.';
         if ($f['tresc'] === '') $bledyPol['tresc'] = 'Uzupełnij treść.';
         if (!data_ok($f['data'])) $bledyPol['data'] = 'Podaj datę wpisu.';
         blad_opisu_zdjecia($old['zdjecie'] ?? null);
@@ -161,8 +161,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['flash'] = 'Zapisano zdjęcie.';
                 go($wroc);
             } elseif ($action === 'gal_gora' || $action === 'gal_dol') {
-                if (przesun('pmg_aktualnosci_galeria', 'kolejnosc, id', $gid, $action === 'gal_gora' ? 'gora' : 'dol', 'wpis_id', $wid)) loguj('aktualnosci', 'galeria', $wid, $ed['tytul']);
-                go($wroc);
+                $kier = $action === 'gal_gora' ? 'gora' : 'dol';
+                if (przesun('pmg_aktualnosci_galeria', 'kolejnosc, id', $gid, $kier, 'wpis_id', $wid)) loguj('aktualnosci', 'galeria', $wid, $ed['tytul']);
+                go_po_przesunieciu('?m=aktualnosci&id=' . $wid, 'g' . $gid, $kier);
             } elseif ($action === 'gal_usun') {
                 $usun = pmg_db()->prepare('DELETE FROM pmg_aktualnosci_galeria WHERE id = ?');
                 $usun->execute([$gid]);
@@ -210,8 +211,8 @@ if ($edit !== null && !empty($edit['id'])) {
 if ($edit !== null) {
     $pmgNaglowek = [
         'tytul' => $edit['id'] ? 'Edytuj wpis' : 'Nowy wpis',
-        'opis' => $edit['id'] ? (string) $edit['tytul'] : 'Wpis bez zaznaczenia „Opublikuj” zostaje szkicem.',
-        'wstecz' => ['href' => '?m=aktualnosci', 'etykieta' => 'Aktualności'],
+        'opis' => $edit['id'] ? (string) $edit['tytul'] : 'Wpis bez zaznaczenia „Opublikuj na stronie” zostaje szkicem.',
+        'wstecz' => ['href' => '?m=aktualnosci', 'etykieta' => 'Wszystkie aktualności'],
     ];
     // Link do wpisu na stronie tylko dla zapisanego, opublikowanego wpisu (szkic nie jest widoczny publicznie).
     if (!empty($edit['id']) && !empty($edit['opublikowany']) && !empty($edit['slug'])) {
@@ -245,11 +246,11 @@ if ($edit !== null) {
       <h2 class="pmg-form-section__title" id="sek-tresc">Treść</h2>
       <label for="tytul">Tytuł</label>
       <input type="text" id="tytul" name="tytul" maxlength="200" value="<?= $v('tytul') ?>" required data-pmg-licznik<?= blad_pola('tytul') ?>><?= komunikat_pola('tytul') ?>
-      <label for="lead">Lead (akapit pod tytułem w artykule)</label>
+      <label for="lead">Wstęp (akapit pod tytułem w artykule)</label>
       <p class="pmg-hint" id="lead_h">1–2 zdania wprowadzenia, wyróżnione nad zdjęciem. Maks. 600 znaków.</p>
       <textarea id="lead" name="lead" maxlength="600" rows="3"<?= blad_pola('lead', 'lead_h') ?> required data-pmg-licznik><?= $v('lead') ?></textarea><?= komunikat_pola('lead') ?>
-      <label for="zajawka">Zajawka <span class="pmg-opt">(opcjonalnie)</span></label>
-      <p class="pmg-hint" id="zajawka_h">Krótki tekst na kafelku na liście wpisów i na stronie głównej. Puste pole = na kafelku pojawia się lead. Maks. 400 znaków.</p>
+      <label for="zajawka">Krótki opis na kafelku <span class="pmg-opt">(opcjonalnie)</span></label>
+      <p class="pmg-hint" id="zajawka_h">Krótki tekst na kafelku na liście wpisów i na stronie głównej. Puste pole = na kafelku pojawia się wstęp. Maks. 400 znaków.</p>
       <input type="text" id="zajawka" name="zajawka" maxlength="400" value="<?= $v('zajawka') ?>" aria-describedby="zajawka_h" data-pmg-licznik>
       <label for="tresc">Treść</label>
       <p class="pmg-hint" id="tresc_h">Akapity oddzielaj pustą linią. Śródtytuł: linia zaczynająca się od <code>## </code>. Bez HTML — znaczniki pokażą się jako zwykły tekst.</p>
@@ -283,7 +284,7 @@ if ($edit !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-publikacja">
       <h2 class="pmg-form-section__title" id="sek-publikacja">Publikacja</h2>
       <label class="pmg-check"><input type="checkbox" name="opublikowany" value="1"<?= !empty($edit['opublikowany']) ? ' checked' : '' ?> aria-describedby="opublikowany_h"><span>Opublikuj na stronie</span></label>
-      <p class="pmg-hint pmg-hint--check" id="opublikowany_h">Bez zaznaczenia wpis zostaje szkicem — niewidoczny na stronie.</p>
+      <p class="pmg-hint pmg-hint--check" id="opublikowany_h">Bez zaznaczenia = szkic, niewidoczny na stronie.</p>
     </section>
 
     <div class="pmg-form-actions">
@@ -296,8 +297,8 @@ if ($edit !== null) {
     <div class="pmg-card__head"><h2 class="pmg-h2">Galeria</h2></div>
   <?php if ($edit['id']): ?>
     <p class="pmg-hint">Zdjęcia 16:9 pod treścią artykułu, w małych kafelkach; po kliknięciu powiększają się. Kolejność zmieniasz strzałkami. Do <?= AKT_GALERIA_MAX ?> zdjęć. Bez zdjęć sekcji galerii nie ma. Każde zdjęcie zapisuje się własnym przyciskiem; zmian we wpisie powyżej te przyciski nie zapisują, więc najpierw kliknij „Zapisz” przy wpisie.</p>
-    <?php foreach ($galeria as $i => $g): ?>
-      <form class="pmg-gal" method="post" enctype="multipart/form-data">
+    <?php foreach ($galeria as $i => $g): $wylG = $i === 0; $wylD = $i === count($galeria) - 1; ?>
+      <form class="pmg-gal" method="post" enctype="multipart/form-data" id="wiersz-g<?= (int) $g['id'] ?>">
         <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="wpis_id" value="<?= (int) $edit['id'] ?>"><input type="hidden" name="id" value="<?= (int) $g['id'] ?>">
         <figure class="pmg-photo pmg-photo--16x9 pmg-gal__foto"><img src="../<?= h($g['zdjecie']) ?>" alt=""></figure>
         <div class="pmg-gal__pola">
@@ -307,8 +308,8 @@ if ($edit !== null) {
           <input type="file" id="gal-plik-<?= (int) $g['id'] ?>" name="plik" accept="image/jpeg,image/png,image/webp"<?= blad_pola('gal-plik-' . (int) $g['id']) ?>><?= komunikat_pola('gal-plik-' . (int) $g['id']) ?>
           <div class="pmg-gal__akcje">
             <button class="pmg-btn pmg-btn--primary pmg-btn--sm" type="submit" name="a" value="gal_zapisz">Zapisz zdjęcie</button>
-            <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gal_gora" formnovalidate<?= $i === 0 ? ' disabled' : '' ?> aria-label="Przesuń wyżej: zdjęcie <?= $i + 1 ?>"><span aria-hidden="true">↑</span></button>
-            <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gal_dol" formnovalidate<?= $i === count($galeria) - 1 ? ' disabled' : '' ?> aria-label="Przesuń niżej: zdjęcie <?= $i + 1 ?>"><span aria-hidden="true">↓</span></button>
+            <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gal_gora" formnovalidate<?= $wylG ? ' disabled' : '' ?><?= fokus_strzalki('g' . (int) $g['id'], 'gora', $wylG, $wylD) ?> aria-label="Przesuń wyżej: zdjęcie <?= $i + 1 ?>"><span aria-hidden="true">↑</span></button>
+            <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gal_dol" formnovalidate<?= $wylD ? ' disabled' : '' ?><?= fokus_strzalki('g' . (int) $g['id'], 'dol', $wylG, $wylD) ?> aria-label="Przesuń niżej: zdjęcie <?= $i + 1 ?>"><span aria-hidden="true">↓</span></button>
             <button class="pmg-btn pmg-btn--danger pmg-btn--sm" type="submit" name="a" value="gal_usun" formnovalidate data-pmg-potwierdz="Usunąć zdjęcie <?= $i + 1 ?> z galerii? Tego nie da się cofnąć.">Usuń zdjęcie<span class="pmg-vh"> <?= $i + 1 ?></span></button>
           </div>
         </div>
