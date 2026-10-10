@@ -18,9 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'delete') {
         $id = (int) ($_POST['id'] ?? 0);
-        $st = pmg_db()->prepare('SELECT zdjecie FROM pmg_aktualnosci WHERE id = ?');
+        $st = pmg_db()->prepare('SELECT zdjecie, tytul FROM pmg_aktualnosci WHERE id = ?'); // tytuł do dziennika, zanim wiersz zniknie
         $st->execute([$id]);
-        $img = $st->fetchColumn();
+        $wpis = $st->fetch();
+        $img = $wpis ? $wpis['zdjecie'] : null;
         $st = pmg_db()->prepare('SELECT zdjecie FROM pmg_aktualnosci_galeria WHERE wpis_id = ?');
         $st->execute([$id]);
         $pliki = $st->fetchAll(PDO::FETCH_COLUMN);
@@ -28,7 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction(); // wiersze galerii najpierw (klucz obcy); przy błędzie nic nie znika, pliki zostają
         try {
             $pdo->prepare('DELETE FROM pmg_aktualnosci_galeria WHERE wpis_id = ?')->execute([$id]);
-            $pdo->prepare('DELETE FROM pmg_aktualnosci WHERE id = ?')->execute([$id]);
+            $usun = $pdo->prepare('DELETE FROM pmg_aktualnosci WHERE id = ?');
+            $usun->execute([$id]);
+            $usunieto = $usun->rowCount() > 0;
             $pdo->commit();
         } catch (PDOException $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
@@ -36,9 +39,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['flash'] = 'Nie udało się usunąć wpisu (błąd bazy danych). Nic nie usunięto.';
             go('?m=aktualnosci&id=' . $id);
         }
+        if (!$usunieto) { // A2 6.5: bez wpisu w dzienniku, gdy nic nie usunięto
+            $_SESSION['flash'] = 'Nie znaleziono wpisu — nic nie usunięto.';
+            go('?m=aktualnosci');
+        }
         drop_image($img ?: null);
         foreach ($pliki as $p) drop_image($p);
-        loguj('aktualnosci', 'usuniecie', $id);
+        loguj('aktualnosci', 'usuniecie', $id, $wpis['tytul']);
         $_SESSION['flash'] = 'Wpis usunięty.';
         go('?m=aktualnosci');
     } elseif ($action === 'import') {
@@ -71,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $st->execute([$f['data'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $id]);
                 $noweZdjecie = null;
                 if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
-                loguj('aktualnosci', 'edycja', $id);
+                loguj('aktualnosci', 'edycja', $id, $f['tytul']);
             } else {
                 $base = $slug = slugify($f['tytul']);
                 $st = pmg_db()->prepare('SELECT 1 FROM pmg_aktualnosci WHERE slug = ?');
@@ -80,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $st->execute([$slug, $f['data'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany']]);
                 $noweZdjecie = null;
                 $id = (int) pmg_db()->lastInsertId();
-                loguj('aktualnosci', 'dodanie', $id);
+                loguj('aktualnosci', 'dodanie', $id, $f['tytul']);
             }
             $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano jako szkic (niewidoczny na stronie).';
             go('?m=aktualnosci');
@@ -124,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 pmg_db()->prepare('INSERT INTO pmg_aktualnosci_galeria (wpis_id, zdjecie, podpis, kolejnosc) VALUES (?,?,?,?)')
                     ->execute([$wid, $plik, $podpis, (int) $kol->fetchColumn()]);
                 $noweGal = null;
-                loguj('aktualnosci', 'galeria', $wid);
+                loguj('aktualnosci', 'galeria', $wid, $ed['tytul']);
                 $_SESSION['flash'] = 'Zdjęcie dodane do galerii.';
                 go($wroc);
             } elseif (!$g) {
@@ -141,16 +148,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     pmg_db()->prepare('UPDATE pmg_aktualnosci_galeria SET podpis = ? WHERE id = ?')->execute([$podpis, $gid]);
                 }
-                loguj('aktualnosci', 'galeria', $wid);
+                loguj('aktualnosci', 'galeria', $wid, $ed['tytul']);
                 $_SESSION['flash'] = 'Zapisano zdjęcie.';
                 go($wroc);
             } elseif ($action === 'gal_gora' || $action === 'gal_dol') {
-                if (przesun('pmg_aktualnosci_galeria', 'kolejnosc, id', $gid, $action === 'gal_gora' ? 'gora' : 'dol', 'wpis_id', $wid)) loguj('aktualnosci', 'galeria', $wid);
+                if (przesun('pmg_aktualnosci_galeria', 'kolejnosc, id', $gid, $action === 'gal_gora' ? 'gora' : 'dol', 'wpis_id', $wid)) loguj('aktualnosci', 'galeria', $wid, $ed['tytul']);
                 go($wroc);
             } elseif ($action === 'gal_usun') {
-                pmg_db()->prepare('DELETE FROM pmg_aktualnosci_galeria WHERE id = ?')->execute([$gid]);
+                $usun = pmg_db()->prepare('DELETE FROM pmg_aktualnosci_galeria WHERE id = ?');
+                $usun->execute([$gid]);
+                if ($usun->rowCount() === 0) throw new RuntimeException('Nie znaleziono zdjęcia — nic nie usunięto.'); // A2 6.5
                 drop_image($g['zdjecie']);
-                loguj('aktualnosci', 'galeria', $wid);
+                loguj('aktualnosci', 'galeria', $wid, $ed['tytul']);
                 $_SESSION['flash'] = 'Zdjęcie usunięte z galerii.';
                 go($wroc);
             }

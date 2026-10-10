@@ -9,14 +9,15 @@ const PMS_LICZBY = ['pms_edycji' => 'Edycji', 'pms_prelekcji' => 'Prelekcji', 'p
 function ustaw_biezaca($id)
 {
     $pdo = pmg_db();
-    $st = $pdo->prepare('SELECT 1 FROM pmg_edycje WHERE id = ?');
+    $st = $pdo->prepare('SELECT numer, temat FROM pmg_edycje WHERE id = ?');
     $st->execute([$id]);
-    if (!$st->fetchColumn()) return false;
+    $ed = $st->fetch();
+    if (!$ed) return false;
     $pdo->beginTransaction();
     $pdo->exec("UPDATE pmg_edycje SET status = 'zakonczona' WHERE status = 'biezaca'");
     $pdo->prepare("UPDATE pmg_edycje SET status = 'biezaca' WHERE id = ?")->execute([$id]);
     $pdo->commit();
-    loguj('pmsession', 'biezaca', $id);
+    loguj('pmsession', 'biezaca', $id, 'Edycja ' . $ed['numer'] . ': ' . $ed['temat']);
     return true;
 }
 
@@ -64,19 +65,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         pmg_import_wykonaj('pmsession');
     } elseif ($action === 'edycja_usun') {
         $id = (int) ($_POST['id'] ?? 0);
-        $st = pmg_db()->prepare('SELECT status FROM pmg_edycje WHERE id = ?');
+        $st = pmg_db()->prepare('SELECT status, numer, temat FROM pmg_edycje WHERE id = ?'); // numer i temat do dziennika, zanim wiersz zniknie
         $st->execute([$id]);
-        $status = $st->fetchColumn();
+        $usuwana = $st->fetch();
+        $status = $usuwana ? $usuwana['status'] : false;
         if ($status === false) {
             $error = 'Nie znaleziono edycji.';
         } elseif ($status === 'biezaca') {
             $error = 'Nie można usunąć bieżącej edycji.';
         } else {
             try {
-                pmg_db()->prepare('DELETE FROM pmg_edycje WHERE id = ?')->execute([$id]);
-                loguj('pmsession', 'usuniecie', $id);
-                $_SESSION['flash'] = 'Edycja usunięta.';
-                go('?m=pmsession');
+                $st = pmg_db()->prepare('DELETE FROM pmg_edycje WHERE id = ?');
+                $st->execute([$id]);
+                if ($st->rowCount() > 0) { // A2 6.5: bez wpisu w dzienniku, gdy nic nie usunięto
+                    loguj('pmsession', 'usuniecie', $id, 'Edycja ' . $usuwana['numer'] . ': ' . $usuwana['temat']);
+                    $_SESSION['flash'] = 'Edycja usunięta.';
+                    go('?m=pmsession');
+                }
+                $error = 'Nie znaleziono edycji — nic nie usunięto.';
             } catch (PDOException $e) {
                 $error = $e->getCode() === '23000' ? 'Najpierw usuń prelegentów i harmonogram tej edycji.' : 'Błąd usuwania.';
             }
@@ -115,12 +121,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($id) {
                     pmg_db()->prepare('UPDATE pmg_edycje SET numer=?, temat=?, data=?, miejsce=?, opis=?, status=? WHERE id=?')
                         ->execute([$f['numer'], $f['temat'], $f['data'], $f['miejsce'], $f['opis'], $status, $id]);
-                    loguj('pmsession', 'edycja', $id);
+                    loguj('pmsession', 'edycja', $id, 'Edycja ' . $f['numer'] . ': ' . $f['temat']);
                 } else {
                     pmg_db()->prepare('INSERT INTO pmg_edycje (numer, temat, data, miejsce, opis, status) VALUES (?,?,?,?,?,?)')
                         ->execute([$f['numer'], $f['temat'], $f['data'], $f['miejsce'], $f['opis'], $status]);
                     $id = (int) pmg_db()->lastInsertId();
-                    loguj('pmsession', 'dodanie', $id);
+                    loguj('pmsession', 'dodanie', $id, 'Edycja ' . $f['numer'] . ': ' . $f['temat']);
                     // nowa edycja: od razu widok tej edycji (prelegenci i harmonogram), żeby dalszy krok był oczywisty
                     $_SESSION['flash'] = 'Edycja zapisana. Dodaj teraz prelegentów i harmonogram.' . (pms_widoczna($status) ? ' Na stronie zmiana pojawi się w ciągu 5 minut.' : '');
                     go('?m=pmsession&e=' . $id);
@@ -137,18 +143,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'prelegent_gora' || $action === 'prelegent_dol') {
         $id = (int) ($_POST['id'] ?? 0);
         $edycjaId = (int) ($_POST['edycja_id'] ?? 0);
-        if (przesun('pmg_prelegenci', 'kolejnosc, id', $id, $action === 'prelegent_gora' ? 'gora' : 'dol', 'edycja_id', $edycjaId)) loguj('pmsession', 'kolejnosc', $id);
+        if (przesun('pmg_prelegenci', 'kolejnosc, id', $id, $action === 'prelegent_gora' ? 'gora' : 'dol', 'edycja_id', $edycjaId)) loguj('pmsession', 'kolejnosc', $id, 'Prelegent ' . nazwa_rekordu('SELECT imie_nazwisko FROM pmg_prelegenci WHERE id = ?', $id));
         go('?m=pmsession&e=' . $edycjaId);
 
     } elseif ($action === 'prelegent_usun') {
         $id = (int) ($_POST['id'] ?? 0);
         $edycjaId = (int) ($_POST['edycja_id'] ?? 0);
-        $st = pmg_db()->prepare('SELECT zdjecie FROM pmg_prelegenci WHERE id = ?');
+        $st = pmg_db()->prepare('SELECT zdjecie, imie_nazwisko FROM pmg_prelegenci WHERE id = ?'); // imię do dziennika, zanim wiersz zniknie
         $st->execute([$id]);
-        $img = $st->fetchColumn();
-        pmg_db()->prepare('DELETE FROM pmg_prelegenci WHERE id = ?')->execute([$id]);
+        $prel = $st->fetch();
+        $img = $prel ? $prel['zdjecie'] : null;
+        $st = pmg_db()->prepare('DELETE FROM pmg_prelegenci WHERE id = ?');
+        $st->execute([$id]);
+        if ($st->rowCount() === 0) { // A2 6.5: bez wpisu w dzienniku, gdy nic nie usunięto
+            $_SESSION['flash'] = 'Nie znaleziono prelegenta — nic nie usunięto.';
+            go('?m=pmsession&e=' . $edycjaId);
+        }
         drop_image($img ?: null);
-        loguj('pmsession', 'usuniecie', $id);
+        loguj('pmsession', 'usuniecie', $id, 'Prelegent ' . $prel['imie_nazwisko']);
         $_SESSION['flash'] = 'Prelegent usunięty.';
         go('?m=pmsession&e=' . $edycjaId);
 
@@ -194,13 +206,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $st->execute([$f['imie_nazwisko'], $f['temat'], $f['bio'], $f['opis'], $f['plec'], $f['notatka'], $f['zdjecie'], $f['zdjecie_alt'], $f['linkedin'], $f['kolejnosc'], $id]);
                     $noweZdjecie = null;
                     if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
-                    loguj('pmsession', 'edycja', $id);
+                    loguj('pmsession', 'edycja', $id, 'Prelegent ' . $f['imie_nazwisko']);
                 } else {
                     $st = pmg_db()->prepare('INSERT INTO pmg_prelegenci (edycja_id, imie_nazwisko, temat, bio, opis, plec, notatka, zdjecie, zdjecie_alt, linkedin, kolejnosc) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
                     $st->execute([$edycjaId, $f['imie_nazwisko'], $f['temat'], $f['bio'], $f['opis'], $f['plec'], $f['notatka'], $f['zdjecie'], $f['zdjecie_alt'], $f['linkedin'], $f['kolejnosc']]);
                     $noweZdjecie = null;
                     $id = (int) pmg_db()->lastInsertId();
-                    loguj('pmsession', 'dodanie', $id);
+                    loguj('pmsession', 'dodanie', $id, 'Prelegent ' . $f['imie_nazwisko']);
                 }
                 $_SESSION['flash'] = pms_komunikat_zapisu($edycjaId);
                 go('?m=pmsession&e=' . $edycjaId);
@@ -219,8 +231,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'harmonogram_usun') {
         $id = (int) ($_POST['id'] ?? 0);
         $edycjaId = (int) ($_POST['edycja_id'] ?? 0);
-        pmg_db()->prepare('DELETE FROM pmg_harmonogram WHERE id = ?')->execute([$id]);
-        loguj('pmsession', 'usuniecie', $id);
+        $nazwa = nazwa_rekordu("SELECT CONCAT('Harmonogram ', TIME_FORMAT(godzina, '%H:%i'), ' ', tytul) FROM pmg_harmonogram WHERE id = ?", $id); // do dziennika, zanim wiersz zniknie
+        $st = pmg_db()->prepare('DELETE FROM pmg_harmonogram WHERE id = ?');
+        $st->execute([$id]);
+        if ($st->rowCount() === 0) { // A2 6.5: bez wpisu w dzienniku, gdy nic nie usunięto
+            $_SESSION['flash'] = 'Nie znaleziono punktu harmonogramu — nic nie usunięto.';
+            go('?m=pmsession&e=' . $edycjaId);
+        }
+        loguj('pmsession', 'usuniecie', $id, $nazwa);
         $_SESSION['flash'] = 'Punkt harmonogramu usunięty.';
         go('?m=pmsession&e=' . $edycjaId);
 
@@ -245,12 +263,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($id) {
                 pmg_db()->prepare('UPDATE pmg_harmonogram SET godzina=?, tytul=?, prelegent=?, znacznik=? WHERE id=?')
                     ->execute([$f['godzina'], $f['tytul'], $f['prelegent'], $f['znacznik'], $id]);
-                loguj('pmsession', 'edycja', $id);
+                loguj('pmsession', 'edycja', $id, 'Harmonogram ' . $f['godzina'] . ' ' . $f['tytul']);
             } else {
                 pmg_db()->prepare('INSERT INTO pmg_harmonogram (edycja_id, godzina, tytul, prelegent, znacznik) VALUES (?,?,?,?,?)')
                     ->execute([$edycjaId, $f['godzina'], $f['tytul'], $f['prelegent'], $f['znacznik']]);
                 $id = (int) pmg_db()->lastInsertId();
-                loguj('pmsession', 'dodanie', $id);
+                loguj('pmsession', 'dodanie', $id, 'Harmonogram ' . $f['godzina'] . ' ' . $f['tytul']);
             }
             $_SESSION['flash'] = pms_komunikat_zapisu($edycjaId);
             go('?m=pmsession&e=' . $edycjaId);
@@ -274,7 +292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $upd = $pdo->prepare('REPLACE INTO pmg_ustawienia (klucz, wartosc) VALUES (?,?)');
             foreach ($wejscie as $k => $v) $upd->execute([$k, $v]);
             $pdo->commit();
-            loguj('pmsession', 'edycja');
+            loguj('pmsession', 'edycja', null, 'PM Session w liczbach');
             $_SESSION['flash'] = 'Zapisano. Zmiany widać na stronie w ciągu 5 minut.';
             go('?m=pmsession');
         }

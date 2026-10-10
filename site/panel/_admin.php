@@ -80,7 +80,7 @@ if ($sub === 'ustawienia') {
             $upd = $pdo->prepare('REPLACE INTO pmg_ustawienia (klucz, wartosc) VALUES (?,?)');
             foreach ($pola as $k) $upd->execute([$k, $wejscie[$k]]);
             $pdo->commit();
-            loguj('ustawienia', 'edycja');
+            loguj('ustawienia', 'edycja', null, 'Media społecznościowe i e-mail');
             $_SESSION['flash'] = 'Zapisano. Zmiany widać na stronie w ciągu 5 minut.';
             go('?m=ustawienia');
         }
@@ -129,9 +129,10 @@ if ($sub === 'ustawienia') {
 if ($sub === 'dziennik') {
     // Retencja (RODO: imię i nazwisko + akcje): wpisy starsze niż 12 miesięcy znikają przy wejściu do dziennika.
     pmg_db()->exec('DELETE FROM pmg_dziennik WHERE kiedy < NOW() - INTERVAL 12 MONTH');
+    // LEFT JOIN: wpis bez konta (nieudane logowanie na nieznany adres) też jest widoczny — jako „Nieznana osoba”.
     $wpisy = pmg_db()->query(
-        'SELECT d.kiedy, d.modul, d.akcja, d.rekord_id, u.imie_nazwisko
-         FROM pmg_dziennik d JOIN pmg_uzytkownicy u ON u.id = d.uzytkownik_id
+        'SELECT d.kiedy, d.modul, d.akcja, d.rekord_id, d.opis, u.imie_nazwisko
+         FROM pmg_dziennik d LEFT JOIN pmg_uzytkownicy u ON u.id = d.uzytkownik_id
          ORDER BY d.id DESC LIMIT 200'
     )->fetchAll();
     // Etykiety PL akcji dziennika — tylko widok; nieznany klucz pokazuje surową wartość.
@@ -139,25 +140,30 @@ if ($sub === 'dziennik') {
         'dodanie' => 'Dodanie', 'edycja' => 'Edycja', 'usuniecie' => 'Usunięcie',
         'zaproszenie' => 'Zaproszenie', 'blokada' => 'Blokada', 'odblokowanie' => 'Odblokowanie',
         'reset' => 'Reset hasła', 'haslo' => 'Zmiana własnego hasła', 'biezaca' => 'Ustawienie bieżącej edycji', 'pobranie' => 'Pobranie kopii', 'kolejnosc' => 'Zmiana kolejności', 'import' => 'Wczytanie treści ze strony', 'przywrocenie' => 'Przywrócenie tekstu ze strony',
+        'galeria' => 'Zmiana galerii', 'logowanie' => 'Logowanie', 'nieudane_logowanie' => 'Nieudane logowanie', 'haslo_z_linku' => 'Ustawienie hasła z linku',
     ];
+    $modulyDziennika = $etykietyModulow + ['konto' => 'Konto']; // 'konto' = logowania i hasło z linku
     ?>
     <div class="pmg-table-wrap">
       <table class="pmg-table">
-        <caption class="pmg-vh">Dziennik zmian</caption>
-        <thead><tr>
-          <th scope="col">Kiedy</th><th scope="col">Kto</th><th scope="col">Moduł</th><th scope="col">Akcja</th><th scope="col" class="pmg-num">Rekord</th>
-        </tr></thead>
+        <caption class="pmg-vh">Dziennik zmian, od najnowszych</caption>
+        <thead><tr><th scope="col">Zdarzenie</th></tr></thead>
         <tbody>
         <?php foreach ($wpisy as $w): ?>
+          <?php
+            // Jedno zdanie: „Kto — Czynność: „co” · Moduł · kiedy”. Starsze wpisy (sprzed schematu 10) nie mają opisu — wtedy #id.
+            $co = $w['opis'] !== '' ? '„' . $w['opis'] . '”' : ($w['rekord_id'] !== null ? '#' . (int) $w['rekord_id'] : '');
+            $kiedy = strtotime((string) $w['kiedy']);
+          ?>
           <tr>
-            <td class="pmg-td-main" data-label="Kiedy"><time datetime="<?= h($w['kiedy']) ?>"><?= h($w['kiedy']) ?></time></td>
-            <td data-label="Kto"><?= h($w['imie_nazwisko']) ?></td>
-            <td data-label="Moduł"><?= h($etykietyModulow[$w['modul']] ?? $w['modul']) ?></td>
-            <td data-label="Akcja"><?= h($pmgAkcjeDziennika[$w['akcja']] ?? $w['akcja']) ?></td>
-            <td class="pmg-num" data-label="Rekord"><?= $w['rekord_id'] !== null ? (int) $w['rekord_id'] : '—' ?></td>
+            <td data-label="Zdarzenie">
+              <strong><?= h($w['imie_nazwisko'] ?? 'Nieznana osoba') ?></strong> — <?= h($pmgAkcjeDziennika[$w['akcja']] ?? $w['akcja']) ?><?= $co !== '' ? ': ' . h($co) : '' ?>
+              · <?= h($modulyDziennika[$w['modul']] ?? $w['modul']) ?>
+              · <time datetime="<?= h(date('Y-m-d\TH:i:s', $kiedy)) ?>"><?= h(date('d.m.Y H:i', $kiedy)) ?></time>
+            </td>
           </tr>
         <?php endforeach; ?>
-        <?php if (!$wpisy): ?><tr><td colspan="5" class="pmg-empty">Brak wpisów.</td></tr><?php endif; ?>
+        <?php if (!$wpisy): ?><tr><td class="pmg-empty">Brak wpisów.</td></tr><?php endif; ?>
         </tbody>
       </table>
     </div>
@@ -212,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $st = pmg_db()->prepare('INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, rola, moduly, aktywny, token_hash, token_do) VALUES (?,?,?,?,1,?,DATE_ADD(NOW(), INTERVAL 72 HOUR))');
                 $st->execute([$imie, $email, $rola, $moduly, hash('sha256', $token)]);
                 $nowyId = (int) pmg_db()->lastInsertId();
-                loguj('konta', 'zaproszenie', $nowyId);
+                loguj('konta', 'zaproszenie', $nowyId, $imie);
                 $_SESSION['flash'] = 'Konto utworzone.';
                 $_SESSION['flash_link'] = link_zaproszenia($token);
                 go('?m=konta');
@@ -233,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     try {
                         $st2 = pmg_db()->prepare('UPDATE pmg_uzytkownicy SET imie_nazwisko=?, email=?, rola=?, moduly=? WHERE id=?');
                         $st2->execute([$imie, $email, $rola, $moduly, $id]);
-                        loguj('konta', 'edycja', $id);
+                        loguj('konta', 'edycja', $id, $imie);
                         $_SESSION['flash'] = 'Zapisano.';
                         go('?m=konta');
                     } catch (PDOException $e) {
@@ -256,13 +262,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Nie można zablokować ostatniego aktywnego administratora.';
             } else {
                 pmg_db()->prepare('UPDATE pmg_uzytkownicy SET aktywny=0, token_hash=NULL, token_do=NULL WHERE id=?')->execute([$id]);
-                loguj('konta', 'blokada', $id);
+                loguj('konta', 'blokada', $id, $target['imie_nazwisko']);
                 $_SESSION['flash'] = 'Konto zablokowane.';
                 go('?m=konta');
             }
         } else {
             pmg_db()->prepare('UPDATE pmg_uzytkownicy SET aktywny=1 WHERE id=?')->execute([$id]);
-            loguj('konta', 'odblokowanie', $id);
+            loguj('konta', 'odblokowanie', $id, $target['imie_nazwisko']);
             $_SESSION['flash'] = 'Konto odblokowane.';
             go('?m=konta');
         }
@@ -276,7 +282,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $token = bin2hex(random_bytes(32));
             pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo=NULL, token_hash=?, token_do=DATE_ADD(NOW(), INTERVAL 72 HOUR) WHERE id=?')
                 ->execute([hash('sha256', $token), $id]);
-            loguj('konta', 'reset', $id);
+            loguj('konta', 'reset', $id, nazwa_rekordu('SELECT imie_nazwisko FROM pmg_uzytkownicy WHERE id = ?', $id));
             $_SESSION['flash'] = 'Nowy link gotowy do przekazania.';
             $_SESSION['flash_link'] = link_zaproszenia($token);
             go('?m=konta');

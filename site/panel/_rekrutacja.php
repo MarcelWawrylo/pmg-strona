@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $upd = $pdo->prepare('REPLACE INTO pmg_ustawienia (klucz, wartosc) VALUES (?,?)');
         foreach ($pola as $k) $upd->execute([$k, $wejscie[$k]]);
         $pdo->commit();
-        loguj('rekrutacja', 'edycja');
+        loguj('rekrutacja', 'edycja', null, 'Status, link i tekst rekrutacji');
         $_SESSION['flash'] = 'Zapisano. Zmiany widać na stronie w ciągu 5 minut.';
         go('?m=rekrutacja');
     }
