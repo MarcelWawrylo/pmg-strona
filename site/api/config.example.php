@@ -23,6 +23,11 @@ return [
     // Panel sam go utworzy (uprawnienia 0700). Puste = systemowy katalog tymczasowy (może być współdzielony z innymi kontami).
     'tmp_dir' => '',
 
+    // Opcjonalnie: pełny adres panelu do linków zaproszenia i resetu hasła, np. 'https://dev.pmgroup.pwr.edu.pl/panel/'.
+    // Puste = adres składany jak dotąd z bieżącego żądania (nagłówek Host). Na serwerze lepiej wpisać, bo nagłówek Host
+    // przysyła przeglądarka, a link ma zawsze wskazywać na nasz panel.
+    'adres_panelu' => '',
+
     // Formularz kontaktowy
     'mail_to'   => 'kontakt@pmgroup.pwr.edu.pl', // skrzynka koła na serwerach WCSS; do czasu jej założenia wpisz tymczasowo dotychczasowy adres
     'mail_from' => 'kontakt@pmgroup.pwr.edu.pl', // adres w domenie serwera (SPF), inaczej poczta odrzuca jako spam

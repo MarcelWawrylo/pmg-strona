@@ -11,16 +11,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'gora' || $action === 'dol') {
         $id = (int) ($_POST['id'] ?? 0);
-        if (przesun('pmg_podcast_edycje', PODCAST_EDYCJE_ORDER, $id, $action)) loguj('podcast', 'kolejnosc', $id);
-        go('?m=podcast&w=edycje');
+        if (przesun('pmg_podcast_edycje', PODCAST_EDYCJE_ORDER, $id, $action)) loguj('podcast', 'kolejnosc', $id, nazwa_rekordu("SELECT CONCAT('Edycja podcastu ', numer, ' (', lata, ')') FROM pmg_podcast_edycje WHERE id = ?", $id));
+        go_po_przesunieciu('?m=podcast&w=edycje', $id, $action);
 
     } elseif ($action === 'delete') {
         $id = (int) ($_POST['id'] ?? 0);
+        $nazwa = nazwa_rekordu("SELECT CONCAT('Edycja podcastu ', numer, ' (', lata, ')') FROM pmg_podcast_edycje WHERE id = ?", $id); // do dziennika, zanim wiersz zniknie
         // Jedno zapytanie: edycja z przypisanymi odcinkami nie zostanie usunięta (także gdy odcinek dodano w tej chwili).
         $st = pmg_db()->prepare('DELETE FROM pmg_podcast_edycje WHERE id = ? AND NOT EXISTS (SELECT 1 FROM pmg_odcinki WHERE edycja_id = ?)');
         $st->execute([$id, $id]);
         if ($st->rowCount() > 0) {
-            loguj('podcast', 'usuniecie', $id);
+            loguj('podcast', 'usuniecie', $id, $nazwa);
             $_SESSION['flash'] = 'Edycja usunięta.';
             go('?m=podcast&w=edycje');
         }
@@ -49,28 +50,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$id]);
             $old = $st->fetch() ?: null;
         }
+        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+        if ($f['numer'] < 1 || $f['numer'] > 999) $bledyPol['numer'] = 'Numer edycji: liczba od 1 do 999.';
+        if ($f['lata'] === '') $bledyPol['lata'] = 'Podaj lata edycji, np. 2025/2026.';
         try {
-            if ($f['numer'] < 1 || $f['numer'] > 999) throw new RuntimeException('Numer edycji: liczba od 1 do 999.');
-            if ($f['lata'] === '') throw new RuntimeException('Podaj lata edycji, np. 2025/2026.');
+            if ($bledyPol) throw new BladPol();
             if ($id && $old) {
                 $st = pmg_db()->prepare('UPDATE pmg_podcast_edycje SET numer=?, lata=?, koordynator=?, mentorzy=?, zespol=?, opis=?, widoczna=? WHERE id=?');
                 $st->execute([$f['numer'], $f['lata'], $f['koordynator'], $f['mentorzy'], $f['zespol'], $f['opis'], $f['widoczna'], $id]);
-                loguj('podcast', 'edycja', $id);
+                loguj('podcast', 'edycja', $id, 'Edycja podcastu ' . $f['numer'] . ' (' . $f['lata'] . ')');
             } else {
                 // Nowa edycja ląduje na górze listy (na stronie najnowsza edycja jest pierwsza).
                 $kolejnosc = (int) pmg_db()->query('SELECT COALESCE(MIN(kolejnosc), 1) - 1 FROM pmg_podcast_edycje')->fetchColumn();
                 $st = pmg_db()->prepare('INSERT INTO pmg_podcast_edycje (numer, lata, koordynator, mentorzy, zespol, opis, kolejnosc, widoczna) VALUES (?,?,?,?,?,?,?,?)');
                 $st->execute([$f['numer'], $f['lata'], $f['koordynator'], $f['mentorzy'], $f['zespol'], $f['opis'], $kolejnosc, $f['widoczna']]);
                 $id = (int) pmg_db()->lastInsertId();
-                loguj('podcast', 'dodanie', $id);
+                loguj('podcast', 'dodanie', $id, 'Edycja podcastu ' . $f['numer'] . ' (' . $f['lata'] . ')');
             }
-            $_SESSION['flash'] = $f['widoczna'] ? 'Zapisano. Edycja jest widoczna na stronie.' : 'Zapisano. Edycja jest ukryta na stronie (razem z jej odcinkami).';
+            $_SESSION['flash'] = $f['widoczna'] ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano jako szkic (niewidoczny na stronie, razem z odcinkami tej edycji).';
             go('?m=podcast&w=edycje');
         } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
             $error = $e->getCode() === '23000' ? 'Edycja o tym numerze już istnieje.' : 'Błąd zapisu.';
             $edit = array_merge($old ?: [], $f, ['id' => $id]);
-        } catch (RuntimeException $e) {
-            $error = $e->getMessage();
+        } catch (BladPol $e) { // błędy pól są już w $bledyPol
             $edit = array_merge($old ?: [], $f, ['id' => $id]);
         }
     }
@@ -99,7 +101,7 @@ if ($edit !== null) {
     $pmgNaglowek = [
         'tytul' => 'Edycje podcastu',
         'opis' => 'Odcinki na stronie są pogrupowane według edycji, w kolejności z tej listy.',
-        'wstecz' => ['href' => '?m=podcast', 'etykieta' => 'Podcast'],
+        'wstecz' => ['href' => '?m=podcast', 'etykieta' => 'Odcinki podcastu'],
         'akcje' => [
             ['href' => '?m=podcast&w=edycje&nowa', 'etykieta' => '+ Nowa edycja', 'rodzaj' => 'primary'],
             ['href' => '../podcast.html', 'etykieta' => 'Zobacz stronę', 'rodzaj' => 'text', 'nowaKarta' => true],
@@ -116,10 +118,10 @@ if ($edit !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-edycja">
       <h2 class="pmg-form-section__title" id="sek-edycja">Edycja</h2>
       <label for="numer">Numer edycji</label>
-      <input type="number" id="numer" name="numer" min="1" max="999" value="<?= $v('numer') ?>" required>
+      <input type="number" id="numer" name="numer" min="1" max="999" value="<?= $v('numer') ?>" required<?= blad_pola('numer') ?>><?= komunikat_pola('numer') ?>
       <label for="lata">Lata</label>
       <p class="pmg-hint" id="lata_h">Np. 2025/2026. Na stronie pojawią się w nawiasie obok numeru.</p>
-      <input type="text" id="lata" name="lata" maxlength="20" value="<?= $v('lata') ?>" aria-describedby="lata_h" required>
+      <input type="text" id="lata" name="lata" maxlength="20" value="<?= $v('lata') ?>"<?= blad_pola('lata', 'lata_h') ?> required><?= komunikat_pola('lata') ?>
       <label for="opis">Opis edycji <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="opis_h">Krótki tekst pod nagłówkiem edycji, maksymalnie 600 znaków.</p>
       <textarea id="opis" name="opis" maxlength="600" aria-describedby="opis_h" data-pmg-licznik><?= $v('opis') ?></textarea>
@@ -138,9 +140,9 @@ if ($edit !== null) {
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-widocznosc">
-      <h2 class="pmg-form-section__title" id="sek-widocznosc">Widoczność</h2>
-      <label class="pmg-check"><input type="checkbox" name="widoczna" value="1"<?= !empty($edit['widoczna']) ? ' checked' : '' ?> aria-describedby="widoczna_h"><span>Pokaż edycję na stronie</span></label>
-      <p class="pmg-hint pmg-hint--check" id="widoczna_h">Bez zaznaczenia edycja jest ukryta razem ze wszystkimi swoimi odcinkami. Kolejność edycji zmieniasz strzałkami na liście.</p>
+      <h2 class="pmg-form-section__title" id="sek-widocznosc">Publikacja</h2>
+      <label class="pmg-check"><input type="checkbox" name="widoczna" value="1"<?= !empty($edit['widoczna']) ? ' checked' : '' ?> aria-describedby="widoczna_h"><span>Opublikuj na stronie</span></label>
+      <p class="pmg-hint pmg-hint--check" id="widoczna_h">Bez zaznaczenia = szkic, niewidoczny na stronie (razem ze wszystkimi odcinkami tej edycji). Kolejność edycji zmieniasz strzałkami na liście.</p>
     </section>
 
     <div class="pmg-form-actions">
@@ -162,19 +164,19 @@ if ($edit !== null) {
   <div class="pmg-table-wrap">
     <table class="pmg-table pmg-table--klikalna">
       <caption class="pmg-vh">Edycje podcastu</caption>
-      <thead><tr><th scope="col" class="pmg-num">Nr</th><th scope="col">Lata</th><th scope="col">Odcinki</th><th scope="col">Widoczność</th><th scope="col">Kolejność</th></tr></thead>
+      <thead><tr><th scope="col" class="pmg-num">Nr</th><th scope="col">Lata</th><th scope="col">Odcinki</th><th scope="col">Status</th><th scope="col">Kolejność</th></tr></thead>
       <tbody>
-      <?php foreach ($edycje as $i => $r): ?>
-        <tr>
+      <?php foreach ($edycje as $i => $r): $wylG = $i === 0; $wylD = $i === count($edycje) - 1; ?>
+        <tr id="wiersz-<?= (int) $r['id'] ?>">
           <td class="pmg-num" data-label="Nr"><?= (int) $r['numer'] ?></td>
           <td class="pmg-td-main" data-label="Lata"><a class="pmg-row-link" href="?m=podcast&amp;w=edycje&amp;id=<?= (int) $r['id'] ?>">Edycja <?= (int) $r['numer'] ?><?= $r['lata'] !== '' ? ' (' . h($r['lata']) . ')' : '' ?></a></td>
           <td class="pmg-num" data-label="Odcinki"><?= (int) $r['odcinkow'] ?></td>
-          <td data-label="Widoczność"><?php if ($r['widoczna']): ?><span class="pmg-chip pmg-chip--success">Widoczna</span><?php else: ?><span class="pmg-chip pmg-chip--neutral">Ukryta</span><?php endif; ?></td>
+          <td data-label="Status"><?php if ($r['widoczna']): ?><span class="pmg-chip pmg-chip--success">Opublikowany</span><?php else: ?><span class="pmg-chip pmg-chip--neutral">Szkic</span><?php endif; ?></td>
           <td class="pmg-td-actions" data-label="Kolejność">
             <form method="post">
               <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
-              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gora"<?= $i === 0 ? ' disabled' : '' ?> aria-label="Przesuń wyżej: edycja <?= (int) $r['numer'] ?>"><span aria-hidden="true">↑</span></button>
-              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="dol"<?= $i === count($edycje) - 1 ? ' disabled' : '' ?> aria-label="Przesuń niżej: edycja <?= (int) $r['numer'] ?>"><span aria-hidden="true">↓</span></button>
+              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gora"<?= $wylG ? ' disabled' : '' ?><?= fokus_strzalki((int) $r['id'], 'gora', $wylG, $wylD) ?> aria-label="Przesuń wyżej: edycja <?= (int) $r['numer'] ?>"><span aria-hidden="true">↑</span></button>
+              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="dol"<?= $wylD ? ' disabled' : '' ?><?= fokus_strzalki((int) $r['id'], 'dol', $wylG, $wylD) ?> aria-label="Przesuń niżej: edycja <?= (int) $r['numer'] ?>"><span aria-hidden="true">↓</span></button>
             </form>
           </td>
         </tr>

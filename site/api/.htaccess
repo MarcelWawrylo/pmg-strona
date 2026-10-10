@@ -1,4 +1,8 @@
-# Konfiguracja i biblioteka nie są dostępne z przeglądarki
-<FilesMatch "^(config|config\.example|lib)\.php$">
-  Require all denied
+# A2 5.2: lista dozwolonych plików zamiast blokady wybranych. Domyślnie nic w api/ nie jest dostępne z przeglądarki
+# (lib.php, config*.php, dane-startowe.php, seed-*.php, tresci-pola.php, kopie *.bak, *~, *.sql itd. → 403).
+Require all denied
+
+# Publiczne endpointy, z których korzysta strona (js/main.js i formularz w kontakt.html). Nowy endpoint = dopisz go tutaj.
+<FilesMatch "^(aktualnosci|case-kola|czlonkowie|kontakt|pmsession|podcast|tresci|ustawienia)\.php$">
+  Require all granted
 </FilesMatch>

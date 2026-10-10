@@ -31,21 +31,74 @@ pmg_migrate();
 
 const KOLORY = ['pink' => 'Różowy', 'purple' => 'Fioletowy', 'blue' => 'Niebieski', 'violet' => 'Liliowy'];
 const ZDJECIA = ['aktualnosci' => [16 / 9, 1600], 'czlonkowie' => [1, 800], 'pmsession' => [4 / 3, 1600], 'podcast' => [16 / 9, 1600], 'case' => [16 / 9, 1600], 'case-logo' => [null, 800]];
+// Pozycje menu (?m=) => uprawnienie potrzebne, żeby w ogóle wejść ('admin' = tylko administrator; tablica = wystarczy jedno z nich).
+// Stare adresy ?m=tresci, ?m=ustawienia i ?m=rekrutacja nie są tu kluczami — przekierowuje je blok „Stare adresy” niżej.
 const MODULY = [
-    'aktualnosci' => 'aktualnosci', 'czlonkowie' => 'czlonkowie', 'pmsession' => 'pmsession', 'podcast' => 'podcast', 'case' => 'case', 'tresci' => 'tresci',
-    'konta' => 'admin', 'dziennik' => 'admin', 'ustawienia' => 'admin', 'kopia' => 'admin',
+    'glowna' => 'glowna', 'czlonkowie' => 'czlonkowie', 'aktualnosci' => 'aktualnosci', 'pmsession' => 'pmsession', 'podcast' => 'podcast', 'case' => 'case',
+    'dolacz' => ['dolacz', 'rekrutacja'], // Dołącz: teksty strony (dolacz) i nabór (rekrutacja) to osobne uprawnienia
+    'kontakt' => 'kontakt',
+    'stopka' => 'admin', 'konta' => 'admin', 'dziennik' => 'admin', 'kopia' => 'admin',
     'konto' => 'konto', // „Moje konto”: każdy zalogowany (wyjątek w routerze)
+];
+// Zakładki stron (?m=…&w=…): w => [etykieta, uprawnienie, część z api/tresci-pola.php albo null]. Jedno źródło prawdy dla routera,
+// paska zakładek i sprawdzania uprawnień. Część ≠ null = zakładka z tekstami (_tresci.php); 'rekrutacja' = _rekrutacja.php;
+// pozostałe = plik strony (_<m>.php, dla 'stopka' _admin.php; Podcast sam obsługuje w=edycje). Uprawnienie do strony daje też jej teksty.
+const ZAKLADKI = [
+    'glowna' => ['teksty' => ['Teksty na stronie', 'glowna', 'index']],
+    'czlonkowie' => ['' => ['Treść', 'czlonkowie', null], 'teksty' => ['Teksty na stronie', 'czlonkowie', 'onas']],
+    'aktualnosci' => ['' => ['Treść', 'aktualnosci', null], 'teksty' => ['Teksty na stronie', 'aktualnosci', 'aktualnosci']],
+    'pmsession' => ['' => ['Treść', 'pmsession', null], 'teksty' => ['Teksty na stronie', 'pmsession', ['pms', 'pms14', 'pms15']]], // + podstrony edycji XIV i XV
+    'podcast' => ['' => ['Odcinki', 'podcast', null], 'edycje' => ['Edycje podcastu', 'podcast', null], 'teksty' => ['Teksty na stronie', 'podcast', 'podcast']],
+    'case' => ['' => ['Treść', 'case', null], 'teksty' => ['Teksty na stronie', 'case', 'case']],
+    'dolacz' => ['rekrutacja' => ['Rekrutacja', 'rekrutacja', null], 'teksty' => ['Teksty na stronie', 'dolacz', 'dolacz']],
+    'kontakt' => ['teksty' => ['Teksty na stronie', 'kontakt', 'kontakt']],
+    'stopka' => ['' => ['E-mail i media', 'admin', null], 'teksty' => ['Teksty w stopce', 'admin', 'wspolne']],
+];
+// Menu panelu w kolejności stron serwisu; z tej samej listy powstają kafelki na Starcie.
+const MENU = [
+    'Strona' => ['glowna', 'czlonkowie', 'aktualnosci', 'pmsession', 'podcast', 'case', 'dolacz', 'kontakt'],
+    'Administracja' => ['stopka', 'konta', 'dziennik', 'kopia'],
 ];
 
 function h($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
 function csrf() { return $_SESSION['csrf'] ?? ($_SESSION['csrf'] = bin2hex(random_bytes(32))); }
 function go($query = '') { header('Location: index.php' . $query, true, 303); exit; }
 
-// Czy zalogowany $me ma dostęp do modułu $modul ('admin' = tylko administrator).
+// Czy zalogowany $me ma uprawnienie $modul ('admin' = tylko administrator). Tablica = wystarczy którekolwiek z uprawnień.
 function wolno($modul)
 {
     global $me;
-    return $me && ($me['rola'] === 'admin' || in_array($modul, explode(',', $me['moduly']), true));
+    if (!$me) return false;
+    if ($me['rola'] === 'admin') return true;
+    $moje = explode(',', $me['moduly']);
+    foreach ((array) $modul as $u) {
+        if ($u !== 'admin' && in_array($u, $moje, true)) return true;
+    }
+    return false;
+}
+
+// Opis liczby zmienionych tekstów w częściach $czesci z api/tresci-pola.php (do kafelków na Starcie).
+function pmg_zmienione_teksty($czesci)
+{
+    static $zmienione = null, $zakladki = null;
+    if ($zmienione === null) {
+        $zmienione = array_flip(pmg_db()->query("SELECT klucz FROM pmg_tresci WHERE wartosc <> ''")->fetchAll(PDO::FETCH_COLUMN));
+        $lista = require __DIR__ . '/../api/tresci-pola.php';
+        $zakladki = $lista['zakladki'];
+    }
+    $n = 0;
+    foreach ((array) $czesci as $c) foreach ($zakladki[$c]['pola'] as $k => $p) if (isset($zmienione[$k])) $n++;
+    return $n ? pmg_odmiana($n, 'zmieniony tekst', 'zmienione teksty', 'zmienionych tekstów') : 'teksty ze strony bez zmian';
+}
+
+// Ekran „Brak dostępu” (403) — ten sam dla strony panelu i dla zakładki bez uprawnienia.
+function pmg_brak_dostepu()
+{
+    global $pmgNaglowek;
+    http_response_code(403);
+    $pmgNaglowek = ['tytul' => 'Brak dostępu', 'opis' => ''];
+    return '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nie masz dostępu do tej strony. Jeśli to pomyłka, poproś administratora.</p></div>'
+        . '<p class="pmg-after-alert"><a class="pmg-btn pmg-btn--secondary" href="index.php">Wróć do strony startowej</a></p>';
 }
 
 // ---------- Funkcje widoku (nie zmieniają logiki/danych, tylko wygląd) ----------
@@ -67,6 +120,26 @@ function pmg_odmiana($n, $jeden, $kilka, $wiele)
     return $n . ' ' . (($r10 >= 2 && $r10 <= 4 && ($r100 < 12 || $r100 > 14)) ? $kilka : $wiele);
 }
 
+// Błędy przy polach formularza (id pola => komunikat). Moduł zbiera tu wszystkie błędy naraz;
+// błąd niezwiązany z żadnym polem (baza, limit prób) zostaje w $error.
+$bledyPol = [];
+
+// Atrybuty do wstawienia w <input>/<textarea>/<select>: aria-describedby (podpowiedź i/lub komunikat błędu)
+// oraz aria-invalid, gdy pole ma błąd. Bez podpowiedzi i bez błędu zwraca ''.
+function blad_pola($id, $podpowiedz = '')
+{
+    global $bledyPol;
+    $opis = trim((string) $podpowiedz . (isset($bledyPol[$id]) ? ' ' . $id . '_blad' : ''));
+    return ($opis !== '' ? ' aria-describedby="' . h($opis) . '"' : '') . (isset($bledyPol[$id]) ? ' aria-invalid="true"' : '');
+}
+
+// Komunikat pod polem (wstaw zaraz za polem); '' gdy pole nie ma błędu.
+function komunikat_pola($id)
+{
+    global $bledyPol;
+    return isset($bledyPol[$id]) ? '<p class="pmg-field-error" id="' . h($id) . '_blad">' . h($bledyPol[$id]) . '</p>' : '';
+}
+
 // Ikony inline SVG (viewBox 20x20, stroke 1,5) — bez bibliotek, bez CDN.
 function pmg_ikona($nazwa)
 {
@@ -75,6 +148,10 @@ function pmg_ikona($nazwa)
         'aktualnosci' => 'M3.5 4.5h10v11a1.5 1.5 0 0 0 1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z M13.5 8h3v7.5A1.5 1.5 0 0 1 15 17 M6.5 7.5h4 M6.5 10.5h4 M6.5 13.5h2.5',
         'case' => 'M3.5 4.5h13v11h-13Z M3.5 8.5h13 M6.5 11.5h3 M6.5 13.5h6',
         'tresci' => 'M3.5 5h13 M3.5 9h13 M3.5 13h6 M12.5 16l.5-2.5 4-4 2 2-4 4Z',
+        'rekrutacja' => 'M8 9.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M2.5 16.5a5.5 5.5 0 0 1 9.5-3.75 M15 11v6 M12 14h6',
+        'dolacz' => 'M8 9.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M2.5 16.5a5.5 5.5 0 0 1 9.5-3.75 M15 11v6 M12 14h6',
+        'glowna' => 'M3.5 4h13v12h-13Z M3.5 8h13 M8 8v8',
+        'kontakt' => 'M3.5 5.5h13v9h-13Z M3.5 5.5 10 11l6.5-5.5',
         'podcast' => 'M10 12.5a2.5 2.5 0 0 0 2.5-2.5V5.5a2.5 2.5 0 0 0-5 0V10a2.5 2.5 0 0 0 2.5 2.5Z M5.5 9.5a4.5 4.5 0 0 0 9 0 M10 14v3 M7.5 17h5',
         'czlonkowie' => 'M7.5 9.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M2.5 16.5a5 5 0 0 1 10 0 M13 3.75a2.75 2.75 0 0 1 0 5.5 M14.75 11.75a5 5 0 0 1 2.75 4.75',
         'pmsession' => 'M3.5 5.5A1.5 1.5 0 0 1 5 4h10a1.5 1.5 0 0 1 1.5 1.5v10A1.5 1.5 0 0 1 15 17H5a1.5 1.5 0 0 1-1.5-1.5Z M3.5 8.5h13 M7 2.5v3 M13 2.5v3 M7 12h2.5',
@@ -82,6 +159,7 @@ function pmg_ikona($nazwa)
         'konta' => 'M2.75 5.25a1.5 1.5 0 0 1 1.5-1.5h11.5a1.5 1.5 0 0 1 1.5 1.5v9.5a1.5 1.5 0 0 1-1.5 1.5H4.25a1.5 1.5 0 0 1-1.5-1.5Z M7.5 10a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z M4.75 13.5a2.9 2.9 0 0 1 5.5 0 M12.25 8h3 M12.25 11h3',
         'dziennik' => 'M3.5 10A6.5 6.5 0 1 0 5.4 5.4 M5.4 2.75V5.4H2.75 M10 6.5V10l2.5 1.75',
         'ustawienia' => 'M3.5 6.5h6 M13.5 6.5h3 M3.5 13.5h2 M9.5 13.5h7 M13.5 6.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z M9.5 13.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z',
+        'stopka' => 'M3.5 6.5h6 M13.5 6.5h3 M3.5 13.5h2 M9.5 13.5h7 M13.5 6.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z M9.5 13.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z',
         'kopia' => 'M16.5 5c0 1.1-2.9 2-6.5 2S3.5 6.1 3.5 5s2.9-2 6.5-2 6.5.9 6.5 2Z M3.5 5v10c0 1.1 2.9 2 6.5 2 M16.5 5v4.5 M3.5 10c0 1.1 2.9 2 6.5 2 M14.5 12v5 M12.25 14.75 14.5 17l2.25-2.25',
         'wyloguj' => 'M8 3.5H5A1.5 1.5 0 0 0 3.5 5v10A1.5 1.5 0 0 0 5 16.5h3 M12.5 13.5 16 10l-3.5-3.5 M16 10H8',
         'menu' => 'M3.5 6h13 M3.5 10h13 M3.5 14h13',
@@ -98,32 +176,43 @@ function pmg_ikona($nazwa)
     return '<svg class="pmg-icon" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="' . $d[$nazwa] . '"/></svg>';
 }
 
-// Nawigacja modułów (echo; wywoływana dwa razy — sidebar i menu mobilne — jedna kopia jest zawsze ukryta CSS-em).
+// Menu stron panelu (echo; wywoływane dwa razy — sidebar i menu mobilne — jedna kopia jest zawsze ukryta CSS-em).
+// Pozycje z MENU; zakładki nie zmieniają ?m=, więc aktywna pozycja = $m.
 function pmg_nawigacja($m, $etykiety)
 {
-    $grupy = ['Treści' => ['aktualnosci', 'czlonkowie', 'pmsession', 'podcast', 'case', 'tresci'], 'Administracja' => ['konta', 'dziennik', 'ustawienia', 'kopia']];
     echo '<ul class="pmg-nav__list"><li><a class="pmg-nav__item" href="index.php"' . ($m === '' ? ' aria-current="page"' : '') . '>' . pmg_ikona('start') . '<span>Start</span></a></li></ul>';
-    foreach ($grupy as $nazwa => $klucze) {
+    foreach (MENU as $nazwa => $klucze) {
         $widoczne = array_filter($klucze, function ($mk) { return wolno(MODULY[$mk]); });
         if (!$widoczne) continue;
         echo '<p class="pmg-nav__group">' . h($nazwa) . '</p><ul class="pmg-nav__list">';
         foreach ($widoczne as $mk) {
-            if ($mk === 'kopia') {
-                echo '<li><a class="pmg-nav__item pmg-nav__item--download" href="?m=kopia">' . pmg_ikona('kopia') . '<span>Kopia bazy danych<span class="pmg-nav__sub"><span class="pmg-vh"> — </span>pobiera plik .sql</span></span></a></li>';
-            } else {
-                echo '<li><a class="pmg-nav__item" href="?m=' . $mk . '"' . ($mk === $m ? ' aria-current="page"' : '') . '>' . pmg_ikona($mk) . '<span>' . h($etykiety[$mk]) . '</span></a></li>';
-            }
+            echo '<li><a class="pmg-nav__item" href="?m=' . $mk . '"' . ($mk === $m ? ' aria-current="page"' : '') . '>' . pmg_ikona($mk) . '<span>' . h($etykiety[$mk]) . '</span></a></li>';
         }
         echo '</ul>';
     }
 }
 
-// Wpis do dziennika zmian po każdym udanym zapisie.
-function loguj($modul, $akcja, $id = null)
+// Wpis do dziennika zmian po każdym udanym zapisie. $opis = czytelna nazwa rzeczy (np. tytuł wpisu, imię i nazwisko),
+// zapisana w chwili zdarzenia, bo rekord może potem zniknąć. Nigdy nie przekazuj tu hasła, tokenu ani wpisanego e-maila.
+function loguj($modul, $akcja, $id = null, $opis = '')
 {
     global $me;
-    pmg_db()->prepare('INSERT INTO pmg_dziennik (uzytkownik_id, modul, akcja, rekord_id) VALUES (?,?,?,?)')
-        ->execute([$me['id'], $modul, $akcja, $id]);
+    dziennik_wpis($me ? (int) $me['id'] : null, $modul, $akcja, $id, $opis);
+}
+
+// To samo bez zalogowanej osoby (logowanie, hasło z linku): $uid = konto, którego dotyczy zdarzenie, albo null (nieznane konto).
+function dziennik_wpis($uid, $modul, $akcja, $id = null, $opis = '')
+{
+    pmg_db()->prepare('INSERT INTO pmg_dziennik (uzytkownik_id, modul, akcja, rekord_id, opis) VALUES (?,?,?,?,?)')
+        ->execute([$uid, $modul, $akcja, $id, mb_substr(trim((string) $opis), 0, 200)]);
+}
+
+// Czytelna nazwa rekordu do dziennika (np. przed usunięciem). $sql = stałe zapytanie z kodu z jednym ? na id.
+function nazwa_rekordu($sql, $id)
+{
+    $st = pmg_db()->prepare($sql);
+    $st->execute([(int) $id]);
+    return (string) $st->fetchColumn();
 }
 
 // Czy ekran "pierwsze konto" może w ogóle przyjąć zgłoszenie: w config jest jednorazowe setup_haslo (min. 12 znaków).
@@ -145,9 +234,9 @@ function data_ok($v)
 function przesun($tabela, $order, $id, $kierunek, $kolGrupy = null, $grupa = null)
 {
     $pdo = pmg_db();
-    $sql = 'SELECT id FROM ' . $tabela . ($kolGrupy ? ' WHERE ' . $kolGrupy . ' = ?' : '') . ' ORDER BY ' . $order;
+    $sql = 'SELECT id FROM ' . $tabela . ($kolGrupy ? ' WHERE ' . $kolGrupy . ($grupa === null ? ' IS NULL' : ' = ?') : '') . ' ORDER BY ' . $order;
     $st = $pdo->prepare($sql);
-    $st->execute($kolGrupy ? [$grupa] : []);
+    $st->execute($kolGrupy && $grupa !== null ? [$grupa] : []); // $grupa === null = grupa „bez wartości” (np. zarząd: sekcja_id IS NULL)
     $ids = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
     $poz = array_search((int) $id, $ids, true);
     if ($poz === false) return false;
@@ -161,27 +250,46 @@ function przesun($tabela, $order, $id, $kierunek, $kolGrupy = null, $grupa = nul
     return true;
 }
 
+// Po przesunięciu strzałką wracamy na tę samą listę ($baza, np. '?m=case'), do kotwicy wiersza #wiersz-<klucz>;
+// parametr fokus mówi, którą strzałkę kliknięto (patrz fokus_strzalki). Klucz: litery i cyfry, unikalny na stronie.
+function go_po_przesunieciu($baza, $klucz, $kierunek)
+{
+    go($baza . '&fokus=' . $kierunek . '-' . rawurlencode((string) $klucz) . '#wiersz-' . rawurlencode((string) $klucz));
+}
+
+// Atrybut autofocus dla strzałki wiersza $klucz po przesunięciu: fokus wraca na tę samą strzałkę, a gdy ta jest już
+// wyłączona (wiersz dotarł na brzeg listy) — na drugą. $kierunek: 'gora' albo 'dol'; $wylGora/$wylDol: czy strzałka jest wyłączona.
+function fokus_strzalki($klucz, $kierunek, $wylGora, $wylDol)
+{
+    if ($kierunek === 'gora' ? $wylGora : $wylDol) return '';
+    $f = (string) ($_GET['fokus'] ?? '');
+    $inny = $kierunek === 'gora' ? 'dol' : 'gora';
+    $innyWyl = $kierunek === 'gora' ? $wylDol : $wylGora;
+    return ($f === $kierunek . '-' . $klucz || ($innyWyl && $f === $inny . '-' . $klucz)) ? ' autofocus' : '';
+}
+
 // Puste pole albo adres zaczynający się od https:// i poprawny wg FILTER_VALIDATE_URL.
 function url_ok($v)
 {
     return $v === '' || (strpos($v, 'https://') === 0 && filter_var($v, FILTER_VALIDATE_URL) !== false);
 }
 
+// Wyjątki do przypięcia błędu do pola. BladPliku: nie udało się wgrać/przetworzyć zdjęcia (komunikat trafia pod pole pliku).
+// BladPol: pola mają już błędy w $bledyPol — przerwij zapis i pokaż formularz (bez własnego komunikatu).
+class BladPliku extends RuntimeException {}
+class BladPol extends RuntimeException {}
+
 // Zapis zdjęcia dla modułu $modul (proporcje i szerokość z ZDJECIA). Zwraca ścieżkę względną albo rzuca komunikat.
 function save_image($file, $modul)
 {
     list($proporcja, $maxSzer) = ZDJECIA[$modul];
-    if ($file['error'] !== UPLOAD_ERR_OK) throw new RuntimeException('Nie udało się wgrać pliku (kod ' . (int) $file['error'] . ').');
-    if ($file['size'] > 10 * 1024 * 1024) throw new RuntimeException('Zdjęcie jest większe niż 10 MB.');
+    if ($file['error'] !== UPLOAD_ERR_OK) throw new BladPliku('Nie udało się wgrać pliku (kod ' . (int) $file['error'] . ').');
+    if ($file['size'] > 10 * 1024 * 1024) throw new BladPliku('Zdjęcie jest większe niż 10 MB.');
     $info = @getimagesize($file['tmp_name']);
     $types = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
-    if (!$info || !isset($types[$info[2]])) throw new RuntimeException('Dozwolone formaty: JPG, PNG, WebP.');
+    if (!$info || !isset($types[$info[2]])) throw new BladPliku('Dozwolone formaty: JPG, PNG, WebP.');
     list($w, $hgt) = $info;
-    if ($w * $hgt > 12000000) throw new RuntimeException('Zdjęcie ma za dużą rozdzielczość (maks. ok. 12 megapikseli) — zmniejsz je przed wgraniem.');
-    if ($proporcja !== null && abs($w / $hgt - $proporcja) > 0.03) {
-        $opis = abs($proporcja - 1) < 0.001 ? '1:1 (kwadrat)' : (abs($proporcja - 4 / 3) < 0.001 ? '4:3' : '16:9');
-        throw new RuntimeException('Zdjęcie musi mieć proporcje ' . $opis . ' (wgrane: ' . $w . '×' . $hgt . ' px).');
-    }
+    if ($w * $hgt > 12000000) throw new BladPliku('Zdjęcie ma za dużą rozdzielczość (maks. ok. 12 megapikseli) — zmniejsz je przed wgraniem.');
     $dir = __DIR__ . '/../uploads/' . $modul . '/';
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     $name = date('Ymd') . '-' . bin2hex(random_bytes(6));
@@ -189,11 +297,26 @@ function save_image($file, $modul)
     // Zdjęcie zawsze przechodzi przez GD: zmniejszamy do maxSzer px i zapisujemy jako nowy JPG (bez EXIF, GPS i
     // ewentualnego kodu doklejonego do pliku). Bez GD nie zapisujemy oryginału — odmowa.
     $open = ['jpg' => 'imagecreatefromjpeg', 'png' => 'imagecreatefrompng', 'webp' => 'imagecreatefromwebp'][$types[$info[2]]];
-    if (!function_exists($open) || !function_exists('imagejpeg')) throw new RuntimeException('Serwer nie obsługuje przetwarzania zdjęć (brak biblioteki GD) — zgłoś to administratorowi strony.');
+    if (!function_exists($open) || !function_exists('imagejpeg')) throw new BladPliku('Serwer nie obsługuje przetwarzania zdjęć (brak biblioteki GD) — zgłoś to administratorowi strony.');
     $src = @$open($file['tmp_name']);
-    if ($src === false) throw new RuntimeException('Nie udało się odczytać zdjęcia — plik jest uszkodzony. Spróbuj zapisać go ponownie (np. jako JPG).');
-    $nw = min($maxSzer, $w);
-    $dst = imagecreatetruecolor($nw, (int) round($nw * $hgt / $w));
+    if ($src === false) throw new BladPliku('Nie udało się odczytać zdjęcia — plik jest uszkodzony. Spróbuj zapisać go ponownie (np. jako JPG).');
+    // Wycinek źródła: domyślnie całe zdjęcie. Gdy proporcje odbiegają od wymaganych o więcej niż 0,03, bierzemy
+    // największy wyśrodkowany prostokąt o wymaganych proporcjach (np. 4000×3000 na 16:9 → 4000×2250, ucięte 375 px u góry i u dołu).
+    $sx = 0;
+    $sy = 0;
+    $sw = $w;
+    $sh = $hgt;
+    if ($proporcja !== null && abs($w / $hgt - $proporcja) > 0.03) {
+        if ($w / $hgt > $proporcja) {
+            $sw = max(1, (int) round($hgt * $proporcja));
+            $sx = (int) floor(($w - $sw) / 2);
+        } else {
+            $sh = max(1, (int) round($w / $proporcja));
+            $sy = (int) floor(($hgt - $sh) / 2);
+        }
+    }
+    $nw = min($maxSzer, $sw);
+    $dst = imagecreatetruecolor($nw, max(1, (int) round($nw * $sh / $sw)));
     $logo = $modul === 'case-logo'; // logotypy zostają PNG z przezroczystością (białe logo na JPG z białym tłem znikłoby)
     if ($logo) {
         imagealphablending($dst, false);
@@ -202,11 +325,11 @@ function save_image($file, $modul)
     } else {
         imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
     }
-    imagecopyresampled($dst, $src, 0, 0, 0, 0, imagesx($dst), imagesy($dst), $w, $hgt);
+    imagecopyresampled($dst, $src, 0, 0, $sx, $sy, imagesx($dst), imagesy($dst), $sw, $sh);
     $zapisano = $logo ? imagepng($dst, $dir . $name . '.png', 6) : imagejpeg($dst, $dir . $name . '.jpg', 82);
     imagedestroy($src);
     imagedestroy($dst);
-    if (!$zapisano) throw new RuntimeException('Nie udało się zapisać zdjęcia na serwerze (brak miejsca albo uprawnień do katalogu uploads).');
+    if (!$zapisano) throw new BladPliku('Nie udało się zapisać zdjęcia na serwerze (brak miejsca albo uprawnień do katalogu uploads).');
     return 'uploads/' . $modul . '/' . $name . ($logo ? '.png' : '.jpg');
 }
 
@@ -221,37 +344,54 @@ function zdjecie($modul, $old)
 {
     $alt = trim((string) ($_POST['zdjecie_alt'] ?? ''));
     $upload = !empty($_FILES['zdjecie']['name']);
-    if (($upload || $old) && $alt === '') throw new RuntimeException('Dodaj opis zdjęcia (dla osób niewidomych).');
+    if (($upload || $old) && $alt === '') throw new BladPliku('Dodaj opis zdjęcia (dla osób niewidomych).');
     return $upload ? save_image($_FILES['zdjecie'], $modul) : $old;
 }
 
-// ---------- Etykiety i opisy modułów (nad routerem — moduły ich potrzebują) ----------
+// Ta sama reguła co w zdjecie(), ale jako błąd przy polu „Opis zdjęcia” (wołaj przy walidacji pól, przed zapisem).
+function blad_opisu_zdjecia($old)
+{
+    global $bledyPol;
+    if ((!empty($_FILES['zdjecie']['name']) || $old) && trim((string) ($_POST['zdjecie_alt'] ?? '')) === '') $bledyPol['zdjecie_alt'] = 'Dodaj opis zdjęcia (dla osób niewidomych).';
+}
+
+// ---------- Etykiety i opisy stron panelu (nad routerem — pliki stron ich potrzebują) ----------
 $etykietyModulow = [
-    'aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła', 'tresci' => 'Treści stron',
-    'konta' => 'Konta', 'dziennik' => 'Dziennik zmian', 'ustawienia' => 'Ustawienia strony', 'kopia' => 'Kopia bazy danych',
+    'glowna' => 'Strona główna', 'czlonkowie' => 'O nas', 'aktualnosci' => 'Aktualności', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła', 'dolacz' => 'Dołącz', 'kontakt' => 'Kontakt',
+    'stopka' => 'Stopka i kontakt', 'konta' => 'Konta', 'dziennik' => 'Dziennik zmian', 'kopia' => 'Kopia zapasowa',
+    // Dawne klucze (przed W6): nie są pozycjami menu, ale dziennik pokazuje nimi wpisy loguj('tresci'|'ustawienia'|'rekrutacja').
+    'tresci' => 'Teksty na stronie', 'ustawienia' => 'Stopka i kontakt', 'rekrutacja' => 'Rekrutacja',
 ];
 $opisyModulow = [
-    'aktualnosci' => 'Wpisy na stronie Aktualności i w kafelkach na stronie głównej.',
-    'czlonkowie' => 'Zarząd i sekcje koła pokazywane na stronie O nas.',
-    'pmsession' => 'Edycje konferencji, prelegenci, harmonogram i liczby na stronie PM Session.',
-    'podcast' => 'Odcinki na stronie Podcast: tytuł, opis, goście, linki do Spotify i Apple Podcasts.',
-    'case' => 'Edycje Case Koła: karty w hubie i treść podstron (opis partnera, wyzwanie, rozwiązanie, rezultat, galeria).',
-    'tresci' => 'Nagłówki, opisy i napisy na przyciskach stron: Strona główna, O nas, PM Session, Dołącz, Kontakt i inne, w zakładkach.',
-    'konta' => 'Kto ma dostęp do panelu i do których modułów.',
-    'dziennik' => 'Ostatnie 200 zapisanych zmian.',
-    'ustawienia' => 'Linki do mediów społecznościowych, e-mail kontaktowy i rekrutacja na stronie. Zmiany widać w ciągu 5 minut.',
-    'kopia' => 'Pobiera plik .sql z pełną kopią bazy danych.',
+    'glowna' => 'Nagłówki, opisy i napisy na przyciskach strony głównej.',
+    'czlonkowie' => 'Zarząd, sekcje i teksty strony O nas.',
+    'aktualnosci' => 'Wpisy na stronie Aktualności i w kafelkach na stronie głównej oraz teksty strony Aktualności.',
+    'pmsession' => 'Edycje konferencji, prelegenci, harmonogram i liczby na stronie PM Session oraz teksty tej strony.',
+    'podcast' => 'Odcinki na stronie Podcast: tytuł, opis, goście, linki do Spotify i Apple Podcasts. Edycje podcastu i teksty strony.',
+    'case' => 'Edycje Case Koła: karty w hubie i treść podstron (opis partnera, wyzwanie, rozwiązanie, rezultat, galeria) oraz teksty strony.',
+    'dolacz' => 'Nabór otwarty lub zamknięty, link do formularza i teksty strony Dołącz. Zmiany widać w ciągu 5 minut.',
+    'kontakt' => 'Nagłówki i opisy na stronie Kontakt.',
+    'stopka' => 'E-mail kontaktowy, linki do mediów społecznościowych i teksty w stopce każdej strony. Zmiany widać w ciągu 5 minut.',
+    'konta' => 'Kto ma dostęp do panelu i do których stron.',
+    'dziennik' => 'Ostatnie 200 zdarzeń: zmiany w panelu i logowania.',
+    'kopia' => 'Plik .sql z pełną kopią bazy danych do pobrania.',
 ];
 $pmgNaglowek = []; // moduły mogą nadpisać: tytul, opis, wstecz[href,etykieta], akcje[[href,etykieta,rodzaj,plus?,nowaKarta?]], chip[tekst,wariant]
 
 // ---------- $me: ładowany z bazy przy każdym żądaniu (blokada/zmiana roli działa od razu) ----------
 $me = null;
 $wygasla = false;
+$wygasla12h = false;
 if (!empty($_SESSION['uid'])) {
-    if (time() - ($_SESSION['t'] ?? 0) > 7200) {
+    // A2 3.6: najwyżej 12 h od zalogowania, niezależnie od aktywności (także ?ping z panel.js nie przedłuża ponad ten czas).
+    // Sesja sprzed tej zmiany nie ma 'od' — liczymy jej 12 h od teraz zamiast wylogowywać wszystkich naraz.
+    if (!isset($_SESSION['od'])) $_SESSION['od'] = time();
+    $wygasla12h = time() - (int) $_SESSION['od'] > 43200;
+    if (time() - ($_SESSION['t'] ?? 0) > 7200 || $wygasla12h) {
         $wygasla = true;
         session_regenerate_id(true);
         $_SESSION = [];
+        if ($wygasla12h) $_SESSION['wygasla12h'] = 1; // powód przetrwa przekierowanie po złym CSRF (komunikat niżej)
     } else {
         $_SESSION['t'] = time();
         $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ? AND aktywny = 1');
@@ -273,8 +413,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !hash_equals(csrf(), (string) ($_PO
     $_SESSION['blad_sesji'] = 1;
     go(isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
 }
+// ---------- Stare adresy (sprzed W6) → nowe strony i zakładki ----------
+// Przed odczytem komunikatów (blad_sesji, flash), żeby nie zginęły po drodze. POST też dostaje 303: treść żądania przepada,
+// nic się nie zapisuje. O dostępie decyduje strona docelowa (router niżej).
+if ($me && in_array($_GET['m'] ?? '', ['tresci', 'ustawienia', 'rekrutacja'], true)) {
+    $q = $_GET;
+    if ($q['m'] === 'tresci') {
+        $mapa = ['index' => 'glowna', 'onas' => 'czlonkowie', 'pms' => 'pmsession', 'pms14' => 'pmsession', 'pms15' => 'pmsession', 'aktualnosci' => 'aktualnosci',
+            'podcast' => 'podcast', 'case' => 'case', 'dolacz' => 'dolacz', 'kontakt' => 'kontakt', 'wspolne' => 'stopka'];
+        $q = ['m' => $mapa[is_string($q['z'] ?? null) ? $q['z'] : ''] ?? 'glowna', 'w' => 'teksty'] + $q;
+        unset($q['z']);
+    } else {
+        $q = ($q['m'] === 'ustawienia' ? ['m' => 'stopka'] : ['m' => 'dolacz', 'w' => 'rekrutacja']) + $q;
+    }
+    go('?' . http_build_query($q));
+}
+
 $bladSesji = !empty($_SESSION['blad_sesji']);
 unset($_SESSION['blad_sesji']);
+if (!empty($_SESSION['wygasla12h'])) $wygasla12h = true;
+unset($_SESSION['wygasla12h']);
 
 $error = '';
 $flash = $_SESSION['flash'] ?? '';
@@ -316,14 +474,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, haslo, rola, moduly, aktywny)
                      SELECT ?,?,?,?,?,1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM pmg_uzytkownicy)'
                 );
-                $st->execute([$imie, $email, $hash, 'admin', 'aktualnosci,czlonkowie,pmsession,podcast,case,tresci']);
+                $st->execute([$imie, $email, $hash, 'admin', '']); // administrator widzi wszystkie strony bez listy uprawnień
                 if ($st->rowCount() === 0) {
                     http_response_code(403);
                     exit('To konto już istnieje — zaloguj się.');
                 }
                 session_regenerate_id(true);
+                unset($_SESSION['csrf']); // A2 3.3: nowy token formularzy po zalogowaniu
                 $_SESSION['uid'] = (int) pmg_db()->lastInsertId();
                 $_SESSION['t'] = time();
+                $_SESSION['od'] = time(); // A2 3.6: początek sesji (limit 12 h)
                 $_SESSION['ph'] = hash('sha256', $hash);
                 go();
             }
@@ -342,7 +502,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE email = ? AND aktywny = 1');
             $st->execute([$email]);
             $u = $st->fetch();
-            $klucz = $u ? 'u' . $u['id'] : $email;
+            // A2 3.10: osobne przestrzenie nazw — wpisanie np. „u1” jako e-maila nie zużywa limitu konta o id 1.
+            $klucz = $u ? 'konto:' . $u['id'] : 'email:' . $email;
             if (!pmg_rate_ok('login_konto', 5, 900, $klucz)) { // liczone od razu — równoległe żądania nie obejdą limitu
                 $error = 'Za dużo prób logowania. Spróbuj za 15 minut.';
             } else {
@@ -362,14 +523,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo = ? WHERE id = ?')->execute([$u['haslo'], $u['id']]);
                     }
                     session_regenerate_id(true);
+                    unset($_SESSION['csrf']); // A2 3.3: nowy token formularzy po zalogowaniu
                     $_SESSION['uid'] = (int) $u['id'];
                     $_SESSION['t'] = time();
+                    $_SESSION['od'] = time(); // A2 3.6: początek sesji (limit 12 h)
                     $_SESSION['ph'] = hash('sha256', (string) $u['haslo']);
                     pmg_rate_clear('login_konto', $klucz);
                     pmg_db()->prepare('UPDATE pmg_uzytkownicy SET ostatnie_logowanie = NOW() WHERE id = ?')->execute([$u['id']]);
+                    dziennik_wpis((int) $u['id'], 'konto', 'logowanie', (int) $u['id']);
                     go();
                 } else {
                     $error = 'Nieprawidłowy e-mail lub hasło.';
+                    // A2 6.2, 6.3: nieudane logowanie w dzienniku. Nieznany adres: bez konta i BEZ wpisanego e-maila (RODO).
+                    if ($u) dziennik_wpis((int) $u['id'], 'konto', 'nieudane_logowanie', (int) $u['id'], $ma_haslo ? 'błędne hasło' : 'konto bez ustawionego hasła');
+                    else dziennik_wpis(null, 'konto', 'nieudane_logowanie', null, 'nieznany adres e-mail');
                 }
             }
         }
@@ -388,6 +555,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo = ?, token_hash = NULL, token_do = NULL WHERE id = ?')
                 ->execute([password_hash($haslo, PASSWORD_DEFAULT), $u['id']]);
+            dziennik_wpis((int) $u['id'], 'konto', 'haslo_z_linku', (int) $u['id']); // A2 6.2
+            unset($_SESSION['csrf']); // A2 3.3: nowy token formularzy po ustawieniu hasła
             $_SESSION['flash'] = 'Hasło ustawione — możesz się zalogować.';
             go();
         }
@@ -410,22 +579,49 @@ $tresc = null;
 if ($me && $m !== '') {
     if (!isset(MODULY[$m])) {
         http_response_code(404);
-        $pmgNaglowek = ['tytul' => 'Nie ma takiego modułu', 'opis' => ''];
-        $tresc = '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nieznany moduł.</p></div>'
+        $pmgNaglowek = ['tytul' => 'Nie ma takiej strony', 'opis' => ''];
+        $tresc = '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nie ma takiej strony w panelu.</p></div>'
             . '<p class="pmg-after-alert"><a class="pmg-btn pmg-btn--secondary" href="index.php">Wróć do strony startowej</a></p>';
     } elseif ($m !== 'konto' && !wolno(MODULY[$m])) {
-        http_response_code(403);
-        $pmgNaglowek = ['tytul' => 'Brak dostępu', 'opis' => ''];
-        $tresc = '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nie masz dostępu do tego modułu. Jeśli to pomyłka, poproś administratora.</p></div>'
-            . '<p class="pmg-after-alert"><a class="pmg-btn pmg-btn--secondary" href="index.php">Wróć do strony startowej</a></p>';
+        $tresc = pmg_brak_dostepu();
     } else {
         $plik = __DIR__ . '/_' . (MODULY[$m] === 'admin' ? 'admin' : $m) . '.php';
-        if (!is_file($plik)) {
-            $tresc = '<div class="pmg-alert pmg-alert--info">' . pmg_ikona('info') . '<p>Moduł w przygotowaniu.</p></div>';
+        $pasek = '';
+        $zakladkaOk = true;
+        if (isset(ZAKLADKI[$m])) {
+            // Zakładka z ?w=; nieznana albo brak = „Treść” (''), a gdy strona jej nie ma — pierwsza dozwolona.
+            $zakl = ZAKLADKI[$m];
+            $dozwolone = array_filter($zakl, function ($z) { return wolno($z[1]); });
+            $w = is_string($_GET['w'] ?? null) ? $_GET['w'] : '';
+            if (!isset($zakl[$w])) $w = isset($zakl['']) ? '' : (string) key($dozwolone ?: $zakl);
+            if (!wolno($zakl[$w][1])) {
+                // Zakładka bez uprawnienia (np. redaktor HR na ?m=dolacz&w=teksty): 403 przed dołączeniem pliku, więc także POST nic nie zapisze.
+                $zakladkaOk = false;
+                $tresc = pmg_brak_dostepu();
+            } elseif ($zakl[$w][2] !== null) {
+                $tresciStrona = $zakl[$w][2]; // część (albo części) z api/tresci-pola.php — _tresci.php nie bierze jej z żądania
+                $tresciUprawnienie = $zakl[$w][1];
+                $plik = __DIR__ . '/_tresci.php';
+            } elseif ($w === 'rekrutacja') {
+                $plik = __DIR__ . '/_rekrutacja.php';
+            }
+            if ($zakladkaOk && count($dozwolone) >= 2) {
+                $pasek = '<nav class="pmg-tabs" aria-label="' . h('Zakładki: ' . $etykietyModulow[$m]) . '"><ul class="pmg-tabs__list">';
+                foreach ($dozwolone as $wk => $z) {
+                    $wk = (string) $wk;
+                    $pasek .= '<li><a class="pmg-tabs__tab" href="?m=' . h($m) . ($wk !== '' ? '&amp;w=' . h(rawurlencode($wk)) : '') . '"' . ($wk === $w ? ' aria-current="page"' : '') . '>' . h($z[0]) . '</a></li>';
+                }
+                $pasek .= '</ul></nav>';
+            }
+        }
+        if (!$zakladkaOk) {
+            // $tresc = ekran 403 (wyżej)
+        } elseif (!is_file($plik)) {
+            $tresc = '<div class="pmg-alert pmg-alert--info">' . pmg_ikona('info') . '<p>Ta strona panelu jest w przygotowaniu.</p></div>';
         } else {
             ob_start();
             require $plik;
-            $tresc = ob_get_clean();
+            $tresc = $pasek . ob_get_clean();
         }
     }
 }
@@ -434,16 +630,20 @@ if ($me && $m !== '') {
 $etykieta = $me ? ($etykietyModulow[$m] ?? '') : '';
 $ng = $pmgNaglowek + ['tytul' => $etykieta !== '' ? $etykieta : 'Start', 'opis' => $opisyModulow[$m] ?? '', 'akcje' => [], 'wstecz' => null, 'chip' => null];
 if (!$me) $ng = ['tytul' => ['pierwsze' => 'Pierwsze konto administratora', 'haslo' => 'Ustaw hasło'][$widok] ?? 'Zaloguj się', 'opis' => '', 'akcje' => [], 'wstecz' => null, 'chip' => null];
-if ($me && $m === '') $ng['opis'] = 'Wybierz moduł, żeby dodać lub zmienić treść na stronie.';
+if ($me && $m === '') $ng['opis'] = 'Wybierz stronę, żeby dodać lub zmienić jej treść.';
 $tytulBledu = ['pierwsze' => 'Nie udało się założyć konta', 'haslo' => 'Nie udało się ustawić hasła', 'logowanie' => 'Nie udało się zalogować'][$widok] ?? 'Nie udało się zapisać';
 
 // Alerty (§5.10). Uwaga: rola "alert" jest na samym tekście komunikatu (nie na tytule), żeby czytnik
 // ekranu i automatyczne testy dostawały dokładnie treść $error — tytuł ($tytulBledu) zostaje w nagłówku
 // tej samej karty, czytelny przy przejściu fokusu (tabindex/data-pmg-fokus na zewnętrznym kontenerze).
 ob_start();
-if ($error) {
+if ($error || $bledyPol) {
+    $lista = '';
+    foreach ($bledyPol as $idPola => $komunikat) $lista .= '<li><a href="#' . h($idPola) . '">' . h($komunikat) . '</a></li>';
     echo '<div class="pmg-alert pmg-alert--error" tabindex="-1" data-pmg-fokus>' . pmg_ikona('blad')
-        . '<div><h2 class="pmg-alert__title">' . h($tytulBledu) . '</h2><p role="alert">' . h($error) . '</p></div></div>';
+        . '<div><h2 class="pmg-alert__title">' . h($bledyPol ? 'Popraw ' . pmg_odmiana(count($bledyPol), 'pole', 'pola', 'pól') : $tytulBledu) . '</h2>'
+        . ($lista !== '' ? '<ul class="pmg-alert__list">' . $lista . '</ul>' : '')
+        . ($error ? '<p role="alert">' . h($error) . '</p>' : '') . '</div></div>';
 }
 if ($flash) {
     echo '<div class="pmg-alert pmg-alert--success" role="status">' . pmg_ikona('sukces') . '<p>' . h($flash) . '</p></div>';
@@ -451,13 +651,14 @@ if ($flash) {
 if ($wygasla || $bladSesji) {
     echo '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>' . ($me
         ? 'Nie zapisano zmian: formularz był otwarty zbyt długo albo w innej karcie się wylogowano. Wpisz zmiany ponownie i zapisz.'
-        : 'Sesja wygasła z powodu bezczynności — zaloguj się ponownie.' . ($bladSesji ? ' Ostatnie zmiany nie zostały zapisane.' : '')) . '</p></div>';
+        : ($wygasla12h ? 'Sesja wygasła, bo minęło 12 godzin od zalogowania — zaloguj się ponownie.' : 'Sesja wygasła z powodu bezczynności — zaloguj się ponownie.') . ($bladSesji ? ' Ostatnie zmiany nie zostały zapisane.' : '')) . '</p></div>';
 }
 $pmgAlerty = ob_get_clean();
 
-// Liczby na kafelkach strony startowej (tylko odczyt; tylko moduły, do których $me ma dostęp).
+// Kafelki strony startowej = pozycje MENU, do których $me ma dostęp; liczby na nich (tylko odczyt).
+$pmgKafelki = $me ? array_values(array_filter(array_merge(MENU['Strona'], MENU['Administracja']), function ($mk) { return wolno(MODULY[$mk]); })) : [];
 $pmgLiczby = [];
-if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as $mk) { if (!wolno(MODULY[$mk])) continue;
+if ($me && $m === '') { $db = pmg_db(); foreach ($pmgKafelki as $mk) {
   if ($mk === 'aktualnosci') { $a = $db->query('SELECT COUNT(*) FROM pmg_aktualnosci')->fetchColumn(); $b = (int) $db->query('SELECT COUNT(*) FROM pmg_aktualnosci WHERE opublikowany = 0')->fetchColumn();
       $pmgLiczby[$mk] = pmg_odmiana($a, 'wpis', 'wpisy', 'wpisów') . ($b ? ' · ' . pmg_odmiana($b, 'szkic', 'szkice', 'szkiców') : ''); }
   if ($mk === 'czlonkowie') { $pmgLiczby[$mk] = pmg_odmiana($db->query('SELECT COUNT(*) FROM pmg_osoby')->fetchColumn(), 'osoba', 'osoby', 'osób') . ' · ' . pmg_odmiana($db->query('SELECT COUNT(*) FROM pmg_sekcje')->fetchColumn(), 'sekcja', 'sekcje', 'sekcji'); }
@@ -467,8 +668,8 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
       $pmgLiczby[$mk] = pmg_odmiana($a, 'odcinek', 'odcinki', 'odcinków') . ($b ? ' · ' . pmg_odmiana($b, 'szkic', 'szkice', 'szkiców') : ''); }
   if ($mk === 'case') { $a = $db->query('SELECT COUNT(*) FROM pmg_case_edycje')->fetchColumn(); $b = (int) $db->query('SELECT COUNT(*) FROM pmg_case_edycje WHERE widoczna = 0')->fetchColumn();
       $pmgLiczby[$mk] = pmg_odmiana($a, 'edycja', 'edycje', 'edycji') . ($b ? ' · ' . $b . ' ukryta' : ''); }
-  if ($mk === 'tresci') { $a = (int) $db->query("SELECT COUNT(*) FROM pmg_tresci WHERE wartosc <> ''")->fetchColumn();
-      $pmgLiczby[$mk] = $a ? pmg_odmiana($a, 'zmieniony tekst', 'zmienione teksty', 'zmienionych tekstów') : 'teksty ze strony bez zmian'; }
+  if ($mk === 'dolacz') { $pmgLiczby[$mk] = wolno('rekrutacja') ? ($db->query("SELECT wartosc FROM pmg_ustawienia WHERE klucz = 'rekrutacja_otwarta'")->fetchColumn() === '0' ? 'Zamknięta' : 'Otwarta') : pmg_zmienione_teksty('dolacz'); }
+  if ($mk === 'glowna' || $mk === 'kontakt' || $mk === 'stopka') { $pmgLiczby[$mk] = pmg_zmienione_teksty(['glowna' => 'index', 'kontakt' => 'kontakt', 'stopka' => 'wspolne'][$mk]); }
   if ($mk === 'konta') { $a = $db->query('SELECT COUNT(*) FROM pmg_uzytkownicy')->fetchColumn(); $b = (int) $db->query('SELECT COUNT(*) FROM pmg_uzytkownicy WHERE haslo IS NULL')->fetchColumn();
       $pmgLiczby[$mk] = pmg_odmiana($a, 'konto', 'konta', 'kont') . ($b ? ' · ' . $b . ' bez hasła' : ''); }
   if ($mk === 'dziennik') { $pmgLiczby[$mk] = pmg_odmiana($db->query('SELECT COUNT(*) FROM pmg_dziennik')->fetchColumn(), 'zmiana', 'zmiany', 'zmian') . ' w dzienniku'; }
@@ -480,7 +681,7 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title><?= h(($error !== '' ? 'Błąd: ' : '') . $ng['tytul'] . ($etykieta !== '' && $ng['tytul'] !== $etykieta ? ' · ' . $etykieta : '') . ' — Panel PMG') ?></title>
+<title><?= h(($error !== '' || $bledyPol ? 'Błąd: ' : '') . $ng['tytul'] . ($etykieta !== '' && $ng['tytul'] !== $etykieta ? ' · ' . $etykieta : '') . ' — Panel PMG') ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap">
@@ -495,7 +696,7 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
   <details class="pmg-menu">
     <summary class="pmg-menu__summary"><span class="pmg-icon--menu"><?= pmg_ikona('menu') ?></span><span class="pmg-icon--zamknij"><?= pmg_ikona('zamknij') ?></span> Menu</summary>
     <div class="pmg-menu__panel">
-      <nav aria-label="Moduły panelu"><?php pmg_nawigacja($m, $etykietyModulow) ?></nav>
+      <nav aria-label="Menu panelu"><?php pmg_nawigacja($m, $etykietyModulow) ?></nav>
       <div class="pmg-menu__foot">
         <div class="pmg-user">
           <span class="pmg-user__avatar" aria-hidden="true"><?= h(pmg_inicjaly($me['imie_nazwisko'])) ?></span>
@@ -510,7 +711,7 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
 <div class="pmg-shell">
   <div class="pmg-sidebar">
     <a class="pmg-brand" href="index.php"><img src="../img/logo-90.png" width="32" height="32" alt=""><span>Panel PMG</span></a>
-    <nav class="pmg-sidebar__nav" aria-label="Moduły panelu"><?php pmg_nawigacja($m, $etykietyModulow) ?></nav>
+    <nav class="pmg-sidebar__nav" aria-label="Menu panelu"><?php pmg_nawigacja($m, $etykietyModulow) ?></nav>
     <div class="pmg-sidebar__foot">
       <div class="pmg-user">
         <span class="pmg-user__avatar" aria-hidden="true"><?= h(pmg_inicjaly($me['imie_nazwisko'])) ?></span>
@@ -535,21 +736,13 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
     <?= $pmgAlerty ?>
     <?php if ($m === ''): ?>
       <?php if ($me['rola'] === 'admin' && (int) pmg_db()->query("SELECT COUNT(*) FROM pmg_uzytkownicy WHERE rola='admin' AND aktywny=1 AND haslo IS NOT NULL")->fetchColumn() < 2): ?>
-        <div class="pmg-alert pmg-alert--warning" role="status"><?= pmg_ikona('info') ?><p>Jesteś jedynym aktywnym administratorem. Dodaj drugiego w module Konta: jeśli zapomnisz hasła, nikt inny nie odzyska dostępu z panelu (procedura awaryjna w <code>README.md</code>).</p></div>
+        <div class="pmg-alert pmg-alert--warning" role="status"><?= pmg_ikona('info') ?><p>Jesteś jedynym aktywnym administratorem. Dodaj drugiego w menu Konta: jeśli zapomnisz hasła, nikt inny nie odzyska dostępu z panelu (procedura awaryjna w <code>README.md</code>).</p></div>
+      <?php endif; ?>
+      <?php if (!$pmgKafelki): ?>
+        <div class="pmg-alert pmg-alert--info" role="status"><?= pmg_ikona('info') ?><p>Nie masz jeszcze przydzielonych stron. Napisz do administratora.</p></div>
       <?php endif; ?>
       <ul class="pmg-tiles">
-        <?php foreach ($etykietyModulow as $mk => $ml): if (!wolno(MODULY[$mk])) continue; ?>
-          <?php if ($mk === 'kopia'): ?>
-            <li><a class="pmg-tile pmg-tile--download" href="?m=kopia">
-              <span class="pmg-tile__icon"><?= pmg_ikona('kopia') ?></span>
-              <span class="pmg-tile__body">
-                <span class="pmg-tile__title"><?= h($ml) ?></span>
-                <span class="pmg-tile__desc"><?= h($opisyModulow[$mk] ?? '') ?></span>
-                <span class="pmg-tile__meta">Pobiera plik .sql</span>
-              </span>
-              <span class="pmg-tile__chevron"><?= pmg_ikona('pobierz') ?></span>
-            </a></li>
-          <?php else: ?>
+        <?php foreach ($pmgKafelki as $mk): $ml = $etykietyModulow[$mk]; ?>
             <li><a class="pmg-tile" href="?m=<?= $mk ?>">
               <span class="pmg-tile__icon"><?= pmg_ikona($mk) ?></span>
               <span class="pmg-tile__body">
@@ -559,7 +752,6 @@ if ($me && $m === '') { $db = pmg_db(); foreach (array_keys($etykietyModulow) as
               </span>
               <span class="pmg-tile__chevron"><?= pmg_ikona('chevron') ?></span>
             </a></li>
-          <?php endif; ?>
         <?php endforeach; ?>
       </ul>
     <?php else: ?>

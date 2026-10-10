@@ -9,10 +9,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'imie') {
         $imie = mb_substr(trim((string) ($_POST['imie_nazwisko'] ?? '')), 0, 100);
         if ($imie === '') {
-            $error = 'Podaj imię i nazwisko.';
+            $bledyPol['imie_nazwisko'] = 'Podaj imię i nazwisko.';
         } else {
             pmg_db()->prepare('UPDATE pmg_uzytkownicy SET imie_nazwisko = ? WHERE id = ?')->execute([$imie, $me['id']]);
-            loguj('konta', 'edycja', $me['id']);
+            loguj('konta', 'edycja', $me['id'], $imie);
             $_SESSION['flash'] = 'Zapisano imię i nazwisko.';
             go('?m=konto');
         }
@@ -22,24 +22,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nowe = (string) ($_POST['nowe'] ?? '');
         // Powtórzenie nowego hasła chroni przed literówką, po której nie dałoby się zalogować.
         $powtorz = (string) ($_POST['powtorz'] ?? '');
-        if (!pmg_rate_ok('login_konto', 5, 900, 'u' . $me['id'])) { // ten sam limit co logowanie na to konto
+        if (!pmg_rate_ok('haslo_konto', 5, 900, 'konto:' . $me['id'])) { // A2 3.10: osobny limit — złe hasło tutaj nie blokuje logowania
             $error = 'Za dużo prób. Spróbuj za 15 minut.';
-        } elseif (!password_verify($obecne, (string) $me['haslo'])) {
-            $error = 'Obecne hasło jest nieprawidłowe.';
-        } elseif (mb_strlen($nowe) < 12) {
-            $error = 'Nowe hasło musi mieć co najmniej 12 znaków.';
-        } elseif ($nowe !== $powtorz) {
-            $error = 'Nowe hasło i jego powtórzenie się różnią.';
         } else {
+            // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+            if (!password_verify($obecne, (string) $me['haslo'])) $bledyPol['obecne'] = 'Obecne hasło jest nieprawidłowe.';
+            if (mb_strlen($nowe) < 12) $bledyPol['nowe'] = 'Nowe hasło musi mieć co najmniej 12 znaków.';
+            if ($nowe !== $powtorz) $bledyPol['powtorz'] = 'Nowe hasło i jego powtórzenie się różnią.';
+        }
+        if ($error === '' && !$bledyPol) {
             $hash = password_hash($nowe, PASSWORD_DEFAULT);
             pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo = ?, token_hash = NULL, token_do = NULL WHERE id = ?')
                 ->execute([$hash, $me['id']]);
-            pmg_rate_clear('login_konto', 'u' . $me['id']);
+            pmg_rate_clear('haslo_konto', 'konto:' . $me['id']);
             // Inne sesje tego konta mają stary skrót hasła w 'ph' i wygasną przy następnym kliknięciu (index.php, blok $me);
             // ta sesja dostaje nowy skrót i zostaje ważna.
             session_regenerate_id(true);
             $_SESSION['ph'] = hash('sha256', $hash);
-            loguj('konta', 'haslo', $me['id']);
+            loguj('konta', 'haslo', $me['id'], $me['imie_nazwisko']);
             $_SESSION['flash'] = 'Hasło zmienione. Na innych urządzeniach trzeba zalogować się ponownie.';
             go('?m=konto');
         }
@@ -52,8 +52,8 @@ $pmgNaglowek = ['tytul' => 'Moje konto', 'opis' => (string) $me['email']];
   <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="imie">
   <h2 class="pmg-h2">Dane</h2>
   <label for="imie_nazwisko">Imię i nazwisko</label>
-  <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" value="<?= h(($_POST['a'] ?? '') === 'imie' ? ($_POST['imie_nazwisko'] ?? '') : $me['imie_nazwisko']) ?>" required>
-  <p class="pmg-hint">Rola: <?= $me['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?>. E-mail, rolę i moduły zmienia administrator w module Konta.</p>
+  <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" value="<?= h(($_POST['a'] ?? '') === 'imie' ? ($_POST['imie_nazwisko'] ?? '') : $me['imie_nazwisko']) ?>" required<?= blad_pola('imie_nazwisko') ?>><?= komunikat_pola('imie_nazwisko') ?>
+  <p class="pmg-hint">Rola: <?= $me['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?>. E-mail, rolę i strony, które możesz edytować, zmienia administrator w menu Konta.</p>
   <div class="pmg-form-actions">
     <button class="pmg-btn pmg-btn--primary" type="submit">Zapisz</button>
   </div>
@@ -63,12 +63,12 @@ $pmgNaglowek = ['tytul' => 'Moje konto', 'opis' => (string) $me['email']];
   <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="zmien_haslo">
   <h2 class="pmg-h2">Zmiana hasła</h2>
   <label for="obecne">Obecne hasło</label>
-  <input type="password" id="obecne" name="obecne" autocomplete="current-password" required>
+  <input type="password" id="obecne" name="obecne" autocomplete="current-password" required<?= blad_pola('obecne') ?>><?= komunikat_pola('obecne') ?>
   <label for="nowe">Nowe hasło (min. 12 znaków)</label>
   <p class="pmg-hint" id="nowe_h">Użyj hasła, którego nie używasz nigdzie indziej.</p>
-  <input type="password" id="nowe" name="nowe" minlength="12" autocomplete="new-password" required aria-describedby="nowe_h">
+  <input type="password" id="nowe" name="nowe" minlength="12" autocomplete="new-password" required<?= blad_pola('nowe', 'nowe_h') ?>><?= komunikat_pola('nowe') ?>
   <label for="powtorz">Powtórz nowe hasło</label>
-  <input type="password" id="powtorz" name="powtorz" minlength="12" autocomplete="new-password" required>
+  <input type="password" id="powtorz" name="powtorz" minlength="12" autocomplete="new-password" required<?= blad_pola('powtorz') ?>><?= komunikat_pola('powtorz') ?>
   <div class="pmg-form-actions">
     <button class="pmg-btn pmg-btn--primary" type="submit">Zmień hasło</button>
   </div>

@@ -9,6 +9,19 @@
     if (el) el.focus();
   }
 
+  // Linki z podsumowania błędów prowadzą do pola: ustawiamy na nim fokus (sam skok do #id nie zawsze go daje).
+  function linkiDoPol() {
+    document.querySelectorAll('.pmg-alert__list a[href^="#"]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        var pole = document.getElementById(a.getAttribute('href').slice(1));
+        if (!pole) return;
+        e.preventDefault();
+        pole.focus();
+        pole.scrollIntoView({ block: 'center' });
+      });
+    });
+  }
+
   // Licznik znaków dla pól z data-pmg-licznik + maxlength: widoczny licznik "N / M" (ukryty < 80%)
   // oraz cichy komunikat dla czytników ekranu tylko przy przekroczeniu progów 80% / 90% / 100%.
   function licznikZnakow() {
@@ -234,7 +247,7 @@
     });
   }
 
-  // „Wstaw tekst ze strony” (Treści stron): kopiuje obecny tekst ze strony do pola, żeby go poprawić zamiast pisać od zera.
+  // „Wstaw tekst ze strony” (zakładka „Teksty na stronie”): kopiuje obecny tekst ze strony do pola, żeby go poprawić zamiast pisać od zera.
   function wstawTekstZeStrony() {
     document.querySelectorAll('[data-pmg-wstaw]').forEach(function (btn) {
       var pole = document.getElementById(btn.getAttribute('data-pmg-wstaw'));
@@ -253,6 +266,7 @@
     wstawTekstZeStrony();
     potwierdzenia();
     fokusNaBledzie();
+    linkiDoPol();
     licznikZnakow();
     kopiujLink();
     niezapisaneZmiany();

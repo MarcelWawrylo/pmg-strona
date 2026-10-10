@@ -1,6 +1,6 @@
 <?php
 // Wczytywanie treści, które do tej pory były wpisane na sztywno w HTML (api/dane-startowe.php), do PUSTYCH tabel.
-// Tylko administrator; przycisk „Wczytaj treści ze strony” pokazują moduły Aktualności, Członkowie, PM Session, Case Koła, Treści stron i Ustawienia.
+// Tylko administrator; przycisk „Wczytaj treści ze strony” pokazują Aktualności, O nas, PM Session, Case Koła (zakładka „Treść”) oraz Stopka i kontakt (obie zakładki; teksty całej witryny tylko tam).
 // Wołany z modułów (pmg_import_blok w widoku listy, pmg_import_wykonaj w obsłudze POST a=import). Nie jest modułem do wywołania z ?m=.
 defined('PMG_PANEL') || exit;
 
@@ -65,8 +65,8 @@ function pmg_import_blok($modul)
         'czlonkowie' => 'Osoby i sekcje z pliku O nas (osób: ' . count($d['osoby']) . ', sekcji: ' . count($d['sekcje']) . ') nie są jeszcze w bazie, dlatego panel ich nie pokazuje. Po wczytaniu strona O nas będzie pokazywać dane z panelu (wygląda tak samo) i będzie można je tu edytować.',
         'pmsession' => 'Edycja ' . $e['numer'] . ' z plików strony (prelegentów: ' . count($e['prelegenci']) . ', punktów harmonogramu: ' . count($e['harmonogram']) . ') oraz liczby „PM Session w liczbach” nie są jeszcze w bazie. Edycja zostanie wczytana jako zakończona (publiczna) z pełnymi biogramami i opisami prelekcji, a strona pokaże ją z panelu w tym samym wyglądzie. Edycji XV nie wczytujemy.',
         'case' => 'Edycje Case Koła z plików strony (' . count($d['case']) . ': karty w hubie oraz treść podstron, w tym galerie) nie są jeszcze w bazie, dlatego panel ich nie pokazuje. Po wczytaniu hub pokaże karty z panelu, a każda karta otworzy wspólną podstronę edycji (wygląda tak samo jak dotychczasowe), więc treść wszystkich edycji będzie można tu zmieniać. Stare adresy podstron (np. case-kola-solvro.html) nadal działają, ale pokazują wersję z pliku.',
-        'tresci' => 'To nie jest konieczne: strona pokazuje teksty z HTML, dopóki pole jest puste, a przy każdym polu jest przycisk „Wstaw tekst ze strony”. Jeśli wolisz mieć wszystkie pola od razu wypełnione obecnymi tekstami (' . count($d['tresci']) . '), wczytaj je tutaj. Strona wygląda tak samo, ale zapisane teksty zastępują HTML: późniejsza zmiana tekstu w plikach strony będzie widoczna dopiero po „Przywróć tekst ze strony”.',
-        'ustawienia' => 'Linki do mediów społecznościowych, e-mail i link rekrutacyjny są dziś wpisane w HTML, a formularz poniżej jest pusty. Wczytaj ich obecne wartości, żeby je tu zobaczyć i zmieniać. Strona wygląda tak samo.',
+        'tresci' => 'To nie jest konieczne: strona pokazuje teksty z HTML, dopóki pole jest puste, a przy każdym polu jest przycisk „Wstaw tekst ze strony”. Jeśli wolisz mieć wszystkie pola od razu wypełnione obecnymi tekstami (' . count($d['tresci']) . '), wczytaj je tutaj (wczytują się teksty wszystkich stron, nie tylko stopki). Strona wygląda tak samo, ale zapisane teksty zastępują HTML: późniejsza zmiana tekstu w plikach strony będzie widoczna dopiero po „Przywróć tekst ze strony”.',
+        'ustawienia' => 'Linki do mediów społecznościowych, e-mail oraz status i link rekrutacji (zmieniane potem na stronie Dołącz, w zakładce Rekrutacja) są dziś wpisane w HTML, a formularz poniżej jest pusty. Wczytaj ich obecne wartości, żeby je tu zobaczyć i zmieniać. Strona wygląda tak samo.',
     ];
     echo '<form class="pmg-card" method="post"><input type="hidden" name="csrf" value="' . h(csrf()) . '"><input type="hidden" name="a" value="import">'
         . '<div class="pmg-card__head"><h2 class="pmg-h2">Treści ze strony</h2></div>'
@@ -166,7 +166,7 @@ function pmg_import_wykonaj($modul)
         // Blokada tabel i ponowne sprawdzenie w transakcji: dwa równoczesne kliknięcia nie wczytają danych dwa razy.
         $komunikat = null;
         foreach (IMPORT_TABELE[$modul] ?? [] as $t) {
-            if ((int) $pdo->query('SELECT COUNT(*) FROM ' . $t . ' FOR UPDATE')->fetchColumn() > 0) $komunikat = 'Nic nie wczytano: ten moduł ma już dane. Wczytanie działa tylko na pustej bazie.';
+            if ((int) $pdo->query('SELECT COUNT(*) FROM ' . $t . ' FOR UPDATE')->fetchColumn() > 0) $komunikat = 'Nic nie wczytano: te treści są już w bazie. Wczytanie działa tylko na pustej bazie.';
         }
         if ($komunikat === null && $modul === 'ustawienia' && !import_pusty('ustawienia')) $komunikat = 'Nic nie wczytano: ustawienia mają już wartości. Wczytanie działa tylko na pustych ustawieniach.';
         if ($komunikat !== null) {
@@ -182,7 +182,7 @@ function pmg_import_wykonaj($modul)
         $error = 'Nie udało się wczytać treści (błąd bazy danych) — nic nie zapisano. Spróbuj ponownie albo zgłoś problem administratorowi strony.';
         return;
     }
-    if (!$nic) loguj($modul, 'import');
+    if (!$nic) loguj($modul, 'import', null, 'Treści ze strony');
     $_SESSION['flash'] = $komunikat;
-    go('?m=' . $modul);
+    go(['tresci' => '?m=stopka&w=teksty', 'ustawienia' => '?m=stopka'][$modul] ?? '?m=' . $modul); // od razu nowy adres, bez przekierowania starego
 }

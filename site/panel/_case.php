@@ -43,8 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } elseif ($action === 'gora' || $action === 'dol') {
         $id = (int) ($_POST['id'] ?? 0);
-        if (przesun('pmg_case_edycje', CASE_ORDER, $id, $action)) loguj('case', 'kolejnosc', $id);
-        go('?m=case');
+        if (przesun('pmg_case_edycje', CASE_ORDER, $id, $action)) { $ed = case_edycja($id); loguj('case', 'kolejnosc', $id, $ed ? 'Edycja ' . $ed['numer'] . ': ' . $ed['nazwa'] : ''); }
+        go_po_przesunieciu('?m=case', $id, $action);
 
     } elseif ($action === 'delete') {
         $id = (int) ($_POST['id'] ?? 0);
@@ -58,7 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->beginTransaction();
             try {
                 $pdo->prepare('DELETE FROM pmg_case_galeria WHERE edycja_id = ?')->execute([$id]);
-                $pdo->prepare('DELETE FROM pmg_case_edycje WHERE id = ?')->execute([$id]);
+                $usun = $pdo->prepare('DELETE FROM pmg_case_edycje WHERE id = ?');
+                $usun->execute([$id]);
+                $usunieto = $usun->rowCount() > 0; // A2 6.5: równoległe usunięcie mogło nas wyprzedzić
                 $pdo->commit();
             } catch (PDOException $e) {
                 if ($pdo->inTransaction()) $pdo->rollBack();
@@ -66,9 +68,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Nie udało się usunąć edycji (błąd bazy danych).';
                 $edit = $old;
             }
+            if ($error === '' && !$usunieto) {
+                $_SESSION['flash'] = 'Nie znaleziono tej edycji — nic nie usunięto.';
+                go('?m=case');
+            }
             if ($error === '') {
                 foreach ($pliki as $p) drop_image($p);
-                loguj('case', 'usuniecie', $id);
+                loguj('case', 'usuniecie', $id, 'Edycja ' . $old['numer'] . ': ' . $old['nazwa']);
                 $_SESSION['flash'] = 'Edycja usunięta.';
                 go('?m=case');
             }
@@ -91,25 +97,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $f['widoczna'] = empty($_POST['widoczna']) ? 0 : 1;
         $old = $id ? case_edycja($id) : null;
         $nowe = []; // pliki wgrane w tym żądaniu — usuwane, jeśli zapis się nie uda
-        try {
-            if ($f['numer'] < 1 || $f['numer'] > 999) throw new RuntimeException('Numer edycji: liczba od 1 do 999.');
-            if ($f['nazwa'] === '') throw new RuntimeException('Podaj nazwę partnera (np. Solvro).');
-            if (!isset(CASE_STYLE[$f['logo_styl']])) throw new RuntimeException('Wybierz sposób wyświetlania logo.');
-            if ($f['adres_strony'] !== '') {
-                if (!preg_match('~^case-kola-[a-z0-9-]+\.html$~', $f['adres_strony']) || $f['adres_strony'] === 'case-kola-edycja.html') {
-                    throw new RuntimeException('Własna podstrona: nazwa pliku w postaci case-kola-nazwa.html (albo zostaw puste pole, żeby użyć wspólnej podstrony).');
-                }
-                if (!is_file(__DIR__ . '/../' . $f['adres_strony'])) throw new RuntimeException('Na serwerze nie ma pliku ' . $f['adres_strony'] . '. Zostaw puste pole, żeby użyć wspólnej podstrony.');
+        $stareHero = $old['hero'] ?? null;
+        $stareLogo = $old['logo'] ?? null;
+        // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
+        if ($f['numer'] < 1 || $f['numer'] > 999) $bledyPol['numer'] = 'Numer edycji: liczba od 1 do 999.';
+        if ($f['nazwa'] === '') $bledyPol['nazwa'] = 'Podaj nazwę partnera (np. Solvro).';
+        if (!isset(CASE_STYLE[$f['logo_styl']])) $bledyPol['logo_styl'] = 'Wybierz sposób wyświetlania logo.';
+        // opis zdjęcia sprawdzamy przed wgraniem plików, żeby błąd nie zostawiał wgranych plików bez rekordu
+        $zostajeHero = !empty($_FILES['hero']['name']) || (!empty($stareHero) && empty($_POST['hero_usun']));
+        if ($zostajeHero && $f['hero_alt'] === '') $bledyPol['hero_alt'] = 'Dodaj opis zdjęcia głównego (dla osób niewidomych).';
+        if ($f['adres_strony'] !== '') {
+            if (!preg_match('~^case-kola-[a-z0-9-]+\.html$~', $f['adres_strony']) || $f['adres_strony'] === 'case-kola-edycja.html') {
+                $bledyPol['adres_strony'] = 'Nazwa osobnej podstrony: plik w postaci case-kola-nazwa.html (albo zostaw puste pole, żeby użyć wspólnej podstrony).';
+            } elseif (!is_file(__DIR__ . '/../' . $f['adres_strony'])) {
+                $bledyPol['adres_strony'] = 'Na serwerze nie ma pliku ' . $f['adres_strony'] . '. Zostaw puste pole, żeby użyć wspólnej podstrony.';
             }
-            $stareHero = $old['hero'] ?? null;
-            $stareLogo = $old['logo'] ?? null;
-            // opis zdjęcia sprawdzamy przed wgraniem plików, żeby błąd nie zostawiał wgranych plików bez rekordu
-            $zostajeHero = !empty($_FILES['hero']['name']) || (!empty($stareHero) && empty($_POST['hero_usun']));
-            if ($zostajeHero && $f['hero_alt'] === '') throw new RuntimeException('Dodaj opis zdjęcia głównego (dla osób niewidomych).');
-            $f['hero'] = case_plik('hero', 'case', $stareHero, !empty($_POST['hero_usun']));
-            if ($f['hero'] !== $stareHero && $f['hero'] !== null) $nowe[] = $f['hero'];
-            $f['logo'] = case_plik('logo', 'case-logo', $stareLogo, !empty($_POST['logo_usun']));
-            if ($f['logo'] !== $stareLogo && $f['logo'] !== null) $nowe[] = $f['logo'];
+        }
+        try {
+            if ($bledyPol) throw new BladPol();
+            // pliki w kolejności pól formularza (logo, potem zdjęcie główne); błąd pliku trafia pod jego pole
+            try {
+                $f['logo'] = case_plik('logo', 'case-logo', $stareLogo, !empty($_POST['logo_usun']));
+                if ($f['logo'] !== $stareLogo && $f['logo'] !== null) $nowe[] = $f['logo'];
+            } catch (BladPliku $e) {
+                $bledyPol['logo'] = $e->getMessage();
+            }
+            try {
+                $f['hero'] = case_plik('hero', 'case', $stareHero, !empty($_POST['hero_usun']));
+                if ($f['hero'] !== $stareHero && $f['hero'] !== null) $nowe[] = $f['hero'];
+            } catch (BladPliku $e) {
+                $bledyPol['hero'] = $e->getMessage();
+            }
+            if ($bledyPol) throw new BladPol();
             if ($f['hero'] === null) $f['hero_alt'] = '';
             $kolumny = ['numer', 'nazwa', 'tytul_karty', 'naglowek', 'adres_strony', 'opis_meta', 'logo', 'logo_styl', 'hero', 'hero_alt', 'o_partnerze', 'wyzwanie', 'co_zrobilismy', 'rezultat', 'w_toku', 'widoczna'];
             $wartosci = [];
@@ -120,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $nowe = [];
                 if ($f['hero'] !== $stareHero) drop_image($stareHero);
                 if ($f['logo'] !== $stareLogo) drop_image($stareLogo);
-                loguj('case', 'edycja', $id);
+                loguj('case', 'edycja', $id, 'Edycja ' . $f['numer'] . ': ' . $f['nazwa']);
             } else {
                 // Nowa edycja ląduje na początku listy (w hubie najnowsza edycja jest pierwsza).
                 $kolejnosc = (int) pmg_db()->query('SELECT COALESCE(MIN(kolejnosc), 1) - 1 FROM pmg_case_edycje')->fetchColumn();
@@ -128,18 +147,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $st->execute(array_merge($wartosci, [$kolejnosc]));
                 $nowe = [];
                 $id = (int) pmg_db()->lastInsertId();
-                loguj('case', 'dodanie', $id);
+                loguj('case', 'dodanie', $id, 'Edycja ' . $f['numer'] . ': ' . $f['nazwa']);
             }
-            $_SESSION['flash'] = $f['widoczna'] ? 'Zapisano. Edycja jest widoczna na stronie (w ciągu 5 minut).' : 'Zapisano. Edycja jest ukryta na stronie.';
+            $_SESSION['flash'] = $f['widoczna'] ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano jako szkic (niewidoczny na stronie).';
             go('?m=case&id=' . $id);
         } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy
             foreach ($nowe as $p) drop_image($p);
             $error = $e->getCode() === '23000' ? 'Edycja o tym numerze już istnieje.' : 'Błąd zapisu.';
             if ($e->getCode() !== '23000') error_log('case save: ' . $e->getMessage());
             $edit = array_merge($old ?: [], $f, ['id' => $id, 'hero' => $old['hero'] ?? null, 'logo' => $old['logo'] ?? null]);
-        } catch (RuntimeException $e) {
+        } catch (BladPol $e) { // błędy pól (też plików) są już w $bledyPol
             foreach ($nowe as $p) drop_image($p);
-            $error = $e->getMessage();
             $edit = array_merge($old ?: [], $f, ['id' => $id, 'hero' => $old['hero'] ?? null, 'logo' => $old['logo'] ?? null]);
         }
 
@@ -163,22 +181,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $ile = pmg_db()->prepare('SELECT COUNT(*) FROM pmg_case_galeria WHERE edycja_id = ?');
                 $ile->execute([$eid]);
                 if ((int) $ile->fetchColumn() >= CASE_GALERIA_MAX) throw new RuntimeException('Galeria może mieć najwyżej ' . CASE_GALERIA_MAX . ' zdjęć.');
-                if (empty($_FILES['plik']['name'])) throw new RuntimeException('Wybierz plik ze zdjęciem.');
-                if ($podpis === '') throw new RuntimeException('Dodaj podpis zdjęcia (to także opis dla osób niewidomych).');
+                if (empty($_FILES['plik']['name'])) $bledyPol['gal-nowe-plik'] = 'Wybierz plik ze zdjęciem.';
+                if ($podpis === '') $bledyPol['gal-nowe-podpis'] = 'Dodaj podpis zdjęcia (to także opis dla osób niewidomych).';
+                if ($bledyPol) throw new BladPol();
                 $plik = $noweGal = save_image($_FILES['plik'], 'case');
                 $kol = pmg_db()->prepare('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_case_galeria WHERE edycja_id = ?');
                 $kol->execute([$eid]);
                 pmg_db()->prepare('INSERT INTO pmg_case_galeria (edycja_id, zdjecie, pelne, podpis, kolejnosc) VALUES (?,?,NULL,?,?)')
                     ->execute([$eid, $plik, $podpis, (int) $kol->fetchColumn()]);
                 $noweGal = null;
-                loguj('case', 'galeria', $eid);
+                loguj('case', 'galeria', $eid, 'Edycja ' . $ed['numer'] . ': ' . $ed['nazwa']);
                 $_SESSION['flash'] = 'Zdjęcie dodane do galerii.';
                 go($wroc);
             } elseif (!$g) {
                 throw new RuntimeException('Nie znaleziono zdjęcia.');
             } elseif ($action === 'gal_zapisz') {
                 $podpis = mb_substr(trim((string) ($_POST['podpis'] ?? '')), 0, 200);
-                if ($podpis === '') throw new RuntimeException('Podpis zdjęcia nie może być pusty (to także opis dla osób niewidomych).');
+                if ($podpis === '') $bledyPol['gal-podpis-' . $gid] = 'Podpis zdjęcia nie może być pusty (to także opis dla osób niewidomych).';
+                if ($bledyPol) throw new BladPol();
                 $nowe = null;
                 if (!empty($_FILES['plik']['name'])) $nowe = $noweGal = save_image($_FILES['plik'], 'case');
                 if ($nowe !== null) {
@@ -190,17 +210,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     pmg_db()->prepare('UPDATE pmg_case_galeria SET podpis = ? WHERE id = ?')->execute([$podpis, $gid]);
                 }
-                loguj('case', 'galeria', $eid);
+                loguj('case', 'galeria', $eid, 'Edycja ' . $ed['numer'] . ': ' . $ed['nazwa']);
                 $_SESSION['flash'] = 'Zapisano zdjęcie.';
                 go($wroc);
             } elseif ($action === 'gal_gora' || $action === 'gal_dol') {
-                if (przesun('pmg_case_galeria', 'kolejnosc, id', $gid, $action === 'gal_gora' ? 'gora' : 'dol', 'edycja_id', $eid)) loguj('case', 'galeria', $eid);
-                go($wroc);
+                $kier = $action === 'gal_gora' ? 'gora' : 'dol';
+                if (przesun('pmg_case_galeria', 'kolejnosc, id', $gid, $kier, 'edycja_id', $eid)) loguj('case', 'galeria', $eid, 'Edycja ' . $ed['numer'] . ': ' . $ed['nazwa']);
+                go_po_przesunieciu('?m=case&id=' . $eid, 'g' . $gid, $kier);
             } elseif ($action === 'gal_usun') {
-                pmg_db()->prepare('DELETE FROM pmg_case_galeria WHERE id = ?')->execute([$gid]);
+                $usun = pmg_db()->prepare('DELETE FROM pmg_case_galeria WHERE id = ?');
+                $usun->execute([$gid]);
+                if ($usun->rowCount() === 0) throw new RuntimeException('Nie znaleziono zdjęcia — nic nie usunięto.'); // A2 6.5
                 drop_image($g['zdjecie']);
                 drop_image($g['pelne']);
-                loguj('case', 'galeria', $eid);
+                loguj('case', 'galeria', $eid, 'Edycja ' . $ed['numer'] . ': ' . $ed['nazwa']);
                 $_SESSION['flash'] = 'Zdjęcie usunięte z galerii.';
                 go($wroc);
             }
@@ -208,6 +231,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error_log('case galeria: ' . $e->getMessage());
             drop_image($noweGal);
             $error = 'Błąd zapisu galerii.';
+            $edit = $ed;
+        } catch (BladPliku $e) { // plik wgrywany jest w gal_dodaj (nowy) albo gal_zapisz (podmiana)
+            $bledyPol[$action === 'gal_dodaj' ? 'gal-nowe-plik' : 'gal-plik-' . $gid] = $e->getMessage();
+            $edit = $ed;
+        } catch (BladPol $e) { // błędy pól są już w $bledyPol
             $edit = $ed;
         } catch (RuntimeException $e) {
             $error = $e->getMessage();
@@ -237,11 +265,12 @@ if ($edit !== null) {
     $pmgNaglowek = [
         'tytul' => $edit['id'] ? 'Edytuj edycję ' . $edit['numer'] : 'Nowa edycja Case Koła',
         'opis' => $edit['id'] ? (string) $edit['nazwa'] : 'Karta w hubie i podstrona powstaną po zapisaniu. Puste pola tekstowe są pomijane na stronie.',
-        'wstecz' => ['href' => '?m=case', 'etykieta' => 'Case Koła'],
+        'wstecz' => ['href' => '?m=case', 'etykieta' => 'Edycje Case Koła'],
     ];
-    if ($edit['id']) {
+    $wBazie = isset($old) && is_array($old) ? $old : $edit; // po nieudanym zapisie $edit ma wartości z formularza
+    if ($edit['id'] && !empty($wBazie['widoczna'])) { // ukrytej edycji nie ma na stronie, więc bez linku
         $url = $edit['adres_strony'] !== '' ? $edit['adres_strony'] : 'case-kola-edycja.html?nr=' . (int) $edit['numer'];
-        $pmgNaglowek['akcje'] = [['href' => '../' . $url, 'etykieta' => 'Zobacz stronę', 'rodzaj' => 'text', 'nowaKarta' => true]];
+        $pmgNaglowek['akcje'] = [['href' => '../' . $url, 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
     }
 } else {
     $lista = pmg_db()->query('SELECT e.id, e.numer, e.nazwa, e.widoczna, (SELECT COUNT(*) FROM pmg_case_galeria g WHERE g.edycja_id = e.id) AS zdjec FROM pmg_case_edycje e ORDER BY e.kolejnosc, e.id')->fetchAll();
@@ -263,10 +292,10 @@ if ($edit !== null) {
       <h2 class="pmg-form-section__title" id="sek-karta">Edycja i karta w hubie</h2>
       <label for="numer">Numer edycji</label>
       <p class="pmg-hint" id="numer_h">Pokazuje się na karcie („Edycja 4”) i w adresie podstrony (case-kola-edycja.html?nr=…). Każda edycja ma inny numer.</p>
-      <input type="number" id="numer" name="numer" min="1" max="999" value="<?= $v('numer') ?>" aria-describedby="numer_h" required>
+      <input type="number" id="numer" name="numer" min="1" max="999" value="<?= $v('numer') ?>"<?= blad_pola('numer', 'numer_h') ?> required><?= komunikat_pola('numer') ?>
       <label for="nazwa">Nazwa partnera</label>
       <p class="pmg-hint" id="nazwa_h">Np. Solvro. Pojawia się w menu, w ścieżce nawigacji i (jeśli nie wpiszesz innego tytułu) na karcie.</p>
-      <input type="text" id="nazwa" name="nazwa" maxlength="80" value="<?= $v('nazwa') ?>" aria-describedby="nazwa_h" required>
+      <input type="text" id="nazwa" name="nazwa" maxlength="80" value="<?= $v('nazwa') ?>"<?= blad_pola('nazwa', 'nazwa_h') ?> required><?= komunikat_pola('nazwa') ?>
       <label for="tytul_karty">Tytuł na karcie <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="tytul_karty_h">Gdy chcesz, żeby na karcie nazwa wyglądała inaczej niż w menu, np. QUBIT.</p>
       <input type="text" id="tytul_karty" name="tytul_karty" maxlength="80" value="<?= $v('tytul_karty') ?>" aria-describedby="tytul_karty_h">
@@ -277,13 +306,13 @@ if ($edit !== null) {
         <figure class="pmg-photo pmg-photo--16x9"><img src="../<?= h($edit['logo']) ?>" alt="" style="object-fit:contain;padding:12px;background:#141414"><figcaption class="pmg-hint">Obecne logo (na ciemnym tle podglądu). Wgranie nowego pliku zastąpi je.</figcaption></figure>
         <label class="pmg-check"><input type="checkbox" name="logo_usun" value="1"><span>Usuń obecne logo</span></label>
       <?php endif; ?>
-      <input type="file" id="logo" name="logo" accept="image/jpeg,image/png,image/webp" aria-describedby="logo_h">
+      <input type="file" id="logo" name="logo" accept="image/jpeg,image/png,image/webp"<?= blad_pola('logo', 'logo_h') ?>><?= komunikat_pola('logo') ?>
       <label for="logo_styl">Jak pokazać logo na karcie</label>
-      <select id="logo_styl" name="logo_styl">
+      <select id="logo_styl" name="logo_styl"<?= blad_pola('logo_styl') ?>>
         <?php foreach (CASE_STYLE as $k => $etykieta): ?>
           <option value="<?= h($k) ?>"<?= ($edit['logo_styl'] ?? 'ciemne') === $k ? ' selected' : '' ?>><?= h($etykieta) ?></option>
         <?php endforeach; ?>
-      </select>
+      </select><?= komunikat_pola('logo_styl') ?>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-strona">
@@ -291,20 +320,20 @@ if ($edit !== null) {
       <label for="naglowek">Nagłówek <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="naglowek_h">Duży tytuł na górze podstrony, np. „KN Solvro”. Puste pole = nazwa partnera.</p>
       <input type="text" id="naglowek" name="naglowek" maxlength="120" value="<?= $v('naglowek') ?>" aria-describedby="naglowek_h">
-      <label for="opis_meta">Krótki opis dla wyszukiwarek <span class="pmg-opt">(opcjonalnie)</span></label>
-      <p class="pmg-hint" id="opis_meta_h">Jedno zdanie, np. okres i temat współpracy. Nie widać go na stronie, tylko w wynikach wyszukiwania. Maks. 300 znaków.</p>
+      <label for="opis_meta">Opis w wynikach wyszukiwania <span class="pmg-opt">(opcjonalnie)</span></label>
+      <p class="pmg-hint" id="opis_meta_h">Jedno zdanie, np. okres i temat współpracy. Wyszukiwarka (np. Google) pokazuje je pod nazwą strony; na samej stronie go nie widać. Maks. 300 znaków.</p>
       <textarea id="opis_meta" name="opis_meta" maxlength="300" aria-describedby="opis_meta_h" data-pmg-licznik><?= $v('opis_meta') ?></textarea>
 
       <label for="hero">Zdjęcie główne 16:9 (JPG, PNG albo WebP) <span class="pmg-opt">(opcjonalnie)</span></label>
-      <p class="pmg-hint" id="hero_h">Maks. 10 MB, proporcje 16:9, np. 1920 × 1080 px. Bez zdjęcia, ale z jasnym logo (patrz wyżej) na górze pojawi się logo na ciemnym tle; w pozostałych przypadkach sekcji nie ma.</p>
+      <p class="pmg-hint" id="hero_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1920 × 1080 px. Bez zdjęcia, ale z jasnym logo (patrz wyżej) na górze pojawi się logo na ciemnym tle; w pozostałych przypadkach sekcji nie ma.</p>
       <?php if (!empty($edit['hero'])): ?>
         <figure class="pmg-photo pmg-photo--16x9"><img src="../<?= h($edit['hero']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi je.</figcaption></figure>
         <label class="pmg-check"><input type="checkbox" name="hero_usun" value="1"><span>Usuń obecne zdjęcie główne</span></label>
       <?php endif; ?>
-      <input type="file" id="hero" name="hero" accept="image/jpeg,image/png,image/webp" aria-describedby="hero_h">
+      <input type="file" id="hero" name="hero" accept="image/jpeg,image/png,image/webp"<?= blad_pola('hero', 'hero_h') ?>><?= komunikat_pola('hero') ?>
       <label for="hero_alt">Opis zdjęcia głównego (co na nim widać — dla osób niewidomych)</label>
       <p class="pmg-hint" id="hero_alt_h">Wymagany, jeśli dodajesz lub masz już zapisane zdjęcie.</p>
-      <input type="text" id="hero_alt" name="hero_alt" maxlength="200" value="<?= $v('hero_alt') ?>" aria-describedby="hero_alt_h">
+      <input type="text" id="hero_alt" name="hero_alt" maxlength="200" value="<?= $v('hero_alt') ?>"<?= blad_pola('hero_alt', 'hero_alt_h') ?>><?= komunikat_pola('hero_alt') ?>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-tresc">
@@ -322,15 +351,15 @@ if ($edit !== null) {
 
     <section class="pmg-form-section" aria-labelledby="sek-adres">
       <h2 class="pmg-form-section__title" id="sek-adres">Własna podstrona</h2>
-      <label for="adres_strony">Plik własnej podstrony <span class="pmg-opt">(zwykle puste)</span></label>
+      <label for="adres_strony">Nazwa osobnej podstrony <span class="pmg-opt">(zwykle puste)</span></label>
       <p class="pmg-hint" id="adres_h">Domyślnie karta prowadzi do wspólnej podstrony, którą wypełnia ta treść. Wpisz nazwę pliku (np. case-kola-solvro.html) tylko wtedy, gdy edycja ma osobny, ręcznie przygotowany plik na serwerze — wtedy zmiany tekstu stąd nie będą na nim widoczne.</p>
-      <input type="text" id="adres_strony" name="adres_strony" maxlength="100" value="<?= $v('adres_strony') ?>" aria-describedby="adres_h" autocapitalize="none" spellcheck="false">
+      <input type="text" id="adres_strony" name="adres_strony" maxlength="100" value="<?= $v('adres_strony') ?>"<?= blad_pola('adres_strony', 'adres_h') ?> autocapitalize="none" spellcheck="false"><?= komunikat_pola('adres_strony') ?>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-widocznosc">
-      <h2 class="pmg-form-section__title" id="sek-widocznosc">Widoczność</h2>
-      <label class="pmg-check"><input type="checkbox" name="widoczna" value="1"<?= !empty($edit['widoczna']) ? ' checked' : '' ?> aria-describedby="widoczna_h"><span>Pokaż edycję na stronie</span></label>
-      <p class="pmg-hint pmg-hint--check" id="widoczna_h">Bez zaznaczenia edycja jest ukryta: nie ma jej w hubie, w menu ani pod swoim adresem. Kolejność kart zmieniasz strzałkami na liście.</p>
+      <h2 class="pmg-form-section__title" id="sek-widocznosc">Publikacja</h2>
+      <label class="pmg-check"><input type="checkbox" name="widoczna" value="1"<?= !empty($edit['widoczna']) ? ' checked' : '' ?> aria-describedby="widoczna_h"><span>Opublikuj na stronie</span></label>
+      <p class="pmg-hint pmg-hint--check" id="widoczna_h">Bez zaznaczenia = szkic, niewidoczny na stronie (edycji nie ma wtedy w hubie, w menu ani pod własnym adresem). Kolejność kart zmieniasz strzałkami na liście.</p>
     </section>
 
     <div class="pmg-form-actions">
@@ -343,19 +372,19 @@ if ($edit !== null) {
     <div class="pmg-card" id="galeria">
       <div class="pmg-card__head"><h2 class="pmg-h2">Galeria</h2></div>
       <p class="pmg-hint">Zdjęcia 16:9 pod treścią podstrony; po kliknięciu powiększają się. Kolejność zmieniasz strzałkami. Do <?= CASE_GALERIA_MAX ?> zdjęć. Bez zdjęć sekcji galerii nie ma.</p>
-      <?php foreach ($galeria as $i => $g): ?>
-        <form class="pmg-gal" method="post" enctype="multipart/form-data">
+      <?php foreach ($galeria as $i => $g): $wylG = $i === 0; $wylD = $i === count($galeria) - 1; ?>
+        <form class="pmg-gal" method="post" enctype="multipart/form-data" id="wiersz-g<?= (int) $g['id'] ?>">
           <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="edycja_id" value="<?= (int) $edit['id'] ?>"><input type="hidden" name="id" value="<?= (int) $g['id'] ?>">
           <figure class="pmg-photo pmg-photo--16x9 pmg-gal__foto"><img src="../<?= h($g['zdjecie']) ?>" alt=""></figure>
           <div class="pmg-gal__pola">
             <label for="gal-podpis-<?= (int) $g['id'] ?>">Podpis zdjęcia <?= $i + 1 ?> (także opis dla osób niewidomych)</label>
-            <input type="text" id="gal-podpis-<?= (int) $g['id'] ?>" name="podpis" maxlength="200" value="<?= h($g['podpis']) ?>" required>
+            <input type="text" id="gal-podpis-<?= (int) $g['id'] ?>" name="podpis" maxlength="200" value="<?= h($g['podpis']) ?>" required<?= blad_pola('gal-podpis-' . (int) $g['id']) ?>><?= komunikat_pola('gal-podpis-' . (int) $g['id']) ?>
             <label for="gal-plik-<?= (int) $g['id'] ?>">Podmień plik <span class="pmg-opt">(opcjonalnie)</span></label>
-            <input type="file" id="gal-plik-<?= (int) $g['id'] ?>" name="plik" accept="image/jpeg,image/png,image/webp">
+            <input type="file" id="gal-plik-<?= (int) $g['id'] ?>" name="plik" accept="image/jpeg,image/png,image/webp"<?= blad_pola('gal-plik-' . (int) $g['id']) ?>><?= komunikat_pola('gal-plik-' . (int) $g['id']) ?>
             <div class="pmg-gal__akcje">
               <button class="pmg-btn pmg-btn--primary pmg-btn--sm" type="submit" name="a" value="gal_zapisz">Zapisz zdjęcie</button>
-              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gal_gora" formnovalidate<?= $i === 0 ? ' disabled' : '' ?> aria-label="Przesuń wyżej: zdjęcie <?= $i + 1 ?>"><span aria-hidden="true">↑</span></button>
-              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gal_dol" formnovalidate<?= $i === count($galeria) - 1 ? ' disabled' : '' ?> aria-label="Przesuń niżej: zdjęcie <?= $i + 1 ?>"><span aria-hidden="true">↓</span></button>
+              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gal_gora" formnovalidate<?= $wylG ? ' disabled' : '' ?><?= fokus_strzalki('g' . (int) $g['id'], 'gora', $wylG, $wylD) ?> aria-label="Przesuń wyżej: zdjęcie <?= $i + 1 ?>"><span aria-hidden="true">↑</span></button>
+              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gal_dol" formnovalidate<?= $wylD ? ' disabled' : '' ?><?= fokus_strzalki('g' . (int) $g['id'], 'dol', $wylG, $wylD) ?> aria-label="Przesuń niżej: zdjęcie <?= $i + 1 ?>"><span aria-hidden="true">↓</span></button>
               <button class="pmg-btn pmg-btn--danger pmg-btn--sm" type="submit" name="a" value="gal_usun" formnovalidate data-pmg-potwierdz="Usunąć zdjęcie <?= $i + 1 ?> z galerii? Tego nie da się cofnąć.">Usuń zdjęcie<span class="pmg-vh"> <?= $i + 1 ?></span></button>
             </div>
           </div>
@@ -366,10 +395,10 @@ if ($edit !== null) {
           <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="edycja_id" value="<?= (int) $edit['id'] ?>"><input type="hidden" name="a" value="gal_dodaj">
           <h3 class="pmg-gal__tytul">Dodaj zdjęcie</h3>
           <label for="gal-nowe-plik">Zdjęcie 16:9 (JPG, PNG albo WebP)</label>
-          <p class="pmg-hint" id="gal-nowe-h">Maks. 10 MB, proporcje 16:9, np. 1200 × 675 px.</p>
-          <input type="file" id="gal-nowe-plik" name="plik" accept="image/jpeg,image/png,image/webp" aria-describedby="gal-nowe-h" required>
+          <p class="pmg-hint" id="gal-nowe-h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1200 × 675 px.</p>
+          <input type="file" id="gal-nowe-plik" name="plik" accept="image/jpeg,image/png,image/webp" required<?= blad_pola('gal-nowe-plik', 'gal-nowe-h') ?>><?= komunikat_pola('gal-nowe-plik') ?>
           <label for="gal-nowe-podpis">Podpis zdjęcia (także opis dla osób niewidomych)</label>
-          <input type="text" id="gal-nowe-podpis" name="podpis" maxlength="200" required>
+          <input type="text" id="gal-nowe-podpis" name="podpis" maxlength="200" required<?= blad_pola('gal-nowe-podpis') ?>><?= komunikat_pola('gal-nowe-podpis') ?>
           <div class="pmg-form-actions"><button class="pmg-btn pmg-btn--secondary" type="submit">Dodaj do galerii</button></div>
         </form>
       <?php endif; ?>
@@ -378,7 +407,7 @@ if ($edit !== null) {
     <form method="post" class="pmg-danger-zone" aria-labelledby="usun-h">
       <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
       <h2 class="pmg-danger-zone__title" id="usun-h">Strefa usuwania</h2>
-      <p class="pmg-hint">Edycja, jej zdjęcia i galeria znikną ze strony i z panelu. Tego nie da się cofnąć. Żeby tylko schować edycję, odznacz „Pokaż edycję na stronie”.</p>
+      <p class="pmg-hint">Edycja, jej zdjęcia i galeria znikną ze strony i z panelu. Tego nie da się cofnąć. Żeby tylko schować edycję, odznacz „Opublikuj na stronie”.</p>
       <label class="pmg-check"><input type="checkbox" required><span>Tak, usuń tę edycję na stałe</span></label>
       <button class="pmg-btn pmg-btn--danger" type="submit">Usuń edycję</button>
     </form>
@@ -386,23 +415,23 @@ if ($edit !== null) {
 
 <?php else: ?>
   <?php pmg_import_blok('case'); ?>
-  <p class="pmg-hint">Karty w hubie Case Koła pojawiają się w kolejności z tej listy. Gdy w panelu jest choć jedna edycja (także ukryta), hub i menu pochodzą z panelu, a nie z kodu strony.</p>
+  <p class="pmg-hint">Karty w hubie Case Koła pojawiają się w kolejności z tej listy. Gdy w panelu jest choć jedna edycja (także szkic), hub i menu pochodzą z panelu, a nie z kodu strony.</p>
   <div class="pmg-table-wrap">
     <table class="pmg-table pmg-table--klikalna">
       <caption class="pmg-vh">Edycje Case Koła</caption>
-      <thead><tr><th scope="col" class="pmg-num">Nr</th><th scope="col">Partner</th><th scope="col" class="pmg-num">Zdjęcia</th><th scope="col">Widoczność</th><th scope="col">Kolejność</th></tr></thead>
+      <thead><tr><th scope="col" class="pmg-num">Nr</th><th scope="col">Partner</th><th scope="col" class="pmg-num">Zdjęcia</th><th scope="col">Status</th><th scope="col">Kolejność</th></tr></thead>
       <tbody>
-      <?php foreach ($lista as $i => $r): ?>
-        <tr>
+      <?php foreach ($lista as $i => $r): $wylG = $i === 0; $wylD = $i === count($lista) - 1; ?>
+        <tr id="wiersz-<?= (int) $r['id'] ?>">
           <td class="pmg-num" data-label="Nr"><?= (int) $r['numer'] ?></td>
           <td class="pmg-td-main" data-label="Partner"><a class="pmg-row-link" href="?m=case&amp;id=<?= (int) $r['id'] ?>"><?= h($r['nazwa']) ?></a></td>
           <td class="pmg-num" data-label="Zdjęcia"><?= (int) $r['zdjec'] ?></td>
-          <td data-label="Widoczność"><?php if ($r['widoczna']): ?><span class="pmg-chip pmg-chip--success">Widoczna</span><?php else: ?><span class="pmg-chip pmg-chip--neutral">Ukryta</span><?php endif; ?></td>
+          <td data-label="Status"><?php if ($r['widoczna']): ?><span class="pmg-chip pmg-chip--success">Opublikowany</span><?php else: ?><span class="pmg-chip pmg-chip--neutral">Szkic</span><?php endif; ?></td>
           <td class="pmg-td-actions" data-label="Kolejność">
             <form method="post">
               <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
-              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gora"<?= $i === 0 ? ' disabled' : '' ?> aria-label="Przesuń wyżej: <?= h($r['nazwa']) ?>"><span aria-hidden="true">↑</span></button>
-              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="dol"<?= $i === count($lista) - 1 ? ' disabled' : '' ?> aria-label="Przesuń niżej: <?= h($r['nazwa']) ?>"><span aria-hidden="true">↓</span></button>
+              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="gora"<?= $wylG ? ' disabled' : '' ?><?= fokus_strzalki((int) $r['id'], 'gora', $wylG, $wylD) ?> aria-label="Przesuń wyżej: <?= h($r['nazwa']) ?>"><span aria-hidden="true">↑</span></button>
+              <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="dol"<?= $wylD ? ' disabled' : '' ?><?= fokus_strzalki((int) $r['id'], 'dol', $wylG, $wylD) ?> aria-label="Przesuń niżej: <?= h($r['nazwa']) ?>"><span aria-hidden="true">↓</span></button>
             </form>
           </td>
         </tr>

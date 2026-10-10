@@ -1,6 +1,6 @@
 <?php
 // Moduł administracyjny (tylko rola 'admin'): konta, dziennik zmian, kopia bazy, ustawienia (2b).
-// Wołany wyłącznie z index.php (?m=konta|dziennik|kopia|ustawienia).
+// Wołany wyłącznie z index.php (?m=konta|dziennik|kopia|stopka; stopka tylko w zakładce „E-mail i media”).
 defined('PMG_PANEL') || exit;
 
 $sub = $_GET['m'] ?? '';
@@ -46,9 +46,10 @@ if ($sub === 'kopia') {
 
 // ---------- Ustawienia: etap 2b ----------
 // Pola tego formularza. Liczby "PM Session w liczbach" (pms_*) są też w białej liście USTAWIENIA
-// (lib.php), ale edytuje je moduł pmsession w etapie 2d — nie ten formularz.
-if ($sub === 'ustawienia') {
-    $pola = ['instagram', 'facebook', 'linkedin', 'tiktok', 'email', 'rekrutacja_otwarta', 'rekrutacja_link', 'rekrutacja_tekst'];
+// (lib.php), ale edytuje je moduł pmsession w etapie 2d — nie ten formularz. Rekrutację (rekrutacja_*) edytuje osobny
+// moduł _rekrutacja.php; zapis poniżej zmienia tylko klucze z $pola, więc kluczy rekrutacji nie rusza.
+if ($sub === 'stopka') { // zakładka „E-mail i media” strony Stopka i kontakt (dawne Ustawienia strony; dziennik dalej pod 'ustawienia')
+    $pola = ['instagram', 'facebook', 'linkedin', 'tiktok', 'email'];
 
     $st = pmg_db()->prepare('SELECT klucz, wartosc FROM pmg_ustawienia WHERE klucz IN (' . implode(',', array_fill(0, count($pola), '?')) . ')');
     $st->execute($pola);
@@ -64,29 +65,24 @@ if ($sub === 'ustawienia') {
             'linkedin' => trim((string) ($_POST['linkedin'] ?? '')),
             'tiktok' => trim((string) ($_POST['tiktok'] ?? '')),
             'email' => trim((string) ($_POST['email'] ?? '')),
-            'rekrutacja_otwarta' => ($_POST['rekrutacja_otwarta'] ?? '') === '0' ? '0' : '1',
-            'rekrutacja_link' => trim((string) ($_POST['rekrutacja_link'] ?? '')),
-            'rekrutacja_tekst' => trim((string) ($_POST['rekrutacja_tekst'] ?? '')),
         ];
         $wartosci = $wejscie; // formularz zachowuje wpisane wartości, jeśli coś jest nie tak
 
-        if (!url_ok($wejscie['instagram'])) $error = 'Instagram: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
-        elseif (!url_ok($wejscie['facebook'])) $error = 'Facebook: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
-        elseif (!url_ok($wejscie['linkedin'])) $error = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
-        elseif (!url_ok($wejscie['tiktok'])) $error = 'TikTok: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
-        elseif ($wejscie['email'] !== '' && !filter_var($wejscie['email'], FILTER_VALIDATE_EMAIL)) $error = 'Podaj poprawny adres e-mail albo zostaw puste pole.';
-        elseif (!url_ok($wejscie['rekrutacja_link'])) $error = 'Link do formularza rekrutacyjnego: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
-        elseif (mb_strlen($wejscie['rekrutacja_tekst']) > 300) $error = 'Tekst o rekrutacji może mieć maksymalnie 300 znaków.';
+        if (!url_ok($wejscie['instagram'])) $bledyPol['instagram'] = 'Instagram: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        if (!url_ok($wejscie['facebook'])) $bledyPol['facebook'] = 'Facebook: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        if (!url_ok($wejscie['linkedin'])) $bledyPol['linkedin'] = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        if (!url_ok($wejscie['tiktok'])) $bledyPol['tiktok'] = 'TikTok: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        if ($wejscie['email'] !== '' && !filter_var($wejscie['email'], FILTER_VALIDATE_EMAIL)) $bledyPol['email'] = 'Podaj poprawny adres e-mail albo zostaw puste pole.';
 
-        if ($error === '') {
+        if (!$bledyPol) {
             $pdo = pmg_db();
             $pdo->beginTransaction();
             $upd = $pdo->prepare('REPLACE INTO pmg_ustawienia (klucz, wartosc) VALUES (?,?)');
             foreach ($pola as $k) $upd->execute([$k, $wejscie[$k]]);
             $pdo->commit();
-            loguj('ustawienia', 'edycja');
+            loguj('ustawienia', 'edycja', null, 'Media społecznościowe i e-mail');
             $_SESSION['flash'] = 'Zapisano. Zmiany widać na stronie w ciągu 5 minut.';
-            go('?m=ustawienia');
+            go('?m=stopka');
         }
     }
     ?>
@@ -99,46 +95,26 @@ if ($sub === 'ustawienia') {
         <h2 class="pmg-form-section__title" id="sek-social">Media społecznościowe</h2>
         <label for="instagram">Instagram</label>
         <p class="pmg-hint" id="instagram_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-        <input type="text" id="instagram" name="instagram" value="<?= h($wartosci['instagram']) ?>" aria-describedby="instagram_h">
+        <input type="text" id="instagram" name="instagram" value="<?= h($wartosci['instagram']) ?>"<?= blad_pola('instagram', 'instagram_h') ?>><?= komunikat_pola('instagram') ?>
 
         <label for="facebook">Facebook</label>
         <p class="pmg-hint" id="facebook_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-        <input type="text" id="facebook" name="facebook" value="<?= h($wartosci['facebook']) ?>" aria-describedby="facebook_h">
+        <input type="text" id="facebook" name="facebook" value="<?= h($wartosci['facebook']) ?>"<?= blad_pola('facebook', 'facebook_h') ?>><?= komunikat_pola('facebook') ?>
 
         <label for="linkedin">LinkedIn</label>
         <p class="pmg-hint" id="linkedin_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-        <input type="text" id="linkedin" name="linkedin" value="<?= h($wartosci['linkedin']) ?>" aria-describedby="linkedin_h">
+        <input type="text" id="linkedin" name="linkedin" value="<?= h($wartosci['linkedin']) ?>"<?= blad_pola('linkedin', 'linkedin_h') ?>><?= komunikat_pola('linkedin') ?>
 
         <label for="tiktok">TikTok</label>
         <p class="pmg-hint" id="tiktok_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-        <input type="text" id="tiktok" name="tiktok" value="<?= h($wartosci['tiktok']) ?>" aria-describedby="tiktok_h">
+        <input type="text" id="tiktok" name="tiktok" value="<?= h($wartosci['tiktok']) ?>"<?= blad_pola('tiktok', 'tiktok_h') ?>><?= komunikat_pola('tiktok') ?>
       </section>
 
       <section class="pmg-form-section" aria-labelledby="sek-kontakt">
         <h2 class="pmg-form-section__title" id="sek-kontakt">Kontakt</h2>
         <label for="email">E-mail kontaktowy</label>
         <p class="pmg-hint" id="email_h">Adres pokazywany na stronie (stopka, Kontakt). Puste pole = strona pokazuje obecny adres.</p>
-        <input type="email" id="email" name="email" value="<?= h($wartosci['email']) ?>" aria-describedby="email_h">
-      </section>
-
-      <section class="pmg-form-section" aria-labelledby="sek-rekrutacja">
-        <h2 class="pmg-form-section__title" id="sek-rekrutacja">Rekrutacja</h2>
-        <fieldset class="pmg-fieldset">
-          <legend class="pmg-legend">Rekrutacja</legend>
-          <p class="pmg-hint" id="rekrutacja_otwarta_h">Przy „Zamknięta” strona Dołącz ukrywa przycisk do formularza i podpowiedź pod nim.</p>
-          <div class="pmg-options">
-            <label class="pmg-option"><input type="radio" name="rekrutacja_otwarta" value="1" aria-describedby="rekrutacja_otwarta_h"<?= $wartosci['rekrutacja_otwarta'] !== '0' ? ' checked' : '' ?>><span>Otwarta</span></label>
-            <label class="pmg-option"><input type="radio" name="rekrutacja_otwarta" value="0" aria-describedby="rekrutacja_otwarta_h"<?= $wartosci['rekrutacja_otwarta'] === '0' ? ' checked' : '' ?>><span>Zamknięta</span></label>
-          </div>
-        </fieldset>
-
-        <label for="rekrutacja_link">Link do formularza rekrutacyjnego</label>
-        <p class="pmg-hint" id="rekrutacja_link_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-        <input type="text" id="rekrutacja_link" name="rekrutacja_link" value="<?= h($wartosci['rekrutacja_link']) ?>" aria-describedby="rekrutacja_link_h">
-
-        <label for="rekrutacja_tekst">Krótki tekst o rekrutacji</label>
-        <p class="pmg-hint" id="rekrutacja_tekst_h">Maksymalnie 300 znaków. Puste pole = strona pokazuje obecny tekst.</p>
-        <textarea id="rekrutacja_tekst" name="rekrutacja_tekst" maxlength="300" aria-describedby="rekrutacja_tekst_h" data-pmg-licznik><?= h($wartosci['rekrutacja_tekst']) ?></textarea>
+        <input type="email" id="email" name="email" value="<?= h($wartosci['email']) ?>"<?= blad_pola('email', 'email_h') ?>><?= komunikat_pola('email') ?>
       </section>
 
       <div class="pmg-form-actions">
@@ -153,9 +129,10 @@ if ($sub === 'ustawienia') {
 if ($sub === 'dziennik') {
     // Retencja (RODO: imię i nazwisko + akcje): wpisy starsze niż 12 miesięcy znikają przy wejściu do dziennika.
     pmg_db()->exec('DELETE FROM pmg_dziennik WHERE kiedy < NOW() - INTERVAL 12 MONTH');
+    // LEFT JOIN: wpis bez konta (nieudane logowanie na nieznany adres) też jest widoczny — jako „Nieznana osoba”.
     $wpisy = pmg_db()->query(
-        'SELECT d.kiedy, d.modul, d.akcja, d.rekord_id, u.imie_nazwisko
-         FROM pmg_dziennik d JOIN pmg_uzytkownicy u ON u.id = d.uzytkownik_id
+        'SELECT d.kiedy, d.modul, d.akcja, d.rekord_id, d.opis, u.imie_nazwisko
+         FROM pmg_dziennik d LEFT JOIN pmg_uzytkownicy u ON u.id = d.uzytkownik_id
          ORDER BY d.id DESC LIMIT 200'
     )->fetchAll();
     // Etykiety PL akcji dziennika — tylko widok; nieznany klucz pokazuje surową wartość.
@@ -163,25 +140,30 @@ if ($sub === 'dziennik') {
         'dodanie' => 'Dodanie', 'edycja' => 'Edycja', 'usuniecie' => 'Usunięcie',
         'zaproszenie' => 'Zaproszenie', 'blokada' => 'Blokada', 'odblokowanie' => 'Odblokowanie',
         'reset' => 'Reset hasła', 'haslo' => 'Zmiana własnego hasła', 'biezaca' => 'Ustawienie bieżącej edycji', 'pobranie' => 'Pobranie kopii', 'kolejnosc' => 'Zmiana kolejności', 'import' => 'Wczytanie treści ze strony', 'przywrocenie' => 'Przywrócenie tekstu ze strony',
+        'galeria' => 'Zmiana galerii', 'logowanie' => 'Logowanie', 'nieudane_logowanie' => 'Nieudane logowanie', 'haslo_z_linku' => 'Ustawienie hasła z linku',
     ];
+    $modulyDziennika = $etykietyModulow + ['konto' => 'Konto']; // 'konto' = logowania i hasło z linku
     ?>
     <div class="pmg-table-wrap">
       <table class="pmg-table">
-        <caption class="pmg-vh">Dziennik zmian</caption>
-        <thead><tr>
-          <th scope="col">Kiedy</th><th scope="col">Kto</th><th scope="col">Moduł</th><th scope="col">Akcja</th><th scope="col" class="pmg-num">Rekord</th>
-        </tr></thead>
+        <caption class="pmg-vh">Dziennik zmian, od najnowszych</caption>
+        <thead><tr><th scope="col">Zdarzenie</th></tr></thead>
         <tbody>
         <?php foreach ($wpisy as $w): ?>
+          <?php
+            // Jedno zdanie: „Kto — Czynność: „co” · Moduł · kiedy”. Starsze wpisy (sprzed schematu 10) nie mają opisu — wtedy #id.
+            $co = $w['opis'] !== '' ? '„' . $w['opis'] . '”' : ($w['rekord_id'] !== null ? '#' . (int) $w['rekord_id'] : '');
+            $kiedy = strtotime((string) $w['kiedy']);
+          ?>
           <tr>
-            <td class="pmg-td-main" data-label="Kiedy"><time datetime="<?= h($w['kiedy']) ?>"><?= h($w['kiedy']) ?></time></td>
-            <td data-label="Kto"><?= h($w['imie_nazwisko']) ?></td>
-            <td data-label="Moduł"><?= h($etykietyModulow[$w['modul']] ?? $w['modul']) ?></td>
-            <td data-label="Akcja"><?= h($pmgAkcjeDziennika[$w['akcja']] ?? $w['akcja']) ?></td>
-            <td class="pmg-num" data-label="Rekord"><?= $w['rekord_id'] !== null ? (int) $w['rekord_id'] : '—' ?></td>
+            <td data-label="Zdarzenie">
+              <strong><?= h($w['imie_nazwisko'] ?? 'Nieznana osoba') ?></strong> — <?= h($pmgAkcjeDziennika[$w['akcja']] ?? $w['akcja']) ?><?= $co !== '' ? ': ' . h($co) : '' ?>
+              · <?= h($modulyDziennika[$w['modul']] ?? $w['modul']) ?>
+              · <time datetime="<?= h(date('Y-m-d\TH:i:s', $kiedy)) ?>"><?= h(date('d.m.Y H:i', $kiedy)) ?></time>
+            </td>
           </tr>
         <?php endforeach; ?>
-        <?php if (!$wpisy): ?><tr><td colspan="5" class="pmg-empty">Brak wpisów.</td></tr><?php endif; ?>
+        <?php if (!$wpisy): ?><tr><td class="pmg-empty">Brak wpisów.</td></tr><?php endif; ?>
         </tbody>
       </table>
     </div>
@@ -193,19 +175,38 @@ if ($sub === 'dziennik') {
 if ($sub !== 'konta') { echo '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nieznany widok.</p></div>'; return; }
 
 $error = '';
-const MODULY_REDAKTORA = ['aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła', 'tresci' => 'Treści stron'];
+// Uprawnienia redaktora w kolejności menu (wartości kolumny SET moduly). Biała lista przy zapisie: 'tresci' ani 'admin' przez POST nie przejdą.
+const MODULY_REDAKTORA = [
+    'glowna' => 'Strona główna', 'czlonkowie' => 'O nas', 'aktualnosci' => 'Aktualności', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła',
+    'dolacz' => 'Dołącz (teksty strony)', 'rekrutacja' => 'Rekrutacja (nabór i link na stronie Dołącz)', 'kontakt' => 'Kontakt',
+];
 const KONTO_WLASNE = 'Nie możesz zmienić roli, zablokować ani zresetować własnego konta. Hasło zmienisz w „Moje konto”.';
 
 // Ilu jest innych aktywnych administratorów z ustawionym hasłem (poza kontem $id) — chroni ostatniego admina.
+// FOR UPDATE: w transakcji (A2 1.5) czyta najnowszy zatwierdzony stan, a nie stary obraz bazy.
 function inni_aktywni_admini($id)
 {
-    $st = pmg_db()->prepare("SELECT COUNT(*) FROM pmg_uzytkownicy WHERE rola='admin' AND aktywny=1 AND haslo IS NOT NULL AND id <> ?");
+    $st = pmg_db()->prepare("SELECT COUNT(*) FROM pmg_uzytkownicy WHERE rola='admin' AND aktywny=1 AND haslo IS NOT NULL AND id <> ? FOR UPDATE");
     $st->execute([$id]);
     return (int) $st->fetchColumn();
 }
 
+// A2 1.5: na początku transakcji blokuje wiersze administratorów i konta $id jednym zapytaniem (zawsze w kolejności id), więc
+// dwa równoczesne żądania (np. dwóch adminów degraduje się nawzajem) czekają na siebie, zamiast oba przejść sprawdzenie
+// „ostatniego administratora”. Blokada trwa do commit/rollBack.
+function zablokuj_adminow($id)
+{
+    $st = pmg_db()->prepare("SELECT id FROM pmg_uzytkownicy WHERE rola = 'admin' OR id = ? ORDER BY id FOR UPDATE");
+    $st->execute([$id]);
+    $st->fetchAll();
+}
+
+// A2 3.18: adres panelu z konfiguracji ('adres_panelu'), a nie z nagłówka Host żądania. Gdy klucza nie ma (albo nie zaczyna się
+// od http:// lub https://), link składamy jak dawniej: protokół i Host bieżącego żądania + katalog panelu.
 function link_zaproszenia($token)
 {
+    $adres = trim((string) (pmg_config()['adres_panelu'] ?? ''));
+    if (preg_match('~^https?://~', $adres)) return rtrim($adres, '/') . '/?t=' . $token;
     return ($GLOBALS['https'] ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '') . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/?t=' . $token;
 }
 
@@ -222,21 +223,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
         $rola = ($_POST['rola'] ?? '') === 'admin' ? 'admin' : 'redaktor';
         $moduly = implode(',', array_intersect((array) ($_POST['moduly'] ?? []), array_keys(MODULY_REDAKTORA)));
-        // Przy własnym koncie pola roli i modułów są wyłączone (nie przychodzą w POST); rola i moduły zostają bez zmian.
+        // Przy własnym koncie pola roli i stron są wyłączone (nie przychodzą w POST); rola i uprawnienia zostają bez zmian.
         $zmianaWlasnejRoli = $ja && isset($_POST['rola']) && $rola !== $me['rola'];
         if ($ja) { $rola = $me['rola']; $moduly = $me['moduly']; }
 
-        if ($imie === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = 'Podaj imię i nazwisko oraz poprawny e-mail.';
+        if ($imie === '') $bledyPol['imie_nazwisko'] = 'Podaj imię i nazwisko.';
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $bledyPol['email'] = 'Podaj poprawny e-mail.';
+        if ($bledyPol) {
+            // nic nie zapisujemy — formularz wróci z komunikatami przy polach (niżej)
         } elseif ($zmianaWlasnejRoli) {
             $error = KONTO_WLASNE;
         } elseif ($action === 'zapros') {
             try {
                 $token = bin2hex(random_bytes(32));
-                $st = pmg_db()->prepare('INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, rola, moduly, aktywny, token_hash, token_do) VALUES (?,?,?,?,1,?,DATE_ADD(NOW(), INTERVAL 72 HOUR))');
+                $st = pmg_db()->prepare('INSERT INTO pmg_uzytkownicy (imie_nazwisko, email, rola, moduly, aktywny, token_hash, token_do) VALUES (?,?,?,?,1,?,DATE_ADD(NOW(), INTERVAL 24 HOUR))'); // A2 3.17: link ważny 24 h
                 $st->execute([$imie, $email, $rola, $moduly, hash('sha256', $token)]);
                 $nowyId = (int) pmg_db()->lastInsertId();
-                loguj('konta', 'zaproszenie', $nowyId);
+                loguj('konta', 'zaproszenie', $nowyId, $imie);
                 $_SESSION['flash'] = 'Konto utworzone.';
                 $_SESSION['flash_link'] = link_zaproszenia($token);
                 go('?m=konta');
@@ -244,63 +247,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = $e->getCode() === '23000' ? 'Konto z tym e-mailem już istnieje.' : 'Błąd zapisu.';
             }
         } else { // edytuj
-            $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ?');
+            $pdo = pmg_db();
+            $pdo->beginTransaction(); // A2 1.5: sprawdzenie ostatniego admina i zmiana w jednej transakcji z blokadą wierszy
+            try {
+                zablokuj_adminow($id);
+                $st = $pdo->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ? FOR UPDATE');
+                $st->execute([$id]);
+                $target = $st->fetch();
+                if (!$target) {
+                    $error = 'Nie znaleziono konta.';
+                } else {
+                    $byl_aktywnym_adminem = $target['rola'] === 'admin' && (int) $target['aktywny'] === 1 && $target['haslo'] !== null;
+                    if ($byl_aktywnym_adminem && $rola !== 'admin' && inni_aktywni_admini($id) === 0) {
+                        $error = 'Nie można zdegradować ostatniego aktywnego administratora.';
+                    } else {
+                        $st2 = $pdo->prepare('UPDATE pmg_uzytkownicy SET imie_nazwisko=?, email=?, rola=?, moduly=? WHERE id=?');
+                        $st2->execute([$imie, $email, $rola, $moduly, $id]);
+                    }
+                }
+                if ($error === '') $pdo->commit(); else $pdo->rollBack();
+            } catch (PDOException $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                $error = $e->getCode() === '23000' ? 'Konto z tym e-mailem już istnieje.' : 'Błąd zapisu.';
+            }
+            if ($error === '') {
+                loguj('konta', 'edycja', $id, $imie);
+                $_SESSION['flash'] = 'Zapisano.';
+                go('?m=konta');
+            }
+        }
+        if ($error !== '' || $bledyPol) $edit = ['id' => $id, 'imie_nazwisko' => $imie, 'email' => $email, 'rola' => $rola, 'moduly' => $moduly];
+
+    } elseif ($action === 'blokuj' || $action === 'odblokuj') {
+        $pdo = pmg_db();
+        $pdo->beginTransaction(); // A2 1.5: jak przy edycji — sprawdzenie i blokada konta w jednej transakcji
+        try {
+            zablokuj_adminow($id);
+            $st = $pdo->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ? FOR UPDATE');
             $st->execute([$id]);
             $target = $st->fetch();
             if (!$target) {
                 $error = 'Nie znaleziono konta.';
-            } else {
-                $byl_aktywnym_adminem = $target['rola'] === 'admin' && (int) $target['aktywny'] === 1 && $target['haslo'] !== null;
-                if ($byl_aktywnym_adminem && $rola !== 'admin' && inni_aktywni_admini($id) === 0) {
-                    $error = 'Nie można zdegradować ostatniego aktywnego administratora.';
+            } elseif ($action === 'blokuj') {
+                $jest_aktywnym_adminem = $target['rola'] === 'admin' && (int) $target['aktywny'] === 1 && $target['haslo'] !== null;
+                if ($jest_aktywnym_adminem && inni_aktywni_admini($id) === 0) {
+                    $error = 'Nie można zablokować ostatniego aktywnego administratora.';
                 } else {
-                    try {
-                        $st2 = pmg_db()->prepare('UPDATE pmg_uzytkownicy SET imie_nazwisko=?, email=?, rola=?, moduly=? WHERE id=?');
-                        $st2->execute([$imie, $email, $rola, $moduly, $id]);
-                        loguj('konta', 'edycja', $id);
-                        $_SESSION['flash'] = 'Zapisano.';
-                        go('?m=konta');
-                    } catch (PDOException $e) {
-                        $error = $e->getCode() === '23000' ? 'Konto z tym e-mailem już istnieje.' : 'Błąd zapisu.';
-                    }
+                    $pdo->prepare('UPDATE pmg_uzytkownicy SET aktywny=0, token_hash=NULL, token_do=NULL WHERE id=?')->execute([$id]);
                 }
-            }
-        }
-        if ($error !== '') $edit = ['id' => $id, 'imie_nazwisko' => $imie, 'email' => $email, 'rola' => $rola, 'moduly' => $moduly];
-
-    } elseif ($action === 'blokuj' || $action === 'odblokuj') {
-        $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ?');
-        $st->execute([$id]);
-        $target = $st->fetch();
-        if (!$target) {
-            $error = 'Nie znaleziono konta.';
-        } elseif ($action === 'blokuj') {
-            $jest_aktywnym_adminem = $target['rola'] === 'admin' && (int) $target['aktywny'] === 1 && $target['haslo'] !== null;
-            if ($jest_aktywnym_adminem && inni_aktywni_admini($id) === 0) {
-                $error = 'Nie można zablokować ostatniego aktywnego administratora.';
             } else {
-                pmg_db()->prepare('UPDATE pmg_uzytkownicy SET aktywny=0, token_hash=NULL, token_do=NULL WHERE id=?')->execute([$id]);
-                loguj('konta', 'blokada', $id);
-                $_SESSION['flash'] = 'Konto zablokowane.';
-                go('?m=konta');
+                $pdo->prepare('UPDATE pmg_uzytkownicy SET aktywny=1 WHERE id=?')->execute([$id]);
             }
-        } else {
-            pmg_db()->prepare('UPDATE pmg_uzytkownicy SET aktywny=1 WHERE id=?')->execute([$id]);
-            loguj('konta', 'odblokowanie', $id);
-            $_SESSION['flash'] = 'Konto odblokowane.';
+            if ($error === '') $pdo->commit(); else $pdo->rollBack();
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+        if ($error === '') {
+            loguj('konta', $action === 'blokuj' ? 'blokada' : 'odblokowanie', $id, $target['imie_nazwisko']);
+            $_SESSION['flash'] = $action === 'blokuj' ? 'Konto zablokowane.' : 'Konto odblokowane.';
             go('?m=konta');
         }
 
     } elseif ($action === 'reset') {
-        $st = pmg_db()->prepare("SELECT COUNT(*) FROM pmg_uzytkownicy WHERE id = ? AND rola='admin' AND aktywny=1 AND haslo IS NOT NULL");
-        $st->execute([$id]);
-        if ((int) $st->fetchColumn() && inni_aktywni_admini($id) === 0) {
-            $error = 'Nie można zresetować hasła ostatniego aktywnego administratora — najpierw dodaj drugiego.';
-        } else {
-            $token = bin2hex(random_bytes(32));
-            pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo=NULL, token_hash=?, token_do=DATE_ADD(NOW(), INTERVAL 72 HOUR) WHERE id=?')
-                ->execute([hash('sha256', $token), $id]);
-            loguj('konta', 'reset', $id);
+        $pdo = pmg_db();
+        $pdo->beginTransaction(); // A2 1.5: jak przy edycji — sprawdzenie i reset w jednej transakcji
+        try {
+            zablokuj_adminow($id);
+            $st = $pdo->prepare('SELECT * FROM pmg_uzytkownicy WHERE id = ? FOR UPDATE');
+            $st->execute([$id]);
+            $target = $st->fetch();
+            if (!$target) {
+                $error = 'Nie znaleziono konta.';
+            } elseif ($target['rola'] === 'admin' && (int) $target['aktywny'] === 1 && $target['haslo'] !== null && inni_aktywni_admini($id) === 0) {
+                $error = 'Nie można zresetować hasła ostatniego aktywnego administratora — najpierw dodaj drugiego.';
+            } else {
+                $token = bin2hex(random_bytes(32));
+                $pdo->prepare('UPDATE pmg_uzytkownicy SET haslo=NULL, token_hash=?, token_do=DATE_ADD(NOW(), INTERVAL 24 HOUR) WHERE id=?') // A2 3.17: 24 h
+                    ->execute([hash('sha256', $token), $id]);
+            }
+            if ($error === '') $pdo->commit(); else $pdo->rollBack();
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+        if ($error === '') {
+            loguj('konta', 'reset', $id, $target['imie_nazwisko']);
             $_SESSION['flash'] = 'Nowy link gotowy do przekazania.';
             $_SESSION['flash_link'] = link_zaproszenia($token);
             go('?m=konta');
@@ -325,7 +357,7 @@ if (!isset($edit)) {
 if ($edit !== null) {
     $pmgNaglowek = [
         'tytul' => $edit['id'] ? 'Edytuj konto' : 'Nowe konto',
-        'opis' => $edit['id'] ? (string) $edit['email'] : 'Po zapisaniu zobaczysz tu link do przekazania nowej osobie (ważny 72 h).',
+        'opis' => $edit['id'] ? (string) $edit['email'] : 'Po zapisaniu zobaczysz tu link do przekazania nowej osobie (ważny 24 h).',
         'wstecz' => ['href' => '?m=konta', 'etykieta' => 'Konta'],
     ];
 } else {
@@ -344,21 +376,21 @@ if ($edit !== null) {
     <input type="hidden" name="a" value="<?= $edit['id'] ? 'edytuj' : 'zapros' ?>">
     <input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
     <label for="imie_nazwisko">Imię i nazwisko</label>
-    <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" value="<?= h($edit['imie_nazwisko']) ?>" required>
+    <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" value="<?= h($edit['imie_nazwisko']) ?>" required<?= blad_pola('imie_nazwisko') ?>><?= komunikat_pola('imie_nazwisko') ?>
     <label for="email">E-mail (login)</label>
-    <input type="email" id="email" name="email" maxlength="150" value="<?= h($edit['email']) ?>" required>
+    <input type="email" id="email" name="email" maxlength="150" value="<?= h($edit['email']) ?>" required<?= blad_pola('email') ?>><?= komunikat_pola('email') ?>
     <?php $wlasne = (int) $edit['id'] === (int) $me['id']; ?>
     <fieldset class="pmg-fieldset"<?= $wlasne ? ' disabled' : '' ?>>
       <legend class="pmg-legend">Rola</legend>
-      <p class="pmg-hint" id="rola_h"><?= $wlasne ? 'To Twoje konto: roli i modułów nie zmienisz sam(a). Może to zrobić inny administrator.' : 'Administrator ma dostęp do wszystkich modułów oraz do kont, dziennika i kopii bazy.' ?></p>
+      <p class="pmg-hint" id="rola_h"><?= $wlasne ? 'To Twoje konto: roli i stron nie zmienisz sam(a). Może to zrobić inny administrator.' : 'Administrator ma dostęp do wszystkich stron oraz do stopki, kont, dziennika i kopii bazy.' ?></p>
       <div class="pmg-options">
         <label class="pmg-option"><input type="radio" name="rola" value="redaktor" aria-describedby="rola_h"<?= $edit['rola'] === 'redaktor' ? ' checked' : '' ?>><span>Redaktor</span></label>
         <label class="pmg-option"><input type="radio" name="rola" value="admin" aria-describedby="rola_h"<?= $edit['rola'] === 'admin' ? ' checked' : '' ?>><span>Administrator</span></label>
       </div>
     </fieldset>
     <fieldset class="pmg-fieldset"<?= $wlasne ? ' disabled' : '' ?>>
-      <legend class="pmg-legend">Moduły (dla redaktora)</legend>
-      <p class="pmg-hint" id="moduly_h">Dotyczy tylko roli Redaktor.</p>
+      <legend class="pmg-legend">Strony (dla redaktora)</legend>
+      <p class="pmg-hint" id="moduly_h">Dotyczy tylko roli Redaktor. Strona = wszystko na tej stronie razem z jej tekstami. Stopka, e-mail i media należą do administratora.</p>
       <div class="pmg-options">
         <?php $wybrane = explode(',', $edit['moduly']); foreach (MODULY_REDAKTORA as $mk => $ml): ?>
           <label class="pmg-option"><input type="checkbox" name="moduly[]" value="<?= $mk ?>" aria-describedby="moduly_h"<?= in_array($mk, $wybrane, true) ? ' checked' : '' ?>><span><?= h($ml) ?></span></label>
@@ -375,7 +407,7 @@ if ($edit !== null) {
   <?php if ($pokazLink): ?>
     <div class="pmg-card">
       <h2 class="pmg-h2">Link zaproszenia</h2>
-      <label for="link-zaproszenia">Link do przekazania tej osobie — ważny 72 h</label>
+      <label for="link-zaproszenia">Link do przekazania tej osobie — ważny 24 h</label>
       <p class="pmg-hint" id="link-zaproszenia_h">Wyślij go tej osobie — po otwarciu ustawi swoje hasło.</p>
       <div class="pmg-copy">
         <input type="text" id="link-zaproszenia" readonly value="<?= h($pokazLink) ?>" aria-describedby="link-zaproszenia_h">
@@ -388,7 +420,7 @@ if ($edit !== null) {
     <table class="pmg-table pmg-table--klikalna">
       <caption class="pmg-vh">Konta</caption>
       <thead><tr>
-        <th scope="col">Imię i nazwisko</th><th scope="col">Rola</th><th scope="col">Moduły</th><th scope="col">Status</th><th scope="col">Akcje</th>
+        <th scope="col">Imię i nazwisko</th><th scope="col">Rola</th><th scope="col">Strony</th><th scope="col">Status</th><th scope="col">Akcje</th>
       </tr></thead>
       <tbody>
       <?php foreach (pmg_db()->query('SELECT * FROM pmg_uzytkownicy ORDER BY imie_nazwisko') as $k): ?>
@@ -411,7 +443,7 @@ if ($edit !== null) {
             <?php if ((int) $k['id'] === (int) $me['id']): ?><span class="pmg-chip pmg-chip--accent">To Ty</span><?php endif; ?>
           </td>
           <td data-label="Rola"><?= $k['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?></td>
-          <td data-label="Moduły"><?= h($modulyTekst) ?></td>
+          <td data-label="Strony"><?= h($modulyTekst) ?></td>
           <td data-label="Status"><span class="pmg-chip <?= $statusKlasa ?>"><?= $statusTekst ?></span></td>
           <td class="pmg-td-actions" data-label="Akcje">
             <a class="pmg-btn pmg-btn--text pmg-btn--sm" href="?m=konta&id=<?= (int) $k['id'] ?>">Edytuj<span class="pmg-vh"> <?= h($k['imie_nazwisko']) ?></span></a>
