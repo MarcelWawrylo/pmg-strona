@@ -24,10 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         loguj('aktualnosci', 'usuniecie', $id);
         $_SESSION['flash'] = 'Wpis usunięty.';
         go('?m=aktualnosci');
+    } elseif ($action === 'import') {
+        pmg_import_wykonaj('aktualnosci');
     } elseif ($action === 'save') {
         $id = (int) ($_POST['id'] ?? 0);
         $f = [];
-        foreach (['tytul' => 200, 'zajawka' => 400, 'kategoria' => 40, 'autor' => 100, 'zdjecie_alt' => 200] as $k => $max) {
+        foreach (['tytul' => 200, 'lead' => 600, 'zajawka' => 400, 'kategoria' => 40, 'autor' => 100, 'zdjecie_alt' => 200] as $k => $max) {
             $f[$k] = mb_substr(trim((string) ($_POST[$k] ?? '')), 0, $max);
         }
         $f['tresc'] = trim(str_replace("\r\n", "\n", (string) ($_POST['tresc'] ?? '')));
@@ -35,32 +37,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $f['kolor'] = array_key_exists((string) ($_POST['kolor'] ?? ''), KOLORY) ? $_POST['kolor'] : 'pink';
         $f['opublikowany'] = empty($_POST['opublikowany']) ? 0 : 1;
         $old = null;
+        $noweZdjecie = null; // plik wgrany w tym żądaniu — usuwany, jeśli zapis do bazy się nie uda
         if ($id) {
             $st = pmg_db()->prepare('SELECT * FROM pmg_aktualnosci WHERE id = ?');
             $st->execute([$id]);
             $old = $st->fetch() ?: null;
         }
         try {
-            if ($f['tytul'] === '' || $f['zajawka'] === '' || $f['tresc'] === '' || $f['kategoria'] === '') throw new RuntimeException('Uzupełnij tytuł, kategorię, zajawkę i treść.');
+            if ($f['tytul'] === '' || $f['lead'] === '' || $f['tresc'] === '') throw new RuntimeException('Uzupełnij tytuł, lead i treść.');
             if (!data_ok($f['data'])) throw new RuntimeException('Podaj datę wpisu.');
             $stareZdjecie = $old['zdjecie'] ?? null;
             $f['zdjecie'] = zdjecie('aktualnosci', $stareZdjecie);
+            if ($f['zdjecie'] !== $stareZdjecie) $noweZdjecie = $f['zdjecie'];
             if ($id && $old) {
-                $st = pmg_db()->prepare('UPDATE pmg_aktualnosci SET data=?, kategoria=?, kolor=?, tytul=?, zajawka=?, tresc=?, zdjecie=?, zdjecie_alt=?, autor=?, opublikowany=? WHERE id=?');
-                $st->execute([$f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $id]);
+                $st = pmg_db()->prepare('UPDATE pmg_aktualnosci SET data=?, kategoria=?, kolor=?, tytul=?, lead=?, zajawka=?, tresc=?, zdjecie=?, zdjecie_alt=?, autor=?, opublikowany=? WHERE id=?');
+                $st->execute([$f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $id]);
+                $noweZdjecie = null;
                 if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
                 loguj('aktualnosci', 'edycja', $id);
             } else {
                 $base = $slug = slugify($f['tytul']);
                 $st = pmg_db()->prepare('SELECT 1 FROM pmg_aktualnosci WHERE slug = ?');
                 for ($n = 2; $st->execute([$slug]) && $st->fetchColumn(); $n++) $slug = $base . '-' . $n;
-                $st = pmg_db()->prepare('INSERT INTO pmg_aktualnosci (slug, data, kategoria, kolor, tytul, zajawka, tresc, zdjecie, zdjecie_alt, autor, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
-                $st->execute([$slug, $f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany']]);
+                $st = pmg_db()->prepare('INSERT INTO pmg_aktualnosci (slug, data, kategoria, kolor, tytul, lead, zajawka, tresc, zdjecie, zdjecie_alt, autor, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
+                $st->execute([$slug, $f['data'], $f['kategoria'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany']]);
+                $noweZdjecie = null;
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('aktualnosci', 'dodanie', $id);
             }
             $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano.' : 'Zapisano jako szkic (niewidoczny na stronie).';
             go('?m=aktualnosci');
+        } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
+            error_log('aktualnosci zapis: ' . $e->getMessage());
+            drop_image($noweZdjecie);
+            $error = 'Błąd zapisu — nic nie zapisano. Sprawdź długość treści i spróbuj ponownie.';
+            $edit = array_merge($old ?: [], $f, ['id' => $id, 'zdjecie' => $old['zdjecie'] ?? null]);
         } catch (RuntimeException $e) {
             $error = $e->getMessage();
             $edit = array_merge($old ?: [], $f, ['id' => $id]);
@@ -105,19 +116,23 @@ if ($edit !== null) {
       <h2 class="pmg-form-section__title" id="sek-tresc">Treść</h2>
       <label for="tytul">Tytuł</label>
       <input type="text" id="tytul" name="tytul" maxlength="200" value="<?= $v('tytul') ?>" required data-pmg-licznik>
-      <label for="zajawka">Zajawka (1–2 zdania na liście wpisów)</label>
-      <input type="text" id="zajawka" name="zajawka" maxlength="400" value="<?= $v('zajawka') ?>" required data-pmg-licznik>
+      <label for="lead">Lead (akapit pod tytułem w artykule)</label>
+      <p class="pmg-hint" id="lead_h">1–2 zdania wprowadzenia, wyróżnione nad zdjęciem. Maks. 600 znaków.</p>
+      <textarea id="lead" name="lead" maxlength="600" rows="3" aria-describedby="lead_h" required data-pmg-licznik><?= $v('lead') ?></textarea>
+      <label for="zajawka">Zajawka <span class="pmg-opt">(opcjonalnie)</span></label>
+      <p class="pmg-hint" id="zajawka_h">Krótki tekst na kafelku na liście wpisów i na stronie głównej. Puste pole = na kafelku pojawia się lead. Maks. 400 znaków.</p>
+      <input type="text" id="zajawka" name="zajawka" maxlength="400" value="<?= $v('zajawka') ?>" aria-describedby="zajawka_h" data-pmg-licznik>
       <label for="tresc">Treść</label>
       <p class="pmg-hint" id="tresc_h">Akapity oddzielaj pustą linią. Śródtytuł: linia zaczynająca się od <code>## </code>. Bez HTML — znaczniki pokażą się jako zwykły tekst.</p>
       <textarea id="tresc" name="tresc" aria-describedby="tresc_h" required><?= $v('tresc') ?></textarea>
     </section>
 
     <section class="pmg-form-section" aria-labelledby="sek-kategoria">
-      <h2 class="pmg-form-section__title" id="sek-kategoria">Kategoria i data</h2>
-      <label for="kategoria">Kategoria</label>
-      <p class="pmg-hint" id="kategoria_h">Np. Życie koła, Wydarzenie, Rekrutacja.</p>
-      <input type="text" id="kategoria" name="kategoria" maxlength="40" value="<?= $v('kategoria') ?>" required aria-describedby="kategoria_h">
-      <label for="kolor">Kolor etykiety kategorii</label>
+      <h2 class="pmg-form-section__title" id="sek-kategoria">Data, kategoria i kolor</h2>
+      <label for="kategoria">Kategoria <span class="pmg-opt">(opcjonalnie)</span></label>
+      <p class="pmg-hint" id="kategoria_h">Np. Życie koła, Wydarzenie, Rekrutacja. Strona na razie nie wyświetla kategorii, więc pole można zostawić puste.</p>
+      <input type="text" id="kategoria" name="kategoria" maxlength="40" value="<?= $v('kategoria') ?>" aria-describedby="kategoria_h">
+      <label for="kolor">Kolor wpisu (akcent na kafelku)</label>
       <select id="kolor" name="kolor"><?php foreach (KOLORY as $k => $n): ?><option value="<?= $k ?>"<?= ($edit['kolor'] ?? '') === $k ? ' selected' : '' ?>><?= $n ?></option><?php endforeach; ?></select>
       <label for="data">Data wpisu</label>
       <input type="date" id="data" name="data" value="<?= $v('data') ?>" required>
@@ -161,6 +176,7 @@ if ($edit !== null) {
   <?php endif; ?>
 
 <?php else: ?>
+  <?php pmg_import_blok('aktualnosci'); ?>
   <div class="pmg-table-wrap">
     <table class="pmg-table pmg-table--klikalna">
       <caption class="pmg-vh">Wpisy Aktualności</caption>

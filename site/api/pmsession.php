@@ -5,11 +5,18 @@
 // Każda strona edycji (pm-session-xiv.html, pm-session-xv.html) prosi o własny numer, więc nie dostaje danych innej edycji.
 require __DIR__ . '/lib.php';
 
+// Zdjęcie prelegenta: okno prelegenta używa kadru 4:3 (modal), kafelek kwadratu 1:1 (karta). Dla plików z img/ nazwanych
+// <baza>-43-<szerokość>.jpg kwadratowy kadr tej samej fotografii to <baza>-560.jpg (z wariantami), jeśli istnieje; dla zdjęć
+// wgranych z panelu (uploads/) oba obrazy są null, a strona używa zwykłego <img> z pliku `zdjecie` (CSS przycina do kadru).
 function pms_prelegent_pub($p)
 {
+    $modal = pmg_obraz($p['zdjecie']);
+    $karta = null;
+    if ($modal && preg_match('~^(img/[a-z0-9-]+)-43-\d+\.(jpg|png)$~', $p['zdjecie'], $m)) $karta = pmg_obraz($m[1] . '-560.' . $m[2]);
     return [
-        'imie_nazwisko' => $p['imie_nazwisko'], 'temat' => $p['temat'], 'bio' => $p['bio'],
+        'imie_nazwisko' => $p['imie_nazwisko'], 'temat' => $p['temat'], 'bio' => $p['bio'], 'opis' => $p['opis'], 'plec' => $p['plec'],
         'notatka' => $p['notatka'], 'zdjecie' => $p['zdjecie'], 'zdjecie_alt' => $p['zdjecie_alt'], 'linkedin' => $p['linkedin'],
+        'obraz_modal' => $modal, 'obraz_karta' => $karta,
     ];
 }
 
@@ -29,15 +36,15 @@ try {
     $prelegenci = [];
     $harmonogram = [];
     if ($edycjaRow) {
-        $st = pmg_db()->prepare('SELECT imie_nazwisko, temat, bio, notatka, zdjecie, zdjecie_alt, linkedin FROM pmg_prelegenci WHERE edycja_id = ? ORDER BY kolejnosc, id');
+        $st = pmg_db()->prepare('SELECT imie_nazwisko, temat, bio, opis, plec, notatka, zdjecie, zdjecie_alt, linkedin FROM pmg_prelegenci WHERE edycja_id = ? ORDER BY kolejnosc, id');
         $st->execute([$edycjaRow['id']]);
         foreach ($st->fetchAll() as $p) $prelegenci[] = pms_prelegent_pub($p);
 
         // Alias TIME_FORMAT(...) AS godzina zacieniałby kolumnę godzina w ORDER BY (MySQL/MariaDB sortowałyby
         // wtedy po sformatowanym tekście: "10:00" < "8:30" leksykalnie) — dlatego osobny alias godzina_fmt.
-        $st2 = pmg_db()->prepare("SELECT TIME_FORMAT(godzina, '%k:%i') AS godzina_fmt, tytul, prelegent FROM pmg_harmonogram WHERE edycja_id = ? ORDER BY godzina, id");
+        $st2 = pmg_db()->prepare("SELECT TIME_FORMAT(godzina, '%k:%i') AS godzina_fmt, tytul, prelegent, znacznik FROM pmg_harmonogram WHERE edycja_id = ? ORDER BY godzina, id");
         $st2->execute([$edycjaRow['id']]);
-        foreach ($st2->fetchAll() as $h) $harmonogram[] = ['godzina' => $h['godzina_fmt'], 'tytul' => $h['tytul'], 'prelegent' => $h['prelegent']];
+        foreach ($st2->fetchAll() as $h) $harmonogram[] = ['godzina' => $h['godzina_fmt'], 'tytul' => $h['tytul'], 'prelegent' => $h['prelegent'], 'znacznik' => $h['znacznik']];
     }
 } catch (PDOException $e) {
     pmg_json(['error' => 'db'], 500);

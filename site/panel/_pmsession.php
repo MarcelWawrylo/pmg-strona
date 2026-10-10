@@ -38,6 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             go('?m=pmsession');
         }
 
+    } elseif ($action === 'import') {
+        pmg_import_wykonaj('pmsession');
     } elseif ($action === 'edycja_usun') {
         $id = (int) ($_POST['id'] ?? 0);
         $st = pmg_db()->prepare('SELECT status FROM pmg_edycje WHERE id = ?');
@@ -97,6 +99,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ->execute([$f['numer'], $f['temat'], $f['data'], $f['miejsce'], $f['opis'], $status]);
                     $id = (int) pmg_db()->lastInsertId();
                     loguj('pmsession', 'dodanie', $id);
+                    // nowa edycja: od razu widok tej edycji (prelegenci i harmonogram), żeby dalszy krok był oczywisty
+                    $_SESSION['flash'] = 'Edycja zapisana. Dodaj teraz prelegentów i harmonogram.';
+                    go('?m=pmsession&e=' . $id);
                 }
                 $_SESSION['flash'] = 'Zapisano.';
                 go('?m=pmsession');
@@ -131,7 +136,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $f = [
             'imie_nazwisko' => mb_substr(trim((string) ($_POST['imie_nazwisko'] ?? '')), 0, 100),
             'temat' => mb_substr(trim((string) ($_POST['temat'] ?? '')), 0, 300),
-            'bio' => mb_substr(trim((string) ($_POST['bio'] ?? '')), 0, 1500),
+            'bio' => mb_substr(trim(str_replace("\r\n", "\n", (string) ($_POST['bio'] ?? ''))), 0, 2500),
+            'opis' => mb_substr(trim(str_replace("\r\n", "\n", (string) ($_POST['opis'] ?? ''))), 0, 4000),
+            'plec' => ($_POST['plec'] ?? '') === 'k' ? 'k' : 'm',
             'notatka' => mb_substr(trim((string) ($_POST['notatka'] ?? '')), 0, 200),
             'linkedin' => mb_substr(trim((string) ($_POST['linkedin'] ?? '')), 0, 200),
             'zdjecie_alt' => mb_substr(trim((string) ($_POST['zdjecie_alt'] ?? '')), 0, 200),
@@ -155,22 +162,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
         }
         if ($error === '') {
+            $noweZdjecie = null; // plik wgrany w tym żądaniu — usuwany, jeśli zapis do bazy się nie uda
             try {
                 $stareZdjecie = $old['zdjecie'] ?? null;
                 $f['zdjecie'] = zdjecie('pmsession', $stareZdjecie);
+                if ($f['zdjecie'] !== $stareZdjecie) $noweZdjecie = $f['zdjecie'];
                 if ($id && $old) {
-                    $st = pmg_db()->prepare('UPDATE pmg_prelegenci SET imie_nazwisko=?, temat=?, bio=?, notatka=?, zdjecie=?, zdjecie_alt=?, linkedin=?, kolejnosc=? WHERE id=?');
-                    $st->execute([$f['imie_nazwisko'], $f['temat'], $f['bio'], $f['notatka'], $f['zdjecie'], $f['zdjecie_alt'], $f['linkedin'], $f['kolejnosc'], $id]);
+                    $st = pmg_db()->prepare('UPDATE pmg_prelegenci SET imie_nazwisko=?, temat=?, bio=?, opis=?, plec=?, notatka=?, zdjecie=?, zdjecie_alt=?, linkedin=?, kolejnosc=? WHERE id=?');
+                    $st->execute([$f['imie_nazwisko'], $f['temat'], $f['bio'], $f['opis'], $f['plec'], $f['notatka'], $f['zdjecie'], $f['zdjecie_alt'], $f['linkedin'], $f['kolejnosc'], $id]);
+                    $noweZdjecie = null;
                     if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
                     loguj('pmsession', 'edycja', $id);
                 } else {
-                    $st = pmg_db()->prepare('INSERT INTO pmg_prelegenci (edycja_id, imie_nazwisko, temat, bio, notatka, zdjecie, zdjecie_alt, linkedin, kolejnosc) VALUES (?,?,?,?,?,?,?,?,?)');
-                    $st->execute([$edycjaId, $f['imie_nazwisko'], $f['temat'], $f['bio'], $f['notatka'], $f['zdjecie'], $f['zdjecie_alt'], $f['linkedin'], $f['kolejnosc']]);
+                    $st = pmg_db()->prepare('INSERT INTO pmg_prelegenci (edycja_id, imie_nazwisko, temat, bio, opis, plec, notatka, zdjecie, zdjecie_alt, linkedin, kolejnosc) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+                    $st->execute([$edycjaId, $f['imie_nazwisko'], $f['temat'], $f['bio'], $f['opis'], $f['plec'], $f['notatka'], $f['zdjecie'], $f['zdjecie_alt'], $f['linkedin'], $f['kolejnosc']]);
+                    $noweZdjecie = null;
                     $id = (int) pmg_db()->lastInsertId();
                     loguj('pmsession', 'dodanie', $id);
                 }
                 $_SESSION['flash'] = 'Zapisano.';
                 go('?m=pmsession&e=' . $edycjaId);
+            } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
+                error_log('pmsession prelegent zapis: ' . $e->getMessage());
+                drop_image($noweZdjecie);
+                $f['zdjecie'] = $old['zdjecie'] ?? null;
+                $error = 'Błąd zapisu — nic nie zapisano. Spróbuj ponownie.';
             } catch (RuntimeException $e) {
                 $error = $e->getMessage();
             }
@@ -193,6 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'godzina' => (string) ($_POST['godzina'] ?? ''),
             'tytul' => mb_substr(trim((string) ($_POST['tytul'] ?? '')), 0, 300),
             'prelegent' => mb_substr(trim((string) ($_POST['prelegent'] ?? '')), 0, 150),
+            'znacznik' => mb_substr(trim((string) ($_POST['znacznik'] ?? '')), 0, 40),
         ];
         $stE = pmg_db()->prepare('SELECT 1 FROM pmg_edycje WHERE id = ?');
         $stE->execute([$edycjaId]);
@@ -204,12 +221,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Podaj tytuł punktu harmonogramu.';
         } else {
             if ($id) {
-                pmg_db()->prepare('UPDATE pmg_harmonogram SET godzina=?, tytul=?, prelegent=? WHERE id=?')
-                    ->execute([$f['godzina'], $f['tytul'], $f['prelegent'], $id]);
+                pmg_db()->prepare('UPDATE pmg_harmonogram SET godzina=?, tytul=?, prelegent=?, znacznik=? WHERE id=?')
+                    ->execute([$f['godzina'], $f['tytul'], $f['prelegent'], $f['znacznik'], $id]);
                 loguj('pmsession', 'edycja', $id);
             } else {
-                pmg_db()->prepare('INSERT INTO pmg_harmonogram (edycja_id, godzina, tytul, prelegent) VALUES (?,?,?,?)')
-                    ->execute([$edycjaId, $f['godzina'], $f['tytul'], $f['prelegent']]);
+                pmg_db()->prepare('INSERT INTO pmg_harmonogram (edycja_id, godzina, tytul, prelegent, znacznik) VALUES (?,?,?,?,?)')
+                    ->execute([$edycjaId, $f['godzina'], $f['tytul'], $f['prelegent'], $f['znacznik']]);
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('pmsession', 'dodanie', $id);
             }
@@ -266,7 +283,7 @@ if ($edycjaWidok !== null) {
         if ($_GET['p'] === 'nowy') {
             $stN = pmg_db()->prepare('SELECT COALESCE(MAX(kolejnosc), 0) + 1 FROM pmg_prelegenci WHERE edycja_id = ?');
             $stN->execute([$eid]);
-            $editPrelegent = ['id' => 0, 'edycja_id' => $eid, 'imie_nazwisko' => '', 'temat' => '', 'bio' => '', 'notatka' => '', 'linkedin' => '', 'zdjecie_alt' => '', 'kolejnosc' => (int) $stN->fetchColumn()];
+            $editPrelegent = ['id' => 0, 'edycja_id' => $eid, 'imie_nazwisko' => '', 'temat' => '', 'bio' => '', 'opis' => '', 'plec' => 'm', 'notatka' => '', 'linkedin' => '', 'zdjecie_alt' => '', 'kolejnosc' => (int) $stN->fetchColumn()];
         } else {
             $st = pmg_db()->prepare('SELECT * FROM pmg_prelegenci WHERE id = ? AND edycja_id = ?');
             $st->execute([(int) $_GET['p'], $eid]);
@@ -275,7 +292,7 @@ if ($edycjaWidok !== null) {
     }
     if ($editHarmonogram === null && isset($_GET['h'])) {
         if ($_GET['h'] === 'nowy') {
-            $editHarmonogram = ['id' => 0, 'edycja_id' => $eid, 'godzina' => '', 'tytul' => '', 'prelegent' => ''];
+            $editHarmonogram = ['id' => 0, 'edycja_id' => $eid, 'godzina' => '', 'tytul' => '', 'prelegent' => '', 'znacznik' => ''];
         } else {
             $st = pmg_db()->prepare('SELECT * FROM pmg_harmonogram WHERE id = ? AND edycja_id = ?');
             $st->execute([(int) $_GET['h'], $eid]);
@@ -351,11 +368,25 @@ if ($editPrelegent !== null) {
       <input type="number" id="kolejnosc" name="kolejnosc" value="<?= (int) ($editPrelegent['kolejnosc'] ?? 0) ?>" aria-describedby="kolejnosc_h">
     </section>
 
+    <section class="pmg-form-section" aria-labelledby="sek-opis">
+      <h2 class="pmg-form-section__title" id="sek-opis">Opis prelekcji</h2>
+      <label for="opis">Opis prelekcji lub warsztatu <span class="pmg-opt">(opcjonalnie)</span></label>
+      <p class="pmg-hint" id="opis_h">Pokazuje się w oknie prelegenta pod tematem. Akapity oddzielaj pustą linią. Maksymalnie 4000 znaków.</p>
+      <textarea id="opis" name="opis" maxlength="4000" rows="8" aria-describedby="opis_h" data-pmg-licznik><?= $v('opis') ?></textarea>
+    </section>
+
     <section class="pmg-form-section" aria-labelledby="sek-bio">
       <h2 class="pmg-form-section__title" id="sek-bio">Biogram i LinkedIn</h2>
       <label for="bio">Biogram</label>
-      <p class="pmg-hint" id="bio_h">Maksymalnie 1500 znaków.</p>
-      <textarea id="bio" name="bio" maxlength="1500" aria-describedby="bio_h" data-pmg-licznik><?= $v('bio') ?></textarea>
+      <p class="pmg-hint" id="bio_h">Akapity oddzielaj pustą linią — na stronie będą osobnymi akapitami. Maksymalnie 2500 znaków.</p>
+      <textarea id="bio" name="bio" maxlength="2500" rows="8" aria-describedby="bio_h" data-pmg-licznik><?= $v('bio') ?></textarea>
+      <fieldset class="pmg-fieldset">
+        <legend class="pmg-legend">Nagłówek biogramu w oknie prelegenta</legend>
+        <div class="pmg-options">
+          <label class="pmg-option"><input type="radio" name="plec" value="m"<?= ($editPrelegent['plec'] ?? 'm') !== 'k' ? ' checked' : '' ?>><span>O prelegencie</span></label>
+          <label class="pmg-option"><input type="radio" name="plec" value="k"<?= ($editPrelegent['plec'] ?? '') === 'k' ? ' checked' : '' ?>><span>O prelegentce</span></label>
+        </div>
+      </fieldset>
       <label for="linkedin">LinkedIn <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="linkedin_h">Pełny adres zaczynający się od https://. Pole opcjonalne.</p>
       <input type="text" id="linkedin" name="linkedin" maxlength="200" value="<?= $v('linkedin') ?>" aria-describedby="linkedin_h">
@@ -363,10 +394,10 @@ if ($editPrelegent !== null) {
 
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
       <h2 class="pmg-form-section__title" id="sek-zdjecie">Zdjęcie</h2>
-      <label for="zdjecie">Zdjęcie 1:1 — kwadrat (JPG, PNG albo WebP)</label>
-      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Kwadrat 1:1, np. 800 × 800 px. Opcjonalne.</p>
+      <label for="zdjecie">Zdjęcie 4:3 (JPG, PNG albo WebP)</label>
+      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Proporcje 4:3 (poziome), np. 1600 × 1200 px. Opcjonalne. Okno prelegenta pokazuje całe zdjęcie 4:3, a kafelek na liście jego środek w kwadracie — twarz ustaw pośrodku.</p>
       <?php if (!empty($editPrelegent['zdjecie'])): ?>
-        <figure class="pmg-photo pmg-photo--1x1"><img src="../<?= h($editPrelegent['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
+        <figure class="pmg-photo pmg-photo--4x3"><img src="../<?= h($editPrelegent['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>
       <input type="file" id="zdjecie" name="zdjecie" accept="image/jpeg,image/png,image/webp" aria-describedby="zdjecie_h">
       <label for="zdjecie_alt">Opis zdjęcia (co na nim widać — dla osób niewidomych)</label>
@@ -399,6 +430,9 @@ if ($editPrelegent !== null) {
     <label for="prelegent">Prelegent <span class="pmg-opt">(opcjonalnie)</span></label>
     <p class="pmg-hint" id="prelegent_h">Tekst dowolny, np. Jan Kowalski albo Jan Kowalski + Anna Nowak. Zostaw puste dla punktów bez prelegenta (np. Rejestracja).</p>
     <input type="text" id="prelegent" name="prelegent" maxlength="150" value="<?= $v('prelegent') ?>" aria-describedby="prelegent_h">
+    <label for="znacznik">Znacznik pod godziną <span class="pmg-opt">(opcjonalnie)</span></label>
+    <p class="pmg-hint" id="znacznik_h">Mały napis pod godziną, np. „3 sesje równoległe”. Wpisz go przy jednym z punktów tej godziny (wystarczy przy pierwszym). Puste pole = bez znacznika.</p>
+    <input type="text" id="znacznik" name="znacznik" maxlength="40" value="<?= $v('znacznik') ?>" aria-describedby="znacznik_h">
     <div class="pmg-form-actions">
       <button class="pmg-btn pmg-btn--primary" type="submit">Zapisz</button>
       <a class="pmg-btn pmg-btn--secondary" href="?m=pmsession&e=<?= (int) $editHarmonogram['edycja_id'] ?>">Anuluj</a>
@@ -456,7 +490,7 @@ if ($editPrelegent !== null) {
   <?php endif; ?>
 
 <?php elseif ($edycjaWidok !== null): ?>
-  <div class="pmg-card">
+  <div class="pmg-card" id="prelegenci">
     <div class="pmg-card__head">
       <h2 class="pmg-h2">Prelegenci</h2>
       <a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&e=<?= $eid ?>&p=nowy">+ Nowy prelegent</a>
@@ -488,7 +522,7 @@ if ($editPrelegent !== null) {
     </div>
   </div>
 
-  <div class="pmg-card">
+  <div class="pmg-card" id="harmonogram">
     <div class="pmg-card__head">
       <h2 class="pmg-h2">Harmonogram</h2>
       <a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&e=<?= $eid ?>&h=nowy">+ Punkt harmonogramu</a>
@@ -502,7 +536,7 @@ if ($editPrelegent !== null) {
         <?php foreach ($harmonogram as $hh): ?>
           <tr>
             <td class="pmg-td-main" data-label="Godzina"><a class="pmg-row-link" href="?m=pmsession&e=<?= $eid ?>&h=<?= (int) $hh['id'] ?>"><?= h($fmtGodzina($hh['godzina'])) ?></a></td>
-            <td data-label="Tytuł"><?= h($hh['tytul']) ?></td>
+            <td data-label="Tytuł"><?= h($hh['tytul']) ?><?php if ($hh['znacznik'] !== ''): ?> <span class="pmg-chip pmg-chip--neutral"><?= h($hh['znacznik']) ?></span><?php endif; ?></td>
             <td data-label="Prelegent"><?= h($hh['prelegent']) ?: '—' ?></td>
           </tr>
         <?php endforeach; ?>
@@ -515,14 +549,15 @@ if ($editPrelegent !== null) {
   </div>
 
 <?php else: ?>
+  <?php pmg_import_blok('pmsession'); ?>
   <div class="pmg-card">
     <div class="pmg-card__head"><h2 class="pmg-h2">Edycje</h2></div>
     <div class="pmg-table-wrap pmg-table-wrap--flush">
       <table class="pmg-table pmg-table--klikalna">
         <caption class="pmg-vh">Edycje PM Session</caption>
-        <thead><tr><th scope="col">Numer</th><th scope="col">Temat</th><th scope="col" class="pmg-num">Data</th><th scope="col">Status</th><th scope="col">Akcje</th></tr></thead>
+        <thead><tr><th scope="col">Numer</th><th scope="col">Temat</th><th scope="col" class="pmg-num">Data</th><th scope="col">Status</th><th scope="col" class="pmg-num">Prelegenci</th><th scope="col" class="pmg-num">Harmonogram</th><th scope="col">Akcje</th></tr></thead>
         <tbody>
-        <?php $edycjeLista = pmg_db()->query('SELECT * FROM pmg_edycje ORDER BY data DESC, id DESC')->fetchAll(); ?>
+        <?php $edycjeLista = pmg_db()->query('SELECT e.*, (SELECT COUNT(*) FROM pmg_prelegenci p WHERE p.edycja_id = e.id) AS liczba_prelegentow, (SELECT COUNT(*) FROM pmg_harmonogram hh WHERE hh.edycja_id = e.id) AS liczba_punktow FROM pmg_edycje e ORDER BY e.data DESC, e.id DESC')->fetchAll(); ?>
         <?php foreach ($edycjeLista as $e): ?>
           <tr>
             <td class="pmg-td-main" data-label="Numer"><a class="pmg-row-link" href="?m=pmsession&e=<?= (int) $e['id'] ?>">Edycja <?= h($e['numer']) ?></a></td>
@@ -532,8 +567,12 @@ if ($editPrelegent !== null) {
               <?php $sw = $pmgStatusWariant[$e['status']] ?? 'neutral'; $st_ = $pmgStatusTekst[$e['status']] ?? 'Szkic'; ?>
               <span class="pmg-chip pmg-chip--<?= $sw ?>"><?= $st_ ?></span>
             </td>
+            <td class="pmg-num" data-label="Prelegenci"><?= (int) $e['liczba_prelegentow'] ?></td>
+            <td class="pmg-num" data-label="Harmonogram"><?= (int) $e['liczba_punktow'] ?></td>
             <td class="pmg-td-actions" data-label="Akcje">
-              <a class="pmg-btn pmg-btn--text pmg-btn--sm" href="?m=pmsession&e=<?= (int) $e['id'] ?>">Zobacz</a>
+              <a class="pmg-btn pmg-btn--text pmg-btn--sm" href="?m=pmsession&e=<?= (int) $e['id'] ?>#prelegenci">Prelegenci<span class="pmg-vh"> — edycja <?= h($e['numer']) ?></span></a>
+              <a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&e=<?= (int) $e['id'] ?>&p=nowy">+ Nowy prelegent<span class="pmg-vh"> — edycja <?= h($e['numer']) ?></span></a>
+              <a class="pmg-btn pmg-btn--text pmg-btn--sm" href="?m=pmsession&e=<?= (int) $e['id'] ?>">Zobacz<span class="pmg-vh"> edycję <?= h($e['numer']) ?></span></a>
               <a class="pmg-btn pmg-btn--text pmg-btn--sm" href="?m=pmsession&edycja=<?= (int) $e['id'] ?>">Edytuj<span class="pmg-vh"> edycję <?= h($e['numer']) ?></span></a>
               <?php if ($e['status'] !== 'biezaca'): ?>
                 <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="edycja_biezaca"><input type="hidden" name="id" value="<?= (int) $e['id'] ?>"><button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit">Ustaw jako bieżącą</button></form>
@@ -542,7 +581,7 @@ if ($editPrelegent !== null) {
           </tr>
         <?php endforeach; ?>
         <?php if (!$edycjeLista): ?>
-          <tr><td colspan="5" class="pmg-empty">Brak edycji — dodaj pierwszą przyciskiem powyżej.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&edycja=nowa">+ Dodaj edycję</a></td></tr>
+          <tr><td colspan="7" class="pmg-empty">Nie ma jeszcze żadnej edycji. Najpierw dodaj edycję (numer, temat, data, miejsce), potem w jej widoku dodasz prelegentów i harmonogram.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&edycja=nowa">+ Dodaj edycję</a></td></tr>
         <?php endif; ?>
         </tbody>
       </table>

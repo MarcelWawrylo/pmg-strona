@@ -55,7 +55,9 @@ if ($sub === 'ustawienia') {
     $wartosci = array_fill_keys($pola, '');
     foreach ($st->fetchAll() as $r) $wartosci[$r['klucz']] = $r['wartosc'];
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['a'] ?? '') === 'import') {
+        pmg_import_wykonaj('ustawienia');
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $wejscie = [
             'instagram' => trim((string) ($_POST['instagram'] ?? '')),
             'facebook' => trim((string) ($_POST['facebook'] ?? '')),
@@ -89,6 +91,7 @@ if ($sub === 'ustawienia') {
     }
     ?>
     <?php // Błąd ($error) wyświetla wspólny szablon w index.php — nie powielamy go tutaj. ?>
+    <?php pmg_import_blok('ustawienia'); ?>
     <form class="pmg-card" method="post" data-pmg-niezapisane>
       <input type="hidden" name="csrf" value="<?= h(csrf()) ?>">
 
@@ -159,7 +162,7 @@ if ($sub === 'dziennik') {
     $pmgAkcjeDziennika = [
         'dodanie' => 'Dodanie', 'edycja' => 'Edycja', 'usuniecie' => 'Usunięcie',
         'zaproszenie' => 'Zaproszenie', 'blokada' => 'Blokada', 'odblokowanie' => 'Odblokowanie',
-        'reset' => 'Reset hasła', 'biezaca' => 'Ustawienie bieżącej edycji', 'pobranie' => 'Pobranie kopii', 'kolejnosc' => 'Zmiana kolejności',
+        'reset' => 'Reset hasła', 'biezaca' => 'Ustawienie bieżącej edycji', 'pobranie' => 'Pobranie kopii', 'kolejnosc' => 'Zmiana kolejności', 'import' => 'Wczytanie treści ze strony', 'przywrocenie' => 'Przywrócenie tekstu ze strony',
     ];
     ?>
     <div class="pmg-table-wrap">
@@ -190,7 +193,7 @@ if ($sub === 'dziennik') {
 if ($sub !== 'konta') { echo '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nieznany widok.</p></div>'; return; }
 
 $error = '';
-const MODULY_REDAKTORA = ['aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast'];
+const MODULY_REDAKTORA = ['aktualnosci' => 'Aktualności', 'czlonkowie' => 'Członkowie', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła', 'tresci' => 'Treści stron'];
 
 // Ilu jest innych aktywnych administratorów z ustawionym hasłem (poza kontem $id) — chroni ostatniego admina.
 function inni_aktywni_admini($id)

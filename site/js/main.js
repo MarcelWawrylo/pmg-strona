@@ -22,6 +22,29 @@
   };
   var esc = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML.replace(/"/g, '&quot;'); };
   var fmtDate = function (iso) { var p = String(iso).split('-'); return p[2] + '.' + p[1] + '.' + p[0]; };
+  // Obraz z API: obraz = {src, srcset, webp, w, h} (warianty z img/, jak w HTML) -> <picture> z WebP; obraz = null (zdjęcie wgrane
+  // z panelu albo brak wariantów) -> zwykły <img> z pliku `path`. o = {cls, sizes, w, h, alt, lazy}; sizes/cls pochodzą z kodu, nie z danych.
+  var pictureHtml = function (obraz, path, o) {
+    var w = o.w || (obraz && obraz.w) || o.fw || 0, h = o.h || (obraz && obraz.h) || o.fh || 0;
+    var cls = o.cls ? ' class="' + o.cls + '"' : '';
+    var sizes = o.sizes ? ' sizes="' + o.sizes + '"' : '';
+    var dim = w && h ? ' width="' + w + '" height="' + h + '"' : '';
+    var tail = ' alt="' + esc(o.alt || '') + '"' + (o.lazy ? ' loading="lazy"' : '') + ' decoding="async">';
+    var pic = o.pictureCls ? ' class="' + o.pictureCls + '"' : '';
+    if (!obraz) {
+      var plain = '<img' + cls + ' src="' + esc(siteRoot + path) + '"' + dim + tail;
+      return o.pictureCls ? '<picture' + pic + '>' + plain + '</picture>' : plain;
+    }
+    var abs = function (set) { return set.split(', ').map(function (e) { return siteRoot + e; }).join(', '); };
+    return '<picture' + pic + '>' + (obraz.webp ? '<source type="image/webp" srcset="' + esc(abs(obraz.webp)) + '"' + sizes + '>' : '') +
+      '<img' + cls + ' src="' + esc(siteRoot + obraz.src) + '" srcset="' + esc(abs(obraz.srcset)) + '"' + sizes + dim + tail + '</picture>';
+  };
+  // Tekst wieloakapitowy z panelu (akapity oddzielone pustą linią) -> <p class="cls"> na akapit
+  var paragraphsHtml = function (text, cls) {
+    return String(text == null ? '' : text).split(/\n\s*\n/).map(function (b) { return b.trim(); }).filter(Boolean).map(function (b) {
+      return '<p class="' + cls + '">' + esc(b) + '</p>';
+    }).join('');
+  };
   // Polska odmiana liczebników: 1 -> one, 2-4 (poza 12-14) -> few, reszta -> many.
   var plural = function (n, one, few, many) {
     if (n === 1) return one;
@@ -205,6 +228,54 @@
     });
   }
 
+  /* ---------- Teksty stron z panelu („Treści stron”): elementy z data-tresc="strona.klucz" ---------- */
+  /* Fallback: brak backendu / brak wartości klucza / pusta wartość = element zostaje z tekstem z HTML.
+     Wartość to zwykły tekst wstawiany jako węzły tekstowe (nigdy HTML): nowa linia = <br>; w <p> pusta linia = kolejny <p>
+     (kopia elementu z tą samą klasą). Podmieniamy tylko początkowy tekst elementu (i <br>), do pierwszego elementu
+     potomnego — ozdobne <span aria-hidden> (strzałka) zostają. window.PMG.tresciReady kończy się po podmianie
+     (v2.js czeka na nią z animacją „słowo po słowie”, która czyta tekst akapitu). */
+  var fillLines = function (parent, text, before) {
+    text.split('\n').forEach(function (line, i) {
+      if (i) parent.insertBefore(document.createElement('br'), before);
+      parent.insertBefore(document.createTextNode(line.trim()), before);
+    });
+  };
+  var applyTresc = function (el, v) {
+    if (typeof v !== 'string') return;
+    var blocks = v.replace(/\r\n?/g, '\n').split(/\n[ \t]*\n/).map(function (b) { return b.trim(); }).filter(Boolean);
+    if (!blocks.length) return;
+    var isP = el.tagName === 'P';
+    var node = el.firstChild, lastText = '';
+    while (node && (node.nodeType === 3 || (node.nodeType === 1 && node.tagName === 'BR'))) {
+      var next = node.nextSibling;
+      if (node.nodeType === 3) lastText = node.nodeValue;
+      el.removeChild(node);
+      node = next;
+    }
+    fillLines(el, isP ? blocks[0] : blocks.join('\n'), node);
+    if (node && /\s$/.test(lastText)) el.insertBefore(document.createTextNode(' '), node);
+    if (!isP) return;
+    var prev = el;
+    blocks.slice(1).forEach(function (b) {
+      var extra = el.cloneNode(false);
+      ['data-tresc', 'id', 'data-reveal'].forEach(function (a) { extra.removeAttribute(a); });
+      fillLines(extra, b, null);
+      prev.parentNode.insertBefore(extra, prev.nextSibling);
+      prev = extra;
+    });
+  };
+  function initTresci() {
+    var els = $$('[data-tresc]');
+    var done = function () {};
+    window.PMG.tresciReady = new Promise(function (resolve) { done = resolve; });
+    if (!els.length) { done(); return; }
+    api('tresci.php').then(function (data) {
+      var map = data && data.tresci;
+      if (map) els.forEach(function (el) { applyTresc(el, map[el.getAttribute('data-tresc')]); });
+      done();
+    });
+  }
+
   /* ---------- Struktura koła (O nas): zarząd + sekcje z panelu ---------- */
   /* Fallback: brak backendu / błąd / pusta lista sekcji i pusty zarząd = strona zostaje statyczna.
      Zarząd i sekcje aktualizowane niezależnie — jeśli jedna z list jest pusta, ten fragment zostaje bez zmian.
@@ -357,7 +428,7 @@
       var id = 'spk-' + (i + 1);
       if (newSpeakerMarkup) {
         var img2 = p.zdjecie
-          ? '<img class="speaker__img" src="' + esc(siteRoot + p.zdjecie) + '" width="560" height="560" alt="" loading="lazy" decoding="async">'
+          ? pictureHtml(p.obraz_karta || p.obraz_modal, p.zdjecie, { cls: 'speaker__img', sizes: '(max-width: 640px) calc(50vw - 40px), 220px', w: 560, h: 560, lazy: true })
           : '<div class="speaker__img" aria-hidden="true"></div>';
         return '<li class="speaker"><button class="speaker__card" type="button" data-speaker-trigger data-speaker-tpl="' + id + '">' + img2 +
           '<span class="speaker__name">' + name + '</span></button></li>';
@@ -382,9 +453,12 @@
       var linkedin = (p.linkedin && p.linkedin.indexOf('https://') === 0)
         ? '<a class="chip-link speaker-modal__linkedin" href="' + esc(p.linkedin) + '" target="_blank" rel="noopener">LinkedIn <span aria-hidden="true">↗</span><span class="visually-hidden"> — ' + name + ' (otwiera się w nowej karcie)</span></a>'
         : '';
-      return '<template id="spk-' + (i + 1) + '"><div class="speaker-modal__head"><h2 class="pod-modal__title" id="speaker-modal-title">' + name + '</h2>' + linkedin + '</div>' + note +
-        (p.bio ? '<h3 class="speaker-modal__label">O prelegencie</h3><p class="pod-modal__desc">' + esc(p.bio) + '</p>' : '') +
-        '<h3 class="pod-modal__num">' + esc(p.temat) + '</h3></template>';
+      var photo = p.zdjecie
+        ? pictureHtml(p.obraz_modal, p.zdjecie, { pictureCls: 'speaker-modal__media', cls: 'speaker-modal__img', sizes: '(max-width: 640px) calc(100vw - 24px), (max-width: 768px) calc(100vw - 48px), 595px', fw: 1600, fh: 1200 })
+        : '';
+      return '<template id="spk-' + (i + 1) + '">' + photo + '<div class="speaker-modal__head"><h2 class="pod-modal__title" id="speaker-modal-title">' + name + '</h2>' + linkedin + '</div>' + note +
+        (p.bio ? '<h3 class="speaker-modal__label">' + (p.plec === 'k' ? 'O prelegentce' : 'O prelegencie') + '</h3>' + paragraphsHtml(p.bio, 'pod-modal__desc') : '') +
+        '<h3 class="pod-modal__num">' + esc(p.temat) + '</h3>' + paragraphsHtml(p.opis, 'pod-modal__desc') + '</template>';
     };
 
     var scheduleRow = function (items) {
@@ -403,7 +477,10 @@
 
     var scheduleTableRows = function (items) {
       var time = items[0].godzina;
-      var tag = items.length > 1 ? '<span class="schedule-table__tag">' + items.length + ' ' + plural(items.length, 'sesja', 'sesje', 'sesji') + ' równoległe</span>' : '';
+      // znacznik pod godziną (np. „3 sesje równoległe”) tylko wtedy, gdy wpisano go w panelu przy którymś punkcie tej godziny
+      var tagText = '';
+      items.forEach(function (it) { tagText = tagText || it.znacznik || ''; });
+      var tag = tagText ? '<span class="schedule-table__tag">' + esc(tagText) + '</span>' : '';
       return items.map(function (it, i) {
         var first = i === 0 ? '<td' + (items.length > 1 ? ' rowspan="' + items.length + '"' : '') + '>' + esc(time) + tag + '</td>' : '';
         return '<tr>' + first + '<td>' + esc(it.tytul) + '</td><td>' + (it.prelegent ? esc(it.prelegent) : '–') + '</td></tr>';
@@ -579,16 +656,16 @@
       if (closeBtn) closeBtn.focus();
     };
   }
-  window.PMG = { wireDialog: wireDialog, $: $, $$: $$, reduceMotion: reduceMotion, root: siteRoot, loadNews: loadNews, esc: esc, fmtDate: fmtDate, api: api };
+  window.PMG = { picture: pictureHtml, wireDialog: wireDialog, $: $, $$: $$, reduceMotion: reduceMotion, root: siteRoot, loadNews: loadNews, esc: esc, fmtDate: fmtDate, api: api, initLightbox: initLightbox };
 
   /* ---------- Lightbox galerii ---------- */
-  function initLightbox() {
+  function initLightbox(scope) { // scope: fragment wstawiony później (np. galeria z API); okno dialogowe podłączamy tylko raz
     var lb = $('[data-lightbox]');
     if (!lb) return;
     var img = $('[data-lightbox-img]', lb);
     var cap = $('[data-lightbox-caption]', lb);
-    var open = wireDialog(lb, function () { img.removeAttribute('src'); });
-    $$('[data-lightbox-trigger]').forEach(function (btn) {
+    var open = lb.__open || (lb.__open = wireDialog(lb, function () { img.removeAttribute('src'); }));
+    $$('[data-lightbox-trigger]', scope).forEach(function (btn) {
       btn.addEventListener('click', function () {
         img.src = btn.getAttribute('data-full');
         img.alt = btn.getAttribute('data-caption') || '';
@@ -645,26 +722,120 @@
     });
   }
 
-  /* ---------- Kontakt: mapa Google wczytywana dopiero po kliknięciu (bez JS zostaje link do Map Google) ---------- */
+  /* ---------- Zgoda na mapę Google: pasek przy pierwszej wizycie, wybór w localStorage (nie w ciasteczku) ---------- */
+  /* Mapa na podstronie „Kontakt” wczytuje się sama tylko po zgodzie ('tak'). Przy 'nie' albo braku decyzji
+     zostaje przycisk „Wczytaj mapę Google” (jednorazowo). Przy braku dostępu do localStorage działa jak brak decyzji. */
+  var CONSENT_KEY = 'pmg-zgoda-mapa';
+  var consentMemory = null;
+  function getConsent() {
+    try {
+      var raw = window.localStorage.getItem(CONSENT_KEY);
+      var v = raw ? JSON.parse(raw).v : null;
+      return v === 'tak' || v === 'nie' ? v : null;
+    } catch (e) { return consentMemory; }
+  }
+  function setConsent(v) {
+    consentMemory = v;
+    try { window.localStorage.setItem(CONSENT_KEY, JSON.stringify({ v: v, data: new Date().toISOString().slice(0, 10) })); } catch (e) { /* bez zapisu: decyzja obowiązuje do końca tej strony */ }
+  }
+
+  var mapApi = null;
   function initMap() {
     var box = $('[data-map]');
-    var btn = box && $('[data-map-load]', box);
-    if (!btn) return;
-    btn.hidden = false;
-    btn.addEventListener('click', function () {
+    if (!box || !$('[data-map-load]', box)) return;
+    var original = box.innerHTML;
+    var loaded = false;
+    function removeAfterLink() {
+      var next = box.nextElementSibling;
+      if (next && next.classList.contains('map-consent__link--after')) next.remove();
+    }
+    function loadFrame() {
+      if (loaded) return;
+      loaded = true;
       var frame = document.createElement('iframe');
       frame.title = box.getAttribute('data-title') || 'Mapa Google';
       frame.src = box.getAttribute('data-src');
       frame.loading = 'lazy';
       frame.referrerPolicy = 'strict-origin-when-cross-origin';
       frame.allowFullscreen = true;
-      var link = $('.map-consent__link', box);
+      var link = $('.map-consent__link[href]', box);
       var keep = link ? link.cloneNode(true) : null;
       box.textContent = '';
       box.appendChild(frame);
       if (keep) { keep.classList.add('map-consent__link--after'); box.insertAdjacentElement('afterend', keep); }
-      frame.focus();
+    }
+    function showConsent() {
+      loaded = false;
+      removeAfterLink();
+      box.innerHTML = original;
+      var btn = $('[data-map-load]', box);
+      btn.hidden = false;
+      btn.addEventListener('click', function () { loadFrame(); var f = $('iframe', box); if (f) f.focus(); });
+      $$('[data-cookie-settings]', box).forEach(function (el) { el.hidden = false; });
+    }
+    showConsent();
+    mapApi = {
+      apply: function (decision) {
+        if (decision === 'tak') loadFrame();
+        else if (loaded) showConsent();
+      }
+    };
+    if (getConsent() === 'tak') loadFrame();
+  }
+
+  function initConsentBar() {
+    var policy = $('.site-footer a[href$="polityka-prywatnosci.html"]');
+    var href = (policy ? policy.getAttribute('href') : 'polityka-prywatnosci.html') + '#pp-mapa';
+    var bar = null;
+    function pad() { document.body.style.paddingBottom = bar && !bar.hidden ? bar.offsetHeight + 'px' : ''; }
+    function hide() {
+      if (!bar) return;
+      bar.classList.remove('is-in');
+      bar.hidden = true;
+      pad();
+    }
+    function build() {
+      bar = document.createElement('div');
+      bar.className = 'cookie-bar';
+      bar.setAttribute('role', 'region');
+      bar.setAttribute('aria-label', 'Zgoda na mapę Google');
+      bar.hidden = true;
+      bar.innerHTML = '<p class="cookie-bar__text">Na stronie „Kontakt” używamy mapy Google, która zapisuje pliki cookie Google. ' +
+        'Możesz zgodzić się na jej automatyczne wczytywanie albo odmówić. ' +
+        '<a href="' + href + '">Polityka prywatności</a></p>' +
+        '<div class="cookie-bar__actions">' +
+        '<button class="cookie-bar__btn" type="button" data-cookie-choice="tak">Akceptuję</button>' +
+        '<button class="cookie-bar__btn" type="button" data-cookie-choice="nie">Odrzucam</button></div>';
+      document.body.appendChild(bar);
+      bar.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('[data-cookie-choice]') : null;
+        if (!b) return;
+        var choice = b.getAttribute('data-cookie-choice');
+        var hadFocus = bar.contains(document.activeElement);
+        setConsent(choice);
+        hide();
+        if (mapApi) mapApi.apply(choice);
+        if (hadFocus) {
+          var back = $('.site-footer [data-cookie-settings]');
+          if (back) back.focus();
+        }
+      });
+      window.addEventListener('resize', pad);
+    }
+    function show(focusFirst) {
+      if (!bar) build();
+      bar.hidden = false;
+      pad();
+      requestAnimationFrame(function () { bar.classList.add('is-in'); });
+      if (focusFirst) { var first = $('button', bar); if (first) first.focus(); }
+    }
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest ? e.target.closest('[data-cookie-settings]') : null;
+      if (!t) return;
+      e.preventDefault();
+      show(true);
     });
+    if (!getConsent()) show(false);
   }
 
   /* ---------- „Zgłoś błąd” w stopce → formularz kontaktowy z tematem i adresem strony ---------- */
@@ -707,12 +878,12 @@
     loadNews().then(function (posts) {
       if (!posts) return;
       grid.innerHTML = posts.slice(0, 3).map(function (p) {
-        var img = p.zdjecie ? '<img src="' + esc(siteRoot + p.zdjecie) + '" alt="" width="1600" height="900" loading="lazy">' : '<span>[ zdjęcie 16:9 ]</span>';
+        var img = p.zdjecie ? pictureHtml(p.obraz, p.zdjecie, { sizes: '(max-width: 640px) calc(100vw - 40px), (max-width: 960px) calc(50vw - 30px), 400px', w: 1600, h: 900, lazy: true }) : '<span>[ zdjęcie 16:9 ]</span>';
         var href = 'aktualnosci.html#wpis-' + esc(p.slug);
         return '<li class="news-tile"><div class="news-tile__img news-tile__img--' + esc(p.kolor) + '" aria-hidden="true">' + img + '</div>' +
           '<div class="news-tile__body"><p class="news-tile__date"><time datetime="' + esc(p.data) + '">' + esc(fmtDate(p.data)) + '</time></p>' +
           '<h3 class="news-tile__title"><a class="news-tile__link" href="' + href + '">' + esc(p.tytul) + '</a></h3>' +
-          '<p class="news-tile__more">' + esc(p.zajawka) + '</p>' +
+          '<p class="news-tile__more">' + esc(p.zajawka || p.lead) + '</p>' +
           '<span class="news-tile__cta" aria-hidden="true">Czytaj więcej →</span></div></li>';
       }).join('');
     });
@@ -862,6 +1033,7 @@
 
   document.documentElement.classList.add('js');
   var init = function () {
+    initTresci();
     initNewsTiles();
     initHomeNews();
     initSettings();
@@ -877,6 +1049,7 @@
     initLightbox();
     initContactForm();
     initMap();
+    initConsentBar();
     initReportBug();
     initGrass();
     // pusty listener na touchstart włącza stany :active w Safari na iOS
@@ -904,10 +1077,15 @@
     function render(posts) {
       var esc = PMG.esc, fmt = PMG.fmtDate;
       var ph = { pink: 'pms', purple: 'podcast', blue: 'case', violet: 'integracja' };
-      var img = function (p, cls, withAlt) {
+      var SIZES = {
+        featured: '(max-width: 960px) calc(100vw - 40px), 640px',
+        card: '(max-width: 640px) calc(100vw - 40px), (max-width: 960px) calc(50vw - 30px), 560px',
+        article: '(max-width: 860px) calc(100vw - 40px), 820px'
+      };
+      var img = function (p, cls, sizes, withAlt) {
         var alt = withAlt && p.zdjecie_alt;
         return '<div class="blog-ph blog-ph--' + (ph[p.kolor] || 'pms') + ' ' + cls + '"' + (p.zdjecie && alt ? '' : ' aria-hidden="true"') + '>' +
-          (p.zdjecie ? '<img src="' + esc(PMG.root + p.zdjecie) + '" alt="' + (alt ? esc(p.zdjecie_alt) : '') + '" width="1600" height="900">' : '[ zdjęcie 16:9 ]') + '</div>';
+          (p.zdjecie ? PMG.picture(p.obraz, p.zdjecie, { sizes: sizes, w: 1600, h: 900, alt: alt ? p.zdjecie_alt : '', lazy: true }) : '[ zdjęcie 16:9 ]') + '</div>';
       };
       var meta = function (p, cls) {
         return '<div class="blog-meta' + (cls || '') + '">' +
@@ -923,11 +1101,11 @@
         return '<' + tag + ' class="' + cls + '"><a class="blog-link" href="#wpis-' + esc(p.slug) + '">' + esc(p.tytul) + '</a></' + tag + '>';
       };
       var f = posts[0];
-      $('.blog-featured', list).innerHTML = img(f, 'blog-featured__img') + '<div class="blog-featured__body">' + meta(f) + link(f, 'h2', 'blog-featured__title') +
-        '<p class="blog-featured__excerpt">' + esc(f.zajawka) + '</p><p class="blog-more blog-more--' + esc(f.kolor) + '" aria-hidden="true">Czytaj więcej →</p></div>';
+      $('.blog-featured', list).innerHTML = img(f, 'blog-featured__img', SIZES.featured) + '<div class="blog-featured__body">' + meta(f) + link(f, 'h2', 'blog-featured__title') +
+        '<p class="blog-featured__excerpt">' + esc(f.zajawka || f.lead) + '</p><p class="blog-more blog-more--' + esc(f.kolor) + '" aria-hidden="true">Czytaj więcej →</p></div>';
       $('.blog-grid', list).innerHTML = posts.slice(1).map(function (p) {
-        return '<li class="blog-card" data-blog-card>' + img(p, 'blog-card__img') + '<div class="blog-card__body">' + meta(p) + link(p, 'h3', 'blog-card__title') +
-          '<p class="blog-card__excerpt">' + esc(p.zajawka) + '</p><p class="blog-more blog-more--' + esc(p.kolor) + '" aria-hidden="true">Czytaj więcej →</p></div></li>';
+        return '<li class="blog-card" data-blog-card>' + img(p, 'blog-card__img', SIZES.card) + '<div class="blog-card__body">' + meta(p) + link(p, 'h3', 'blog-card__title') +
+          '<p class="blog-card__excerpt">' + esc(p.zajawka || p.lead) + '</p><p class="blog-more blog-more--' + esc(p.kolor) + '" aria-hidden="true">Czytaj więcej →</p></div></li>';
       }).join('');
       $('.blog-posts', list).hidden = posts.length < 2;
       wrap.innerHTML = posts.map(function (p) {
@@ -935,7 +1113,7 @@
         return '<article id="' + id + '" class="blog-article" aria-labelledby="' + id + '-title">' +
           meta(p, ' blog-meta--article') +
           '<h1 class="blog-article__title" id="' + id + '-title" tabindex="-1">' + esc(p.tytul) + '</h1>' +
-          '<p class="blog-article__lead">' + esc(p.zajawka) + '</p>' + img(p, 'blog-article__img', true) +
+          '<p class="blog-article__lead">' + esc(p.lead || p.zajawka) + '</p>' + img(p, 'blog-article__img', SIZES.article, true) +
           '<div class="blog-article__body">' + body(p.tresc) + '</div>' +
           (p.autor ? '<div class="blog-article__foot"><p class="blog-article__author">Autor: <b>' + esc(p.autor) + '</b></p></div>' : '') +
           '</article>';
@@ -1128,13 +1306,30 @@
           (spotify ? '<div class="pod-modal__player" data-pod-player></div>' : '') +
           (links ? '<p class="pod-modal__links">' + links + '</p>' : '') + desc + guest + '</div></template>';
       };
+      /* Edycja podcastu = osobna sekcja: nagłówek, zespół, opis, lista odcinków. Grupa bez numeru (odcinki bez edycji)
+         nie ma nagłówka ani zespołu. Nowe sekcje dostają is-in od razu — observer [data-reveal] już się uruchomił. */
+      var podTeam = function (label, val) { return val ? label + ': ' + esc(val) : ''; };
+      var podEdition = function (g) {
+        var hid = 'h-edition-' + g.numer;
+        var title = g.numer === null ? '' : '<h2 id="' + hid + '" class="pod-edition__title">Edycja ' + g.numer +
+          (g.lata ? ' <span class="pod-edition__year">(' + esc(g.lata) + ')</span>' : '') + '</h2>';
+        var desc = g.opis ? '<p class="pod-edition__desc">' + esc(g.opis) + '</p>' : '';
+        var team = [podTeam('Koordynator', g.koordynator), podTeam('Mentorzy', g.mentorzy), podTeam('Zespół', g.zespol)].filter(Boolean).join('<br>');
+        var items = g.odcinki.length
+          ? g.odcinki.map(podCard).join('')
+          : '<li class="pod-ep"><div class="pod-ep__body"><p class="pod-ep__meta">Wkrótce nowe odcinki.</p></div></li>';
+        return '<section class="pod-edition"' + (g.numer === null ? ' aria-label="Odcinki"' : ' aria-labelledby="' + hid + '"') + '><div class="container is-in" data-reveal>' +
+          title + desc + (team ? '<p class="pod-edition__team">' + team + '</p>' : '') + '<ul class="pod-episodes">' + items + '</ul></div></section>';
+      };
       PMG.api('podcast.php').then(function (data) {
         if (!data || !data.odcinki || !data.wszystkich) return;
+        var section = episodesList.closest('.pod-edition');
+        if (!section) return;
+        var groups = data.edycje && data.edycje.length ? data.edycje : [{ numer: null, odcinki: data.odcinki }];
         $$('template[id^="pod-ep-"]').forEach(function (t) { t.remove(); });
-        episodesList.innerHTML = data.odcinki.length
-          ? data.odcinki.map(podCard).join('')
-          : '<li class="pod-ep"><div class="pod-ep__body"><p class="pod-ep__meta">Wkrótce nowe odcinki.</p></div></li>';
-        episodesList.insertAdjacentHTML('afterend', data.odcinki.map(podTemplate).join(''));
+        section.insertAdjacentHTML('beforebegin', groups.map(podEdition).join(''));
+        section.insertAdjacentHTML('afterend', data.odcinki.map(podTemplate).join(''));
+        section.remove();
       });
     }
 
@@ -1188,4 +1383,170 @@
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+/* ---------- Case Koła: hub, podstrona edycji i menu z panelu ---------- */
+/* Hub (case-kola.html) i menu pokazują edycje z api/case-kola.php, a case-kola-edycja.html?nr=N składa podstronę jednej edycji.
+   Bez backendu (GitHub Pages) albo gdy w panelu nie ma jeszcze edycji zostaje statyczny HTML. Wszystkie pola przechodzą przez esc(). */
+(function () {
+  'use strict';
+  var PMG = window.PMG;
+  if (!PMG) return;
+  var $ = PMG.$, $$ = PMG.$$, esc = PMG.esc;
+  var hub = $('[data-case-hub]');
+  var page = $('[data-case-edycja]');
+  var subnav = $('#subnav-case');
+  if (!hub && !page && !subnav) return;
+
+  // Podstrona edycji czeka z animacjami wjazdu sekcji (v2.js) na treść z API.
+  var ready = function () {};
+  if (page) PMG.caseReady = new Promise(function (resolve) { ready = resolve; });
+
+  // dotychczasowe pliki edycji 1–4: gdy backend nie odpowiada, link do wspólnej podstrony prowadzi do nich
+  var LEGACY = { 1: 'case-kola-debatelab.html', 2: 'case-kola-pwr-racing-team.html', 3: 'case-kola-qubit.html', 4: 'case-kola-solvro.html' };
+  var HERO_SIZES = '(max-width: 960px) calc(100vw - 64px), (max-width: 1272px) calc(100vw - 112px), 1160px';
+  var GALLERY_SIZES = '(max-width: 640px) calc(100vw - 40px), (max-width: 1272px) calc(50vw - 66px), 570px';
+  var abs = function (p) { return PMG.root + p; };
+  var nrParam = (new URLSearchParams(location.search).get('nr') || '');
+
+  /* ----- karty w hubie ----- */
+  var densities = function (set) { // 'a 192w, b 384w' -> 'a 1x, b 2x' (logo na karcie ma stałą wysokość, nie szerokość)
+    var a = set.split(', ').map(function (e) { return e.split(' ')[0]; });
+    return a.slice(0, 2).map(function (p, i) { return abs(p) + ' ' + (i + 1) + 'x'; }).join(', ');
+  };
+  var cardLogo = function (e, plate) {
+    var cls = plate ? ' class="case-card__media__logo-plate"' : '';
+    var o = e.logo_obraz;
+    if (!o) return '<img' + cls + ' src="' + esc(abs(e.logo)) + '" alt="" loading="lazy" decoding="async">';
+    var dim = o.w && o.h ? ' width="' + o.w + '" height="' + o.h + '"' : '';
+    return '<picture>' + (o.webp ? '<source type="image/webp" srcset="' + esc(densities(o.webp)) + '">' : '') +
+      '<img' + cls + ' src="' + esc(abs(o.src)) + '" srcset="' + esc(densities(o.srcset)) + '"' + dim + ' alt="" loading="lazy" decoding="async"></picture>';
+  };
+  var cardHtml = function (e) {
+    var tall = e.logo_styl === 'jasne-wysokie', light = tall || e.logo_styl === 'jasne';
+    var cls = 'case-card__media case-card__media--logo' + (tall ? ' case-card__media--logo-tall' : '') + (light ? ' case-card__media--logo-light' : '');
+    return '<li class="is-in" data-reveal><a class="case-card card card--hover" href="' + esc(e.url) + '">' +
+      '<div class="' + cls + '">' + (e.logo ? cardLogo(e, light) : '') + '</div>' +
+      '<div class="case-card__body"><h2 class="case-card__title">' + esc(e.tytul) + '</h2><p class="case-card__edition">Edycja ' + Number(e.numer) + '</p>' +
+      '<span class="case-card__more">Dowiedz się więcej o&nbsp;tej edycji <span class="case-card__more-arrow" aria-hidden="true">→</span></span></div></a></li>';
+  };
+
+  /* ----- menu: lista edycji w podmenu Case Koła ----- */
+  var rebuildMenu = function (cards) {
+    var first = subnav && subnav.firstElementChild; // „Czym jest Case Koła?” zostaje
+    if (!first) return;
+    var cur = $('a[aria-current="page"]', subnav);
+    var curText = cur && cur.getAttribute('href') !== 'case-kola.html' ? cur.textContent.trim().toLowerCase() : '';
+    var file = location.pathname.split('/').pop();
+    while (first.nextElementSibling) subnav.removeChild(first.nextElementSibling);
+    cards.forEach(function (c) {
+      var li = document.createElement('li'), a = document.createElement('a');
+      a.className = 'site-nav__sublink';
+      a.href = abs(c.url); // od katalogu strony, nie od bieżącego adresu (404.html wyświetla się pod dowolną ścieżką)
+      a.textContent = c.nazwa;
+      if ((page && nrParam === String(c.numer)) || (curText && c.nazwa.toLowerCase() === curText) || (c.adres_strony && c.adres_strony === file)) a.setAttribute('aria-current', 'page');
+      li.appendChild(a);
+      subnav.appendChild(li);
+    });
+  };
+
+  /* ----- podstrona edycji ----- */
+  var paras = function (text) {
+    return String(text == null ? '' : text).split(/\n\s*\n/).map(function (b) { return b.trim(); }).filter(Boolean).map(function (b) {
+      return '<p>' + esc(b).replace(/\n/g, '<br>') + '</p>';
+    }).join('');
+  };
+  var lastPath = function (set) { var a = set.split(', '); return a[a.length - 1].split(' ')[0]; };
+  var galleryHtml = function (g) {
+    var o = g.obraz;
+    var full = g.pelne || (o ? lastPath(o.webp || o.srcset) : g.zdjecie);
+    var cap = esc(g.podpis);
+    return '<figure class="gallery__item"><button class="gallery__button" type="button" data-lightbox-trigger data-full="' + esc(abs(full)) + '" data-caption="' + cap + '" aria-label="Powiększ zdjęcie: ' + cap + '">' +
+      PMG.picture(o, g.zdjecie, { sizes: GALLERY_SIZES, fw: 1200, fh: 675, alt: g.podpis, lazy: true }) + '</button><figcaption class="gallery__caption">' + cap + '</figcaption></figure>';
+  };
+  var sectionsHtml = function (e) {
+    var out = [];
+    var bg = function () { return out.length % 2 ? 'bg-warm' : 'bg-surface'; }; // tła na przemian, także gdy sekcji brakuje
+    var prose = function (id, title, text, wrapped) {
+      if (!String(text || '').trim()) return;
+      var inner = '<h2 id="' + id + '">' + title + '</h2>' + paras(text);
+      out.push('<section class="case-section section ' + bg() + '" aria-labelledby="' + id + '">' +
+        (wrapped ? '<div class="measure" data-reveal><div class="result prose">' + inner + '</div></div>' : '<div class="measure prose" data-reveal>' + inner + '</div>') + '</section>');
+    };
+    prose('h-partner', 'O partnerze', e.o_partnerze);
+    prose('h-wyzwanie', 'Wyzwanie', e.wyzwanie);
+    prose('h-co', 'Co zrobiliśmy', e.co_zrobilismy);
+    prose('h-rezultat', 'Rezultat', e.rezultat, true);
+    if (e.w_toku) out.push('<section class="case-section case-pending bg-warm"><div class="measure" data-reveal><p class="case-pending__text">' + esc(e.w_toku) + '</p></div></section>');
+    if (e.galeria && e.galeria.length) {
+      out.push('<section class="case-section section section--gallery ' + bg() + '" aria-labelledby="h-galeria"><div class="container">' +
+        '<h2 id="h-galeria" class="case-section__title--gallery" data-reveal>Galeria</h2>' +
+        '<div class="gallery' + (e.galeria.length === 1 ? ' gallery--single' : '') + '">' + e.galeria.map(galleryHtml).join('') + '</div></div></section>');
+    }
+    return out.join('');
+  };
+  var heroHtml = function (e) {
+    if (e.hero_tryb === 'zdjecie') {
+      return '<section class="case-hero"><div class="container" data-reveal><div class="media ratio-16x9">' +
+        PMG.picture(e.hero_obraz, e.hero, { sizes: HERO_SIZES, fw: 1920, fh: 1080, alt: e.hero_alt }) + '</div></div></section>';
+    }
+    if (e.hero_tryb === 'logo' && e.logo) {
+      return '<section class="case-hero"><div class="container" data-reveal><div class="media ratio-16x9 case-hero__logo-box">' +
+        PMG.picture(e.logo_obraz, e.logo, { sizes: '(max-width: 960px) 52vw, 384px', alt: 'Logo ' + e.naglowek }) + '</div></div></section>';
+    }
+    return '';
+  };
+  var reveal = function (root) { // elementy [data-reveal] wstawione po starcie main.js (jego IntersectionObserver ich nie widzi)
+    var items = $$('[data-reveal]', root);
+    if (!('IntersectionObserver' in window) || PMG.reduceMotion.matches) {
+      items.forEach(function (el) { el.classList.add('is-in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); } });
+    }, { threshold: 0.1 });
+    items.forEach(function (el) { io.observe(el); });
+  };
+  var status = function (html) {
+    var box = $('[data-ce-status]', page);
+    if (box) box.innerHTML = html;
+  };
+  var renderEdition = function (e) {
+    var box = $('[data-ce-status]', page);
+    var crumb = $('[data-ce-crumb]', page);
+    if (crumb) crumb.textContent = e.nazwa;
+    document.title = 'Case Koła - ' + e.nazwa + ' | Project Management Group';
+    var meta = $('meta[name="description"]');
+    if (meta && e.opis_meta) meta.setAttribute('content', e.opis_meta);
+    var holder = document.createElement('div');
+    holder.innerHTML = '<section class="case-banner"><div class="container rise"><div class="case-banner__head"><h1 class="h1">' + esc(e.naglowek) + '</h1></div></div></section>' +
+      heroHtml(e) + sectionsHtml(e);
+    var frag = document.createDocumentFragment();
+    while (holder.firstChild) frag.appendChild(holder.firstChild);
+    if (box) box.parentNode.removeChild(box);
+    page.appendChild(frag);
+    reveal(page);
+    PMG.initLightbox(page);
+  };
+  var notFound = function (offline) {
+    status('<p class="lead">' + (offline ? 'Nie udało się wczytać tej edycji. Spróbuj ponownie za chwilę.' : 'Nie ma takiej edycji Case Koła.') +
+      ' <a href="case-kola.html">Zobacz wszystkie edycje</a>.</p>');
+  };
+
+  if (page) {
+    if (!/^[0-9]{1,3}$/.test(nrParam)) { notFound(false); ready(); }
+    else PMG.api('case-kola.php?nr=' + nrParam).then(function (d) {
+      if (d && d.edycja) renderEdition(d.edycja);
+      else if (d === null && LEGACY[Number(nrParam)]) { location.replace(LEGACY[Number(nrParam)]); return; }
+      else notFound(d === null);
+      ready();
+    });
+  }
+  if (hub || subnav) {
+    PMG.api('case-kola.php').then(function (d) {
+      if (!d || !d.edycje || !(d.wszystkich > 0)) return;
+      if (hub) hub.innerHTML = d.edycje.map(cardHtml).join('');
+      rebuildMenu(d.edycje);
+    });
+  }
 })();

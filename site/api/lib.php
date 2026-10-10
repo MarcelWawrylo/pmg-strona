@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 2;
+const PMG_SCHEMA = 7;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -90,16 +90,18 @@ function pmg_migrate()
         // brak tabeli pmg_ustawienia = świeża baza, migrujemy
     }
     $podcastBylo = $pdo->query("SHOW TABLES LIKE 'pmg\\_odcinki'")->fetchColumn() !== false;
+    $podcastEdycjeBylo = $pdo->query("SHOW TABLES LIKE 'pmg\\_podcast\\_edycje'")->fetchColumn() !== false;
     $tabele = [
         // przeniesiona 1:1 z dawnego pmg_db() — dane zostają
         "CREATE TABLE IF NOT EXISTS pmg_aktualnosci (
             id INT AUTO_INCREMENT PRIMARY KEY,
             slug VARCHAR(80) NOT NULL UNIQUE,
             data DATE NOT NULL,
-            kategoria VARCHAR(40) NOT NULL,
+            kategoria VARCHAR(40) NOT NULL DEFAULT '',
             kolor VARCHAR(10) NOT NULL DEFAULT 'pink',
             tytul VARCHAR(200) NOT NULL,
-            zajawka VARCHAR(400) NOT NULL,
+            lead VARCHAR(600) NOT NULL DEFAULT '',
+            zajawka VARCHAR(400) NOT NULL DEFAULT '',
             tresc TEXT NOT NULL,
             zdjecie VARCHAR(200) NULL,
             zdjecie_alt VARCHAR(200) NOT NULL DEFAULT '',
@@ -114,7 +116,7 @@ function pmg_migrate()
             email VARCHAR(150) NOT NULL UNIQUE,
             haslo VARCHAR(255) NULL,
             rola ENUM('admin','redaktor') NOT NULL DEFAULT 'redaktor',
-            moduly SET('aktualnosci','czlonkowie','pmsession','podcast') NOT NULL DEFAULT '',
+            moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case') NOT NULL DEFAULT '',
             aktywny TINYINT(1) NOT NULL DEFAULT 1,
             token_hash CHAR(64) NULL UNIQUE,
             token_do DATETIME NULL,
@@ -176,7 +178,9 @@ function pmg_migrate()
             edycja_id INT NOT NULL,
             imie_nazwisko VARCHAR(100) NOT NULL,
             temat VARCHAR(300) NOT NULL,
-            bio VARCHAR(1500) NOT NULL DEFAULT '',
+            bio VARCHAR(2500) NOT NULL DEFAULT '',
+            opis VARCHAR(4000) NOT NULL DEFAULT '',
+            plec CHAR(1) NOT NULL DEFAULT 'm',
             notatka VARCHAR(200) NOT NULL DEFAULT '',
             zdjecie VARCHAR(200) NULL,
             zdjecie_alt VARCHAR(200) NOT NULL DEFAULT '',
@@ -191,6 +195,7 @@ function pmg_migrate()
             godzina TIME NOT NULL,
             tytul VARCHAR(300) NOT NULL,
             prelegent VARCHAR(150) NOT NULL DEFAULT '',
+            znacznik VARCHAR(40) NOT NULL DEFAULT '',
             FOREIGN KEY (edycja_id) REFERENCES pmg_edycje(id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
     ];
@@ -213,12 +218,89 @@ function pmg_migrate()
             kolejnosc SMALLINT NOT NULL DEFAULT 0,
             opublikowany TINYINT(1) NOT NULL DEFAULT 0
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    // Schemat 4: edycje podcastu (zespół edycji + grupowanie odcinków na stronie). Nazwa z przedrostkiem podcast_,
+    // bo pmg_edycje to edycje PM Session. mentorzy i zespol to zwykły tekst (imiona po przecinku), tak jak na stronie.
+    $tabele[] = "CREATE TABLE IF NOT EXISTS pmg_podcast_edycje (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            numer SMALLINT NOT NULL UNIQUE,
+            lata VARCHAR(20) NOT NULL DEFAULT '',
+            koordynator VARCHAR(200) NOT NULL DEFAULT '',
+            mentorzy VARCHAR(400) NOT NULL DEFAULT '',
+            zespol VARCHAR(800) NOT NULL DEFAULT '',
+            opis VARCHAR(600) NOT NULL DEFAULT '',
+            kolejnosc SMALLINT NOT NULL DEFAULT 0,
+            widoczna TINYINT(1) NOT NULL DEFAULT 1
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    // Schemat 6: Case Koła. Jedna edycja = jedna karta w hubie i jedna podstrona (case-kola-edycja.html?nr=N albo istniejący
+    // plik z adres_strony). Teksty sekcji to zwykły tekst z akapitami oddzielonymi pustą linią. Zdjęcia: ścieżki względem katalogu
+    // strony (img/… z repozytorium albo uploads/case/… z panelu). pelne = osobny plik do powiększenia w galerii (NULL = ten sam).
+    $tabele[] = "CREATE TABLE IF NOT EXISTS pmg_case_edycje (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            numer SMALLINT NOT NULL UNIQUE,
+            nazwa VARCHAR(80) NOT NULL,
+            tytul_karty VARCHAR(80) NOT NULL DEFAULT '',
+            naglowek VARCHAR(120) NOT NULL DEFAULT '',
+            adres_strony VARCHAR(100) NOT NULL DEFAULT '',
+            opis_meta VARCHAR(300) NOT NULL DEFAULT '',
+            logo VARCHAR(200) NULL,
+            logo_styl VARCHAR(20) NOT NULL DEFAULT 'ciemne',
+            hero VARCHAR(200) NULL,
+            hero_alt VARCHAR(200) NOT NULL DEFAULT '',
+            o_partnerze TEXT NOT NULL,
+            wyzwanie TEXT NOT NULL,
+            co_zrobilismy TEXT NOT NULL,
+            rezultat TEXT NOT NULL,
+            w_toku VARCHAR(300) NOT NULL DEFAULT '',
+            kolejnosc SMALLINT NOT NULL DEFAULT 0,
+            widoczna TINYINT(1) NOT NULL DEFAULT 1
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    $tabele[] = "CREATE TABLE IF NOT EXISTS pmg_case_galeria (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            edycja_id INT NOT NULL,
+            zdjecie VARCHAR(200) NOT NULL,
+            pelne VARCHAR(200) NULL,
+            podpis VARCHAR(200) NOT NULL,
+            kolejnosc SMALLINT NOT NULL DEFAULT 0,
+            FOREIGN KEY (edycja_id) REFERENCES pmg_case_edycje(id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    // Schemat 7: teksty stron nadpisane w panelu (moduł „Treści stron”). Klucz = wartość data-tresc z HTML; brak wiersza = tekst z HTML.
+    $tabele[] = "CREATE TABLE IF NOT EXISTS pmg_tresci (
+            klucz VARCHAR(80) NOT NULL PRIMARY KEY,
+            wartosc TEXT NOT NULL,
+            data_zmiany DATETIME NOT NULL,
+            kto VARCHAR(100) NOT NULL DEFAULT ''
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     foreach ($tabele as $sql) $pdo->exec($sql);
 
-    // Bazy utworzone wcześniej: nowy moduł w SET uprawnień i kolumna opisu edycji PM Session.
-    $pdo->exec("ALTER TABLE pmg_uzytkownicy MODIFY moduly SET('aktualnosci','czlonkowie','pmsession','podcast') NOT NULL DEFAULT ''");
+    // Bazy utworzone wcześniej: nowy moduł w SET uprawnień (schemat 6: 'case', schemat 7: 'tresci') i kolumna opisu edycji PM Session.
+    $pdo->exec("ALTER TABLE pmg_uzytkownicy MODIFY moduly SET('aktualnosci','czlonkowie','pmsession','podcast','case','tresci') NOT NULL DEFAULT ''");
+    // Schemat 3: biogram prelegenta do 2500 znaków (dane startowe PM Session XIV mają biogramy dłuższe niż 1500).
+    $pdo->exec("ALTER TABLE pmg_prelegenci MODIFY bio VARCHAR(2500) NOT NULL DEFAULT ''");
     if ($pdo->query("SHOW COLUMNS FROM pmg_edycje LIKE 'opis'")->fetchColumn() === false) {
         $pdo->exec("ALTER TABLE pmg_edycje ADD COLUMN opis VARCHAR(600) NOT NULL DEFAULT '' AFTER miejsce");
+    }
+    // Schemat 4: przypisanie odcinka do edycji podcastu (NULL = bez edycji; usunięcie edycji z odcinkami blokuje panel).
+    if ($pdo->query("SHOW COLUMNS FROM pmg_odcinki LIKE 'edycja_id'")->fetchColumn() === false) {
+        $pdo->exec('ALTER TABLE pmg_odcinki ADD COLUMN edycja_id INT NULL');
+    }
+    // Schemat 5: lead wpisu (akapit pod tytułem w artykule) oddzielony od zajawki (krótki tekst na kafelku). Dotychczasowa
+    // zajawka była jednym i drugim, więc istniejące wpisy dostają lead = zajawka i wyglądają tak samo; kategoria staje się opcjonalna.
+    if ($pdo->query("SHOW COLUMNS FROM pmg_aktualnosci LIKE 'lead'")->fetchColumn() === false) {
+        $pdo->exec("ALTER TABLE pmg_aktualnosci ADD COLUMN lead VARCHAR(600) NOT NULL DEFAULT '' AFTER tytul");
+        $pdo->exec('UPDATE pmg_aktualnosci SET lead = zajawka');
+    }
+    $pdo->exec("ALTER TABLE pmg_aktualnosci MODIFY kategoria VARCHAR(40) NOT NULL DEFAULT ''");
+    $pdo->exec("ALTER TABLE pmg_aktualnosci MODIFY zajawka VARCHAR(400) NOT NULL DEFAULT ''");
+    // Schemat 5: prelegent — opis prelekcji (wieloakapitowy) i rodzaj etykiety biogramu (m = „O prelegencie”, k = „O prelegentce”);
+    // harmonogram — znacznik pod godziną (np. „3 sesje równoległe”), pusty = bez znacznika.
+    if ($pdo->query("SHOW COLUMNS FROM pmg_prelegenci LIKE 'opis'")->fetchColumn() === false) {
+        $pdo->exec("ALTER TABLE pmg_prelegenci ADD COLUMN opis VARCHAR(4000) NOT NULL DEFAULT '' AFTER bio");
+    }
+    if ($pdo->query("SHOW COLUMNS FROM pmg_prelegenci LIKE 'plec'")->fetchColumn() === false) {
+        $pdo->exec("ALTER TABLE pmg_prelegenci ADD COLUMN plec CHAR(1) NOT NULL DEFAULT 'm' AFTER opis");
+    }
+    if ($pdo->query("SHOW COLUMNS FROM pmg_harmonogram LIKE 'znacznik'")->fetchColumn() === false) {
+        $pdo->exec("ALTER TABLE pmg_harmonogram ADD COLUMN znacznik VARCHAR(40) NOT NULL DEFAULT '' AFTER prelegent");
     }
 
     // Dane startowe: 4 odcinki, które do tej pory były wpisane na sztywno w podcast.html. Tylko przy pierwszym
@@ -228,7 +310,115 @@ function pmg_migrate()
         foreach (require __DIR__ . '/seed-podcast.php' as $o) $ins->execute($o);
     }
 
+    // Dane startowe: Edycja 1 (2025/2026) z zespołem, który był wpisany na sztywno w podcast.html, i przypisanie do niej
+    // wszystkich dotychczasowych odcinków. Tylko przy pierwszym utworzeniu tabeli edycji — późniejsze zmiany w panelu
+    // (np. usunięcie edycji) nie są przywracane.
+    if (!$podcastEdycjeBylo) {
+        $ins = $pdo->prepare('INSERT IGNORE INTO pmg_podcast_edycje (numer, lata, koordynator, mentorzy, zespol, opis, kolejnosc, widoczna) VALUES (?,?,?,?,?,?,?,1)');
+        foreach (require __DIR__ . '/seed-podcast-edycje.php' as $e) $ins->execute($e);
+        $pdo->exec('UPDATE pmg_odcinki SET edycja_id = (SELECT id FROM pmg_podcast_edycje WHERE numer = 1) WHERE edycja_id IS NULL');
+    }
+
     $pdo->prepare('REPLACE INTO pmg_ustawienia (klucz, wartosc) VALUES (?, ?)')->execute(['schema', (string) PMG_SCHEMA]);
+}
+
+// Składa odpowiedź api/podcast.php: widoczne edycje (w kolejności z panelu) z ich opublikowanymi odcinkami.
+// $edycje = wiersze pmg_podcast_edycje (widoczne, posortowane), $odcinki = opublikowane odcinki (posortowane), każdy z edycja_id.
+// Odcinki bez edycji (edycja_id NULL) trafiają do ostatniej grupy bez nagłówka (numer = null); odcinki edycji
+// ukrytej lub nieistniejącej nie są pokazywane. Zwraca [grupy, płaska lista odcinków w kolejności wyświetlania].
+function pmg_podcast_grupuj($edycje, $odcinki)
+{
+    $grupy = [];
+    $wg = [];
+    foreach ($edycje as $e) {
+        $wg[(int) $e['id']] = count($grupy);
+        $grupy[] = [
+            'numer' => (int) $e['numer'], 'lata' => $e['lata'], 'koordynator' => $e['koordynator'],
+            'mentorzy' => $e['mentorzy'], 'zespol' => $e['zespol'], 'opis' => $e['opis'], 'odcinki' => [],
+        ];
+    }
+    $bez = [];
+    foreach ($odcinki as $o) {
+        $eid = $o['edycja_id'];
+        unset($o['edycja_id']);
+        if ($eid === null) $bez[] = $o;
+        elseif (isset($wg[(int) $eid])) $grupy[$wg[(int) $eid]]['odcinki'][] = $o;
+    }
+    if ($bez) $grupy[] = ['numer' => null, 'lata' => '', 'koordynator' => '', 'mentorzy' => '', 'zespol' => '', 'opis' => '', 'odcinki' => $bez];
+    $plaska = [];
+    foreach ($grupy as $g) foreach ($g['odcinki'] as $o) $plaska[] = $o;
+    return [$grupy, $plaska];
+}
+
+// Karta edycji Case Koła w hubie (api/case-kola.php bez parametru). url = istniejący plik (adres_strony) albo wspólna podstrona.
+// logo_styl: 'ciemne' (jasne logo na ciemnej karcie), 'jasne' (kolorowe logo na białej płytce), 'jasne-wysokie' (j.w., wyższe logo).
+function pmg_case_karta($e, $root = null)
+{
+    return [
+        'numer' => (int) $e['numer'], 'nazwa' => $e['nazwa'],
+        'tytul' => $e['tytul_karty'] !== '' ? $e['tytul_karty'] : $e['nazwa'],
+        'adres_strony' => $e['adres_strony'],
+        'url' => $e['adres_strony'] !== '' ? $e['adres_strony'] : 'case-kola-edycja.html?nr=' . (int) $e['numer'],
+        'logo' => $e['logo'], 'logo_obraz' => pmg_obraz($e['logo'], $root), 'logo_styl' => $e['logo_styl'],
+    ];
+}
+
+// Pełna edycja Case Koła (api/case-kola.php?nr=N): karta + treść podstrony. hero_tryb: 'zdjecie' (zdjęcie główne), 'logo'
+// (brak zdjęcia, a logo jest jasne — pokazujemy je na ciemnym tle jak w Solvro) albo 'brak' (sekcja pominięta).
+// Puste teksty zostają pustymi napisami — strona pomija sekcję. $galeria = wiersze pmg_case_galeria w kolejności.
+function pmg_case_pelna($e, $galeria, $root = null)
+{
+    $d = pmg_case_karta($e, $root);
+    $d['naglowek'] = $e['naglowek'] !== '' ? $e['naglowek'] : $e['nazwa'];
+    $d['opis_meta'] = $e['opis_meta'];
+    $d['hero'] = $e['hero'];
+    $d['hero_obraz'] = pmg_obraz($e['hero'], $root);
+    $d['hero_alt'] = $e['hero_alt'];
+    $d['hero_tryb'] = !empty($e['hero']) ? 'zdjecie' : (!empty($e['logo']) && $e['logo_styl'] === 'ciemne' ? 'logo' : 'brak');
+    foreach (['o_partnerze', 'wyzwanie', 'co_zrobilismy', 'rezultat', 'w_toku'] as $k) $d[$k] = $e[$k];
+    $d['galeria'] = [];
+    foreach ($galeria as $g) {
+        $d['galeria'][] = ['zdjecie' => $g['zdjecie'], 'obraz' => pmg_obraz($g['zdjecie'], $root), 'pelne' => $g['pelne'], 'podpis' => $g['podpis']];
+    }
+    return $d;
+}
+
+// Warianty szerokości zdjęcia z katalogu img/ do <picture>. Dla ścieżki img/<baza>-<szerokość>.<jpg|png> szuka plików
+// img/<baza>-<N>.<to samo rozszerzenie> i ich odpowiedników .webp. Zwraca [src => najmniejszy wariant, srcset => 'ścieżka Nw, …',
+// webp => srcset z .webp albo '', w/h => wymiary największego wariantu] albo null (zdjęcie wgrane z panelu w uploads/, plik
+// nietypowy albo brak pliku — wtedy strona używa zwykłego <img>). $root = katalog główny strony (z końcowym ukośnikiem).
+function pmg_obraz($sciezka, $root = null)
+{
+    if (!is_string($sciezka) || !preg_match('~^(img/[a-z0-9-]+)-(\d+)\.(jpg|png)$~', $sciezka, $m)) return null;
+    if ($root === null) $root = dirname(__DIR__) . '/';
+    $baza = $m[1];
+    $ext = $m[3];
+    $szer = [];
+    foreach ((array) glob($root . $baza . '-*.' . $ext) as $plik) {
+        // dokładnie <baza>-<liczba>.<ext>: wzorzec glob dopasowałby też dłuższe nazwy (np. -43-800 przy bazie bez -43)
+        if (preg_match('~^' . preg_quote(basename($baza), '~') . '-(\d+)\.' . $ext . '$~', basename($plik), $n)) $szer[(int) $n[1]] = true;
+    }
+    if (!$szer || !isset($szer[(int) $m[2]])) return null;
+    ksort($szer);
+    $skladaj = function ($rozsz) use ($baza, $szer) {
+        $c = [];
+        foreach (array_keys($szer) as $w) $c[] = $baza . '-' . $w . '.' . $rozsz . ' ' . $w . 'w';
+        return implode(', ', $c);
+    };
+    $webp = [];
+    foreach (array_keys($szer) as $w) {
+        if (is_file($root . $baza . '-' . $w . '.webp')) $webp[] = $baza . '-' . $w . '.webp ' . $w . 'w';
+    }
+    $szerokosci = array_keys($szer);
+    $najw = end($szerokosci);
+    $wym = @getimagesize($root . $baza . '-' . $najw . '.' . $ext);
+    return [
+        'src' => $baza . '-' . $szerokosci[0] . '.' . $ext,
+        'srcset' => $skladaj($ext),
+        'webp' => count($webp) === count($szer) ? implode(', ', $webp) : '',
+        'w' => $wym ? (int) $wym[0] : (int) $najw,
+        'h' => $wym ? (int) $wym[1] : 0,
+    ];
 }
 
 function pmg_json($data, $status = 200)

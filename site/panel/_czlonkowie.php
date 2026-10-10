@@ -19,6 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (PDOException $e) {
             $error = $e->getCode() === '23000' ? 'W sekcji są osoby — przenieś je najpierw.' : 'Błąd usuwania.';
         }
+    } elseif ($action === 'import') {
+        pmg_import_wykonaj('czlonkowie');
     } elseif ($action === 'sekcja_zapisz') {
         $id = (int) ($_POST['id'] ?? 0);
         $f = [
@@ -89,22 +91,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$st->fetchColumn()) $error = 'Nieprawidłowa sekcja.';
         }
         if ($error === '') {
+            $noweZdjecie = null; // plik wgrany w tym żądaniu — usuwany, jeśli zapis do bazy się nie uda
             try {
                 $stareZdjecie = $old['zdjecie'] ?? null;
                 $f['zdjecie'] = zdjecie('czlonkowie', $stareZdjecie);
+                if ($f['zdjecie'] !== $stareZdjecie) $noweZdjecie = $f['zdjecie'];
                 if ($id && $old) {
                     $st = pmg_db()->prepare('UPDATE pmg_osoby SET imie=?, nazwisko=?, funkcja=?, sekcja_id=?, koordynator=?, email=?, linkedin=?, zdjecie=?, zdjecie_alt=?, kolejnosc=?, aktywna=? WHERE id=?');
                     $st->execute([$f['imie'], $f['nazwisko'], $f['funkcja'], $f['sekcja_id'], $f['koordynator'], $f['email'], $f['linkedin'], $f['zdjecie'], $f['zdjecie_alt'], $f['kolejnosc'], $f['aktywna'], $id]);
+                    $noweZdjecie = null;
                     if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
                     loguj('czlonkowie', 'edycja', $id);
                 } else {
                     $st = pmg_db()->prepare('INSERT INTO pmg_osoby (imie, nazwisko, funkcja, sekcja_id, koordynator, email, linkedin, zdjecie, zdjecie_alt, kolejnosc, aktywna) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
                     $st->execute([$f['imie'], $f['nazwisko'], $f['funkcja'], $f['sekcja_id'], $f['koordynator'], $f['email'], $f['linkedin'], $f['zdjecie'], $f['zdjecie_alt'], $f['kolejnosc'], $f['aktywna']]);
+                    $noweZdjecie = null;
                     $id = (int) pmg_db()->lastInsertId();
                     loguj('czlonkowie', 'dodanie', $id);
                 }
                 $_SESSION['flash'] = 'Zapisano.';
                 go('?m=czlonkowie');
+            } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
+                error_log('czlonkowie zapis: ' . $e->getMessage());
+                drop_image($noweZdjecie);
+                $f['zdjecie'] = $old['zdjecie'] ?? null;
+                $error = 'Błąd zapisu — nic nie zapisano. Sprawdź długość pól (np. e-mail do 150 znaków) i spróbuj ponownie.';
             } catch (RuntimeException $e) {
                 $error = $e->getMessage();
             }
@@ -261,6 +272,7 @@ if ($editOsoba !== null) {
   <?php endif; ?>
 
 <?php else: ?>
+  <?php pmg_import_blok('czlonkowie'); ?>
   <div class="pmg-card">
     <div class="pmg-card__head"><h2 class="pmg-h2">Zarząd</h2></div>
     <div class="pmg-table-wrap pmg-table-wrap--flush">
