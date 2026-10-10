@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         // Każde pole sprawdzane osobno, w kolejności pól formularza — użytkownik widzi wszystkie błędy naraz.
         if ($f['tytul'] === '') $bledyPol['tytul'] = 'Uzupełnij tytuł.';
-        if ($f['lead'] === '') $bledyPol['lead'] = 'Uzupełnij lead.';
+        if ($f['lead'] === '') $bledyPol['lead'] = 'Uzupełnij wstęp.';
         if ($f['tresc'] === '') $bledyPol['tresc'] = 'Uzupełnij treść.';
         if (!data_ok($f['data'])) $bledyPol['data'] = 'Podaj datę wpisu.';
         blad_opisu_zdjecia($old['zdjecie'] ?? null);
@@ -246,11 +246,11 @@ if ($edit !== null) {
       <h2 class="pmg-form-section__title" id="sek-tresc">Treść</h2>
       <label for="tytul">Tytuł</label>
       <input type="text" id="tytul" name="tytul" maxlength="200" value="<?= $v('tytul') ?>" required data-pmg-licznik<?= blad_pola('tytul') ?>><?= komunikat_pola('tytul') ?>
-      <label for="lead">Lead (akapit pod tytułem w artykule)</label>
+      <label for="lead">Wstęp (akapit pod tytułem w artykule)</label>
       <p class="pmg-hint" id="lead_h">1–2 zdania wprowadzenia, wyróżnione nad zdjęciem. Maks. 600 znaków.</p>
       <textarea id="lead" name="lead" maxlength="600" rows="3"<?= blad_pola('lead', 'lead_h') ?> required data-pmg-licznik><?= $v('lead') ?></textarea><?= komunikat_pola('lead') ?>
-      <label for="zajawka">Zajawka <span class="pmg-opt">(opcjonalnie)</span></label>
-      <p class="pmg-hint" id="zajawka_h">Krótki tekst na kafelku na liście wpisów i na stronie głównej. Puste pole = na kafelku pojawia się lead. Maks. 400 znaków.</p>
+      <label for="zajawka">Krótki opis na kafelku <span class="pmg-opt">(opcjonalnie)</span></label>
+      <p class="pmg-hint" id="zajawka_h">Krótki tekst na kafelku na liście wpisów i na stronie głównej. Puste pole = na kafelku pojawia się wstęp. Maks. 400 znaków.</p>
       <input type="text" id="zajawka" name="zajawka" maxlength="400" value="<?= $v('zajawka') ?>" aria-describedby="zajawka_h" data-pmg-licznik>
       <label for="tresc">Treść</label>
       <p class="pmg-hint" id="tresc_h">Akapity oddzielaj pustą linią. Śródtytuł: linia zaczynająca się od <code>## </code>. Bez HTML — znaczniki pokażą się jako zwykły tekst.</p>

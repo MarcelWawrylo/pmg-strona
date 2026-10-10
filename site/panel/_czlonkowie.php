@@ -362,7 +362,7 @@ if ($editOsoba !== null) {
           </tr>
         <?php endforeach; ?>
         <?php if (!$bylZarzad): ?>
-          <tr><td colspan="5" class="pmg-empty">Brak osób w zarządzie.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=czlonkowie&osoba=nowa">+ Dodaj osobę</a></td></tr>
+          <tr><td colspan="5" class="pmg-empty">Brak osób w zarządzie.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=czlonkowie&osoba=nowa">+ Dodaj pierwszą osobę</a></td></tr>
         <?php endif; ?>
         </tbody>
       </table>
@@ -412,7 +412,7 @@ if ($editOsoba !== null) {
             </tr>
           <?php endforeach; ?>
           <?php if (!$osoby): ?>
-            <tr><td colspan="5" class="pmg-empty">Brak osób w tej sekcji.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=czlonkowie&osoba=nowa">+ Dodaj osobę</a></td></tr>
+            <tr><td colspan="5" class="pmg-empty">Brak osób w tej sekcji.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=czlonkowie&osoba=nowa">+ Dodaj pierwszą osobę</a></td></tr>
           <?php endif; ?>
           </tbody>
         </table>
@@ -420,7 +420,7 @@ if ($editOsoba !== null) {
     </div>
   <?php endforeach; ?>
   <?php if (!$sekcjeLista): ?>
-    <div class="pmg-empty">Brak sekcji — dodaj pierwszą przyciskiem powyżej.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=czlonkowie&sekcja=nowa">+ Dodaj sekcję</a></div>
+    <div class="pmg-empty">Brak sekcji — dodaj pierwszą przyciskiem powyżej.<br><a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=czlonkowie&sekcja=nowa">+ Dodaj pierwszą sekcję</a></div>
   <?php endif; ?>
 
 <?php endif; ?>

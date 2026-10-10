@@ -162,6 +162,6 @@ $nr = 0;
   <?php endforeach; ?>
 
   <div class="pmg-form-actions">
-    <button class="pmg-btn pmg-btn--primary" type="submit">Zapisz tę zakładkę</button>
+    <button class="pmg-btn pmg-btn--primary" type="submit">Zapisz</button>
   </div>
 </form>

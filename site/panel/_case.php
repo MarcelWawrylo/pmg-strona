@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($zostajeHero && $f['hero_alt'] === '') $bledyPol['hero_alt'] = 'Dodaj opis zdjęcia głównego (dla osób niewidomych).';
         if ($f['adres_strony'] !== '') {
             if (!preg_match('~^case-kola-[a-z0-9-]+\.html$~', $f['adres_strony']) || $f['adres_strony'] === 'case-kola-edycja.html') {
-                $bledyPol['adres_strony'] = 'Własna podstrona: nazwa pliku w postaci case-kola-nazwa.html (albo zostaw puste pole, żeby użyć wspólnej podstrony).';
+                $bledyPol['adres_strony'] = 'Nazwa osobnej podstrony: plik w postaci case-kola-nazwa.html (albo zostaw puste pole, żeby użyć wspólnej podstrony).';
             } elseif (!is_file(__DIR__ . '/../' . $f['adres_strony'])) {
                 $bledyPol['adres_strony'] = 'Na serwerze nie ma pliku ' . $f['adres_strony'] . '. Zostaw puste pole, żeby użyć wspólnej podstrony.';
             }
@@ -319,8 +319,8 @@ if ($edit !== null) {
       <label for="naglowek">Nagłówek <span class="pmg-opt">(opcjonalnie)</span></label>
       <p class="pmg-hint" id="naglowek_h">Duży tytuł na górze podstrony, np. „KN Solvro”. Puste pole = nazwa partnera.</p>
       <input type="text" id="naglowek" name="naglowek" maxlength="120" value="<?= $v('naglowek') ?>" aria-describedby="naglowek_h">
-      <label for="opis_meta">Krótki opis dla wyszukiwarek <span class="pmg-opt">(opcjonalnie)</span></label>
-      <p class="pmg-hint" id="opis_meta_h">Jedno zdanie, np. okres i temat współpracy. Nie widać go na stronie, tylko w wynikach wyszukiwania. Maks. 300 znaków.</p>
+      <label for="opis_meta">Opis w wynikach wyszukiwania <span class="pmg-opt">(opcjonalnie)</span></label>
+      <p class="pmg-hint" id="opis_meta_h">Jedno zdanie, np. okres i temat współpracy. Wyszukiwarka (np. Google) pokazuje je pod nazwą strony; na samej stronie go nie widać. Maks. 300 znaków.</p>
       <textarea id="opis_meta" name="opis_meta" maxlength="300" aria-describedby="opis_meta_h" data-pmg-licznik><?= $v('opis_meta') ?></textarea>
 
       <label for="hero">Zdjęcie główne 16:9 (JPG, PNG albo WebP) <span class="pmg-opt">(opcjonalnie)</span></label>
@@ -350,7 +350,7 @@ if ($edit !== null) {
 
     <section class="pmg-form-section" aria-labelledby="sek-adres">
       <h2 class="pmg-form-section__title" id="sek-adres">Własna podstrona</h2>
-      <label for="adres_strony">Plik własnej podstrony <span class="pmg-opt">(zwykle puste)</span></label>
+      <label for="adres_strony">Nazwa osobnej podstrony <span class="pmg-opt">(zwykle puste)</span></label>
       <p class="pmg-hint" id="adres_h">Domyślnie karta prowadzi do wspólnej podstrony, którą wypełnia ta treść. Wpisz nazwę pliku (np. case-kola-solvro.html) tylko wtedy, gdy edycja ma osobny, ręcznie przygotowany plik na serwerze — wtedy zmiany tekstu stąd nie będą na nim widoczne.</p>
       <input type="text" id="adres_strony" name="adres_strony" maxlength="100" value="<?= $v('adres_strony') ?>"<?= blad_pola('adres_strony', 'adres_h') ?> autocapitalize="none" spellcheck="false"><?= komunikat_pola('adres_strony') ?>
     </section>
