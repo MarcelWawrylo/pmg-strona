@@ -553,9 +553,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     go();
                 } else {
                     $error = 'Nieprawidłowy e-mail lub hasło.';
-                    // A2 6.2, 6.3: nieudane logowanie w dzienniku. Nieznany adres: bez konta i BEZ wpisanego e-maila (RODO).
+                    // A2 6.2, 6.3: nieudane logowanie na aktywne konto w dzienniku. Adres bez aktywnego konta pomijamy: wpis nie
+                    // miałby ani konta, ani adresu, a seria takich prób wypychałaby prawdziwe zmiany z widoku (200 ostatnich).
                     if ($u) dziennik_wpis((int) $u['id'], 'konto', 'nieudane_logowanie', (int) $u['id'], $ma_haslo ? 'błędne hasło' : 'konto bez ustawionego hasła');
-                    else dziennik_wpis(null, 'konto', 'nieudane_logowanie', null, 'nieznany adres e-mail');
                 }
             }
         }
