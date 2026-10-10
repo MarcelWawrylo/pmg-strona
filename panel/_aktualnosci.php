@@ -306,7 +306,7 @@ if ($edit !== null) {
         <figure class="pmg-photo pmg-photo--16x9 pmg-gal__foto"><img src="../<?= h($g['zdjecie']) ?>" alt=""></figure>
         <div class="pmg-gal__pola">
           <label for="gal-podpis-<?= (int) $g['id'] ?>">Podpis zdjęcia <?= $i + 1 ?> (także opis dla osób niewidomych)</label>
-          <input type="text" id="gal-podpis-<?= (int) $g['id'] ?>" name="podpis" maxlength="200" value="<?= h($g['podpis']) ?>" required<?= blad_pola('gal-podpis-' . (int) $g['id']) ?>><?= komunikat_pola('gal-podpis-' . (int) $g['id']) ?>
+          <input type="text" id="gal-podpis-<?= (int) $g['id'] ?>" name="podpis" maxlength="200" value="<?= h(($action ?? '') === 'gal_zapisz' && ($gid ?? 0) === (int) $g['id'] ? (string) ($_POST['podpis'] ?? '') : $g['podpis']) ?>" required<?= blad_pola('gal-podpis-' . (int) $g['id']) ?>><?= komunikat_pola('gal-podpis-' . (int) $g['id']) ?>
           <label for="gal-plik-<?= (int) $g['id'] ?>">Podmień plik <span class="pmg-opt">(opcjonalnie)</span></label>
           <input type="file" id="gal-plik-<?= (int) $g['id'] ?>" name="plik" accept="image/jpeg,image/png,image/webp"<?= blad_pola('gal-plik-' . (int) $g['id']) ?>><?= komunikat_pola('gal-plik-' . (int) $g['id']) ?>
           <div class="pmg-gal__akcje">
@@ -326,7 +326,7 @@ if ($edit !== null) {
         <p class="pmg-hint" id="gal-nowe-h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 16:9 (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 1200 × 675 px.</p>
         <input type="file" id="gal-nowe-plik" name="plik" accept="image/jpeg,image/png,image/webp" required<?= blad_pola('gal-nowe-plik', 'gal-nowe-h') ?>><?= komunikat_pola('gal-nowe-plik') ?>
         <label for="gal-nowe-podpis">Podpis zdjęcia (także opis dla osób niewidomych)</label>
-        <input type="text" id="gal-nowe-podpis" name="podpis" maxlength="200" required<?= blad_pola('gal-nowe-podpis') ?>><?= komunikat_pola('gal-nowe-podpis') ?>
+        <input type="text" id="gal-nowe-podpis" name="podpis" maxlength="200" value="<?= ($action ?? '') === 'gal_dodaj' ? h((string) ($_POST['podpis'] ?? '')) : '' ?>" required<?= blad_pola('gal-nowe-podpis') ?>><?= komunikat_pola('gal-nowe-podpis') ?>
         <div class="pmg-form-actions"><button class="pmg-btn pmg-btn--secondary" type="submit">Dodaj do galerii</button></div>
       </form>
     <?php endif; ?>
