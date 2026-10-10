@@ -26,6 +26,7 @@ if (!isset($zakladki[$z])) $z = (string) key($zakladki);
 $pola = $zakladki[$z]['pola'];
 
 $wartosciForm = null; // wartości wpisane w formularzu, gdy zapis się nie udał (żeby ich nie zgubić)
+$bladTresci = []; // klucz pola => komunikat (identyfikator pola w formularzu powstaje dopiero przy wypisywaniu, więc tam trafia do $bledyPol)
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['a'] ?? '';
@@ -40,12 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($pola as $k => $p) {
             if (!isset($wejscie[$k]) || !is_string($wejscie[$k])) continue; // pole nie przyszło w żądaniu = bez zmian
             $nowe[$k] = tresci_norm($wejscie[$k], $p['typ']);
-            if ($error === '' && $k !== $przywroc && mb_strlen($nowe[$k]) > $p['max']) {
-                $error = 'Pole „' . $p['etykieta'] . '” ma ' . mb_strlen($nowe[$k]) . ' znaków, a limit to ' . $p['max'] . '. Nic nie zapisano.';
+            if ($k !== $przywroc && mb_strlen($nowe[$k]) > $p['max']) {
+                $bladTresci[$k] = 'Pole „' . $p['etykieta'] . '” ma ' . mb_strlen($nowe[$k]) . ' znaków, a limit to ' . $p['max'] . '. Nic nie zapisano.';
             }
         }
-        if ($error !== '') $wartosciForm = $nowe; // wpisane wartości zostają w polach, żeby nic nie zginęło
-        if ($error === '') {
+        if ($bladTresci) $wartosciForm = $nowe; // wpisane wartości zostają w polach, żeby nic nie zginęło
+        if (!$bladTresci) {
             $pdo = pmg_db();
             $zmienione = 0;
             $przywrocone = 0;
@@ -133,6 +134,7 @@ $nr = 0;
     <section class="pmg-form-section" aria-labelledby="<?= $sid ?>">
       <h3 class="pmg-form-section__title" id="<?= $sid ?>"><?= h($nazwaSekcji) ?></h3>
       <?php foreach ($pp as $k => $nazwa): $p = $pola[$k]; $id = 't' . (++$nr);
+            if (isset($bladTresci[$k])) $bledyPol[$id] = $bladTresci[$k];
             $ma = isset($baza[$k]) && trim($baza[$k]['wartosc']) !== '';
             $wartosc = $wartosciForm !== null && isset($wartosciForm[$k]) ? $wartosciForm[$k] : ($ma ? $baza[$k]['wartosc'] : '');
             $wiersze = min(8, max(2, (int) ceil(mb_strlen($p['domyslny']) / 70) + substr_count($p['domyslny'], "\n"))); ?>
@@ -140,9 +142,9 @@ $nr = 0;
           <label for="<?= $id ?>"><?= h($nazwa) ?></label>
           <p class="pmg-hint pmg-tresc__dom" id="<?= $id ?>-h">Na stronie jest: <span id="<?= $id ?>-dom"><?= h($p['domyslny']) ?></span><?php if (!empty($p['gdzie'])): ?> (<?= h($p['gdzie']) ?>)<?php endif; ?></p>
           <?php if ($p['typ'] === 'tekst'): ?>
-            <textarea id="<?= $id ?>" name="t[<?= h($k) ?>]" rows="<?= $wiersze ?>" maxlength="<?= (int) $p['max'] ?>" aria-describedby="<?= $id ?>-h" data-pmg-licznik><?= h($wartosc) ?></textarea>
+            <textarea id="<?= $id ?>" name="t[<?= h($k) ?>]" rows="<?= $wiersze ?>" maxlength="<?= (int) $p['max'] ?>"<?= blad_pola($id, $id . '-h') ?> data-pmg-licznik><?= h($wartosc) ?></textarea><?= komunikat_pola($id) ?>
           <?php else: ?>
-            <input type="text" id="<?= $id ?>" name="t[<?= h($k) ?>]" maxlength="<?= (int) $p['max'] ?>" value="<?= h($wartosc) ?>" aria-describedby="<?= $id ?>-h" data-pmg-licznik>
+            <input type="text" id="<?= $id ?>" name="t[<?= h($k) ?>]" maxlength="<?= (int) $p['max'] ?>" value="<?= h($wartosc) ?>"<?= blad_pola($id, $id . '-h') ?> data-pmg-licznik><?= komunikat_pola($id) ?>
           <?php endif; ?>
           <div class="pmg-tresc__meta">
             <?php if ($ma): ?>

@@ -68,13 +68,13 @@ if ($sub === 'ustawienia') {
         ];
         $wartosci = $wejscie; // formularz zachowuje wpisane wartości, jeśli coś jest nie tak
 
-        if (!url_ok($wejscie['instagram'])) $error = 'Instagram: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
-        elseif (!url_ok($wejscie['facebook'])) $error = 'Facebook: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
-        elseif (!url_ok($wejscie['linkedin'])) $error = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
-        elseif (!url_ok($wejscie['tiktok'])) $error = 'TikTok: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
-        elseif ($wejscie['email'] !== '' && !filter_var($wejscie['email'], FILTER_VALIDATE_EMAIL)) $error = 'Podaj poprawny adres e-mail albo zostaw puste pole.';
+        if (!url_ok($wejscie['instagram'])) $bledyPol['instagram'] = 'Instagram: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        if (!url_ok($wejscie['facebook'])) $bledyPol['facebook'] = 'Facebook: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        if (!url_ok($wejscie['linkedin'])) $bledyPol['linkedin'] = 'LinkedIn: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        if (!url_ok($wejscie['tiktok'])) $bledyPol['tiktok'] = 'TikTok: podaj pełny adres zaczynający się od https:// albo zostaw puste pole.';
+        if ($wejscie['email'] !== '' && !filter_var($wejscie['email'], FILTER_VALIDATE_EMAIL)) $bledyPol['email'] = 'Podaj poprawny adres e-mail albo zostaw puste pole.';
 
-        if ($error === '') {
+        if (!$bledyPol) {
             $pdo = pmg_db();
             $pdo->beginTransaction();
             $upd = $pdo->prepare('REPLACE INTO pmg_ustawienia (klucz, wartosc) VALUES (?,?)');
@@ -95,26 +95,26 @@ if ($sub === 'ustawienia') {
         <h2 class="pmg-form-section__title" id="sek-social">Media społecznościowe</h2>
         <label for="instagram">Instagram</label>
         <p class="pmg-hint" id="instagram_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-        <input type="text" id="instagram" name="instagram" value="<?= h($wartosci['instagram']) ?>" aria-describedby="instagram_h">
+        <input type="text" id="instagram" name="instagram" value="<?= h($wartosci['instagram']) ?>"<?= blad_pola('instagram', 'instagram_h') ?>><?= komunikat_pola('instagram') ?>
 
         <label for="facebook">Facebook</label>
         <p class="pmg-hint" id="facebook_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-        <input type="text" id="facebook" name="facebook" value="<?= h($wartosci['facebook']) ?>" aria-describedby="facebook_h">
+        <input type="text" id="facebook" name="facebook" value="<?= h($wartosci['facebook']) ?>"<?= blad_pola('facebook', 'facebook_h') ?>><?= komunikat_pola('facebook') ?>
 
         <label for="linkedin">LinkedIn</label>
         <p class="pmg-hint" id="linkedin_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-        <input type="text" id="linkedin" name="linkedin" value="<?= h($wartosci['linkedin']) ?>" aria-describedby="linkedin_h">
+        <input type="text" id="linkedin" name="linkedin" value="<?= h($wartosci['linkedin']) ?>"<?= blad_pola('linkedin', 'linkedin_h') ?>><?= komunikat_pola('linkedin') ?>
 
         <label for="tiktok">TikTok</label>
         <p class="pmg-hint" id="tiktok_h">Pełny adres zaczynający się od https://. Puste pole = strona pokazuje obecny link.</p>
-        <input type="text" id="tiktok" name="tiktok" value="<?= h($wartosci['tiktok']) ?>" aria-describedby="tiktok_h">
+        <input type="text" id="tiktok" name="tiktok" value="<?= h($wartosci['tiktok']) ?>"<?= blad_pola('tiktok', 'tiktok_h') ?>><?= komunikat_pola('tiktok') ?>
       </section>
 
       <section class="pmg-form-section" aria-labelledby="sek-kontakt">
         <h2 class="pmg-form-section__title" id="sek-kontakt">Kontakt</h2>
         <label for="email">E-mail kontaktowy</label>
         <p class="pmg-hint" id="email_h">Adres pokazywany na stronie (stopka, Kontakt). Puste pole = strona pokazuje obecny adres.</p>
-        <input type="email" id="email" name="email" value="<?= h($wartosci['email']) ?>" aria-describedby="email_h">
+        <input type="email" id="email" name="email" value="<?= h($wartosci['email']) ?>"<?= blad_pola('email', 'email_h') ?>><?= komunikat_pola('email') ?>
       </section>
 
       <div class="pmg-form-actions">
@@ -223,8 +223,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $zmianaWlasnejRoli = $ja && isset($_POST['rola']) && $rola !== $me['rola'];
         if ($ja) { $rola = $me['rola']; $moduly = $me['moduly']; }
 
-        if ($imie === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = 'Podaj imię i nazwisko oraz poprawny e-mail.';
+        if ($imie === '') $bledyPol['imie_nazwisko'] = 'Podaj imię i nazwisko.';
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $bledyPol['email'] = 'Podaj poprawny e-mail.';
+        if ($bledyPol) {
+            // nic nie zapisujemy — formularz wróci z komunikatami przy polach (niżej)
         } elseif ($zmianaWlasnejRoli) {
             $error = KONTO_WLASNE;
         } elseif ($action === 'zapros') {
@@ -270,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 go('?m=konta');
             }
         }
-        if ($error !== '') $edit = ['id' => $id, 'imie_nazwisko' => $imie, 'email' => $email, 'rola' => $rola, 'moduly' => $moduly];
+        if ($error !== '' || $bledyPol) $edit = ['id' => $id, 'imie_nazwisko' => $imie, 'email' => $email, 'rola' => $rola, 'moduly' => $moduly];
 
     } elseif ($action === 'blokuj' || $action === 'odblokuj') {
         $pdo = pmg_db();
@@ -370,9 +372,9 @@ if ($edit !== null) {
     <input type="hidden" name="a" value="<?= $edit['id'] ? 'edytuj' : 'zapros' ?>">
     <input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
     <label for="imie_nazwisko">Imię i nazwisko</label>
-    <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" value="<?= h($edit['imie_nazwisko']) ?>" required>
+    <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" value="<?= h($edit['imie_nazwisko']) ?>" required<?= blad_pola('imie_nazwisko') ?>><?= komunikat_pola('imie_nazwisko') ?>
     <label for="email">E-mail (login)</label>
-    <input type="email" id="email" name="email" maxlength="150" value="<?= h($edit['email']) ?>" required>
+    <input type="email" id="email" name="email" maxlength="150" value="<?= h($edit['email']) ?>" required<?= blad_pola('email') ?>><?= komunikat_pola('email') ?>
     <?php $wlasne = (int) $edit['id'] === (int) $me['id']; ?>
     <fieldset class="pmg-fieldset"<?= $wlasne ? ' disabled' : '' ?>>
       <legend class="pmg-legend">Rola</legend>
