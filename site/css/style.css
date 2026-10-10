@@ -1042,11 +1042,12 @@ html.nav-open body { overflow: hidden; }
 @keyframes pms-tape-in-l { from { opacity: 0; transform: translate3d(-14%, 0, 0); } to { opacity: 1; transform: none; } }
 @keyframes pms-tape-in-r { from { opacity: 0; transform: translate3d(14%, 0, 0); } to { opacity: 1; transform: none; } }
 @keyframes pms-title-in { from { opacity: 0; transform: translate3d(0, .25em, 0); } to { opacity: 1; transform: none; } }
-/* telefon (≤ 640 px): jedna taśma (środkowa, za zdaniem), mniejsza; JS zwalnia jej ruch */
+/* telefon (≤ 640 px): wszystkie trzy taśmy jak na komputerze, mniejsze i bliżej krawędzi; JS zwalnia ruch wszystkich tak samo */
 @media (max-width: 640px) {
   .pms-intro { padding: 48px 0; }
-  .pms-intro__tape--top, .pms-intro__tape--low { display: none; }
-  .pms-intro__tape { font-size: clamp(40px, 12vw, 64px); }
+  .pms-intro__tape { font-size: clamp(32px, 10vw, 56px); }
+  .pms-intro__tape--top { top: 11%; }
+  .pms-intro__tape--low { bottom: 11%; }
 }
 /* ograniczony ruch: bez wejścia, zdanie widoczne od razu, taśmy statyczne (JS ich nie przesuwa) */
 @media (prefers-reduced-motion: reduce) {

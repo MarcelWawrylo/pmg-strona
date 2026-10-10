@@ -328,7 +328,7 @@
      prędkość z data-speed). Bez GSAP: scroll + rAF; pętla działa tylko, dopóki wygładzona pozycja nie dogoni przewinięcia,
      więc gdy przewijanie stoi, nic się nie rusza. Każda taśma składa się z tylu powtórzeń, by objęła ekran i jedno
      powtórzenie zapasu; przesunięcie modulo szerokość powtórzenia, więc nigdy nie widać pustego końca.
-     Telefon (≤ 640 px): CSS zostawia jedną taśmę, tu wolniej. Ograniczony ruch: taśmy stoją. */
+     Telefon (≤ 640 px): wszystkie taśmy, tu wolniej (każda tak samo). Ograniczony ruch: taśmy stoją. */
   function initPmsTapes() {
     var section = $('[data-pms-intro]');
     var tapes = section ? $$('.pms-intro__tape', section) : [];
@@ -361,7 +361,7 @@
         var probe = unit(texts[i]);
         track.appendChild(probe);
         var unitW = probe.getBoundingClientRect().width;
-        if (!unitW) return; // taśma ukryta (telefon: tylko środkowa)
+        if (!unitW) return; // taśma ukryta (display: none)
         var n = Math.max(2, Math.ceil(vw / unitW) + 1);
         for (var k = 1; k < n; k++) track.appendChild(unit(texts[i]));
         var speed = parseFloat(tape.getAttribute('data-speed')) || 0.5;
