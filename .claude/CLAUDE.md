@@ -34,6 +34,7 @@ GitHub Pages publikuje się z gałęzi `gh-pages` poleceniem `git subtree push -
 4. **Atrybuty `data-set="..."`** (np. e-mail, linki social w stopce) wypełnia panel przez `main.js`. Nie usuwaj ich i nie zmieniaj ich wartości.
 5. **Równoległe gałęzie.** Przed startem zrób `git fetch origin` i sprawdź `git branch -r`. Jeśli jakaś gałąź ma niescalone commity w tych samych plikach HTML (np. w stopce), nie zaczynaj pracy na starej bazie, tylko zapytaj, od której gałęzi wyjść.
 6. Claude lubi „przy okazji uporządkować” HTML. Tutaj nie wolno: żadnego przeformatowania, zmiany wcięć ani kolejności atrybutów w liniach, których zadanie nie dotyczy. Diff ma zawierać tylko zmianę z zadania.
+7. **Edycje PM Session i Case Koła w menu.** Na serwerze z PHP podmenu „Case Koła” i „PM Session” w headerze buduje `main.js` z panelu (`api/case-kola.php`, `api/pmsession.php?lista=1`): edycja dodana, ukryta, zmieniona na szkic albo usunięta w panelu pojawia się lub znika w menu sama. Statyczne menu w HTML (każdy plik `site/*.html`, w `404.html` ścieżki bezwzględne) to wersja zapasowa dla GitHub Pages i braku backendu — po dodaniu nowej strony edycji (`pm-session-<numer>.html`, nowy `case-kola-*.html`) dopisz ją ręcznie do odpowiedniej listy we wszystkich plikach, w tej samej kolejności co na stronie z kafelkami (sprawdź: `grep -l site-nav__menu -r site --include=*.html`). Nowa edycja PM Session potrzebuje też własnego pliku HTML z `data-edycja` (wzór: `pm-session-xv.html`), inaczej nie trafi do menu.
 
 ## Zasady przy zmianach
 
