@@ -180,10 +180,6 @@ function save_image($file, $modul)
     if (!$info || !isset($types[$info[2]])) throw new RuntimeException('Dozwolone formaty: JPG, PNG, WebP.');
     list($w, $hgt) = $info;
     if ($w * $hgt > 12000000) throw new RuntimeException('Zdjęcie ma za dużą rozdzielczość (maks. ok. 12 megapikseli) — zmniejsz je przed wgraniem.');
-    if ($proporcja !== null && abs($w / $hgt - $proporcja) > 0.03) {
-        $opis = abs($proporcja - 1) < 0.001 ? '1:1 (kwadrat)' : (abs($proporcja - 4 / 3) < 0.001 ? '4:3' : '16:9');
-        throw new RuntimeException('Zdjęcie musi mieć proporcje ' . $opis . ' (wgrane: ' . $w . '×' . $hgt . ' px).');
-    }
     $dir = __DIR__ . '/../uploads/' . $modul . '/';
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     $name = date('Ymd') . '-' . bin2hex(random_bytes(6));
@@ -194,8 +190,23 @@ function save_image($file, $modul)
     if (!function_exists($open) || !function_exists('imagejpeg')) throw new RuntimeException('Serwer nie obsługuje przetwarzania zdjęć (brak biblioteki GD) — zgłoś to administratorowi strony.');
     $src = @$open($file['tmp_name']);
     if ($src === false) throw new RuntimeException('Nie udało się odczytać zdjęcia — plik jest uszkodzony. Spróbuj zapisać go ponownie (np. jako JPG).');
-    $nw = min($maxSzer, $w);
-    $dst = imagecreatetruecolor($nw, (int) round($nw * $hgt / $w));
+    // Wycinek źródła: domyślnie całe zdjęcie. Gdy proporcje odbiegają od wymaganych o więcej niż 0,03, bierzemy
+    // największy wyśrodkowany prostokąt o wymaganych proporcjach (np. 4000×3000 na 16:9 → 4000×2250, ucięte 375 px u góry i u dołu).
+    $sx = 0;
+    $sy = 0;
+    $sw = $w;
+    $sh = $hgt;
+    if ($proporcja !== null && abs($w / $hgt - $proporcja) > 0.03) {
+        if ($w / $hgt > $proporcja) {
+            $sw = max(1, (int) round($hgt * $proporcja));
+            $sx = (int) floor(($w - $sw) / 2);
+        } else {
+            $sh = max(1, (int) round($w / $proporcja));
+            $sy = (int) floor(($hgt - $sh) / 2);
+        }
+    }
+    $nw = min($maxSzer, $sw);
+    $dst = imagecreatetruecolor($nw, max(1, (int) round($nw * $sh / $sw)));
     $logo = $modul === 'case-logo'; // logotypy zostają PNG z przezroczystością (białe logo na JPG z białym tłem znikłoby)
     if ($logo) {
         imagealphablending($dst, false);
@@ -204,7 +215,7 @@ function save_image($file, $modul)
     } else {
         imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
     }
-    imagecopyresampled($dst, $src, 0, 0, 0, 0, imagesx($dst), imagesy($dst), $w, $hgt);
+    imagecopyresampled($dst, $src, 0, 0, $sx, $sy, imagesx($dst), imagesy($dst), $sw, $sh);
     $zapisano = $logo ? imagepng($dst, $dir . $name . '.png', 6) : imagejpeg($dst, $dir . $name . '.jpg', 82);
     imagedestroy($src);
     imagedestroy($dst);
