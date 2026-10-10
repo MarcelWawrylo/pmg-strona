@@ -213,7 +213,7 @@ if ($editOsoba !== null) {
     <section class="pmg-form-section" aria-labelledby="sek-zdjecie">
       <h2 class="pmg-form-section__title" id="sek-zdjecie">Zdjęcie</h2>
       <label for="zdjecie">Zdjęcie 1:1 — kwadrat (JPG, PNG albo WebP)</label>
-      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Kwadrat 1:1, np. 800 × 800 px. Opcjonalne. Obecnie niewidoczne na stronie (brak miejsca w projekcie graficznym „O nas”) — zapisujemy je na zapas.</p>
+      <p class="pmg-hint" id="zdjecie_h">Maks. 10 MB. Zdjęcie zostanie przycięte do proporcji 1:1 (kwadrat) (ze środka). Najlepiej wgraj zdjęcie w tych proporcjach. Np. 800 × 800 px. Opcjonalne. Obecnie niewidoczne na stronie (brak miejsca w projekcie graficznym „O nas”) — zapisujemy je na zapas.</p>
       <?php if (!empty($editOsoba['zdjecie'])): ?>
         <figure class="pmg-photo pmg-photo--1x1"><img src="../<?= h($editOsoba['zdjecie']) ?>" alt=""><figcaption class="pmg-hint">Obecne zdjęcie. Wgranie nowego pliku zastąpi to zdjęcie.</figcaption></figure>
       <?php endif; ?>
