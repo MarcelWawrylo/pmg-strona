@@ -165,7 +165,6 @@ if ($edit !== null) {
     $odcinki = pmg_db()->query('SELECT o.id, o.numer, o.tytul, o.data, o.opublikowany, o.edycja_id, e.numer AS edycja_numer FROM pmg_odcinki o LEFT JOIN pmg_podcast_edycje e ON e.id = o.edycja_id ORDER BY e.kolejnosc IS NULL, e.kolejnosc, e.id, o.kolejnosc, o.numer, o.id')->fetchAll();
     $pmgNaglowek = [
         'akcje' => [
-            ['href' => '?m=podcast&w=edycje', 'etykieta' => 'Edycje podcastu', 'rodzaj' => 'secondary'],
             ['href' => '?m=podcast&nowy', 'etykieta' => '+ Nowy odcinek', 'rodzaj' => 'primary'],
             ['href' => '../podcast.html', 'etykieta' => 'Zobacz stronę', 'rodzaj' => 'text', 'nowaKarta' => true],
         ],

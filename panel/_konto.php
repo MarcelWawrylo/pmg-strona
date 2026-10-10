@@ -53,7 +53,7 @@ $pmgNaglowek = ['tytul' => 'Moje konto', 'opis' => (string) $me['email']];
   <h2 class="pmg-h2">Dane</h2>
   <label for="imie_nazwisko">Imię i nazwisko</label>
   <input type="text" id="imie_nazwisko" name="imie_nazwisko" maxlength="100" value="<?= h(($_POST['a'] ?? '') === 'imie' ? ($_POST['imie_nazwisko'] ?? '') : $me['imie_nazwisko']) ?>" required<?= blad_pola('imie_nazwisko') ?>><?= komunikat_pola('imie_nazwisko') ?>
-  <p class="pmg-hint">Rola: <?= $me['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?>. E-mail, rolę i moduły zmienia administrator w module Konta.</p>
+  <p class="pmg-hint">Rola: <?= $me['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?>. E-mail, rolę i strony, które możesz edytować, zmienia administrator w menu Konta.</p>
   <div class="pmg-form-actions">
     <button class="pmg-btn pmg-btn--primary" type="submit">Zapisz</button>
   </div>
