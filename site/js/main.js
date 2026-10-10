@@ -681,10 +681,40 @@
     if (!form) return;
     var error = $('[data-form-error]', form);
     var status = $('[data-form-status]', form);
+    var result = $('[data-form-result]', form);
+    var note = status.textContent;
+    var v = function (n) { return form.elements[n].value; };
+    // adres czytany przy kliknięciu: data-mailto podmienia później api/ustawienia.php
+    var mailto = function (draft) {
+      var href = 'mailto:' + form.getAttribute('data-mailto');
+      if (!draft) return href;
+      var bodyText = draft.message + '\n\n—\n' + draft.name + '\n' + draft.email;
+      return href + '?subject=' + encodeURIComponent(draft.subject) + '&body=' + encodeURIComponent(bodyText);
+    };
+    var ICONS = {
+      ok: '<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>',
+      error: '<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M12 7v6.5M12 16.5v.01"/></svg>'
+    };
+    // Karta z wynikiem wysyłki: widoczna, przewinięta do środka ekranu i z fokusem (czytnik ekranu odczyta ją od razu).
+    // draft !== undefined → przycisk „Wyślij z programu pocztowego” (null = sam adres, bez treści).
+    var showResult = function (kind, title, text, draft) {
+      result.className = 'form-result form-result--' + kind;
+      result.innerHTML = '<span class="form-result__icon">' + ICONS[kind] + '</span><div class="form-result__body">' +
+        '<h2 class="form-result__title">' + esc(title) + '</h2><p class="form-result__text">' + esc(text) + '</p>' +
+        (draft !== undefined ? '<a class="btn btn--dark form-result__mail" href="' + esc(mailto(draft)) + '">Wyślij z programu pocztowego</a>' : '') + '</div>';
+      var link = $('.form-result__mail', result);
+      if (link) link.addEventListener('click', function () { link.href = mailto(draft); });
+      result.hidden = false;
+      result.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'center' });
+      result.focus({ preventScroll: true });
+    };
     // powrót po zwykłym POST (bez JS): api/kontakt.php przekierowuje na kontakt.html?wyslano=1 albo ?blad=1
+    // (po „load”: wcześniej przeglądarka sama przewija do #formularz i zdejmuje fokus z karty)
     var back = new URLSearchParams(location.search);
-    if (back.get('wyslano') === '1') status.textContent = 'Dziękujemy! Wiadomość wysłana — odpowiemy jak najszybciej.';
-    else if (back.get('blad') === '1') status.textContent = 'Nie udało się wysłać wiadomości. Sprawdź pola i spróbuj ponownie albo napisz bezpośrednio na adres e-mail poniżej.';
+    window.addEventListener('load', function () {
+      if (back.get('wyslano') === '1') showResult('ok', 'Dziękujemy! Wiadomość wysłana', 'Odpowiemy jak najszybciej.');
+      else if (back.get('blad') === '1') showResult('error', 'Nie udało się wysłać wiadomości', 'Sprawdź, czy wszystkie pola są wypełnione, i spróbuj ponownie albo napisz do nas z własnego programu pocztowego.', null);
+    });
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var fields = $$('.field__input', form);
@@ -701,22 +731,24 @@
         return;
       }
       error.hidden = true;
-      var v = function (n) { return form.elements[n].value; };
+      result.hidden = true;
+      var draft = { name: v('name'), email: v('email'), subject: v('subject'), message: v('message') };
       var send = $('.contact-form__send', form);
       send.disabled = true;
       status.textContent = 'Wysyłamy wiadomość…';
       api('kontakt.php', { method: 'POST', body: new FormData(form) }).then(function (res) {
         send.disabled = false;
+        status.textContent = note;
         if (res && res.ok) {
           form.reset();
-          status.textContent = 'Dziękujemy! Wiadomość wysłana — odpowiemy jak najszybciej.';
+          showResult('ok', 'Dziękujemy! Wiadomość wysłana', 'Odpowiemy na adres ' + draft.email + ' jak najszybciej.');
         } else if (res) {
-          status.textContent = res.error || 'Nie udało się wysłać wiadomości.';
+          // res.mailto: serwer przyjął dane, ale nie zapisał ani nie wysłał wiadomości (nie przy błędzie pól ani limicie)
+          showResult('error', 'Nie udało się wysłać wiadomości', (res.error || 'Spróbuj ponownie za chwilę.') +
+            (res.mailto ? ' Możesz wysłać ją z własnego programu pocztowego — treść jest już gotowa.' : ''), res.mailto ? draft : undefined);
         } else {
-          var bodyText = v('message') + '\n\n—\n' + v('name') + '\n' + v('email');
           status.textContent = 'Otwieramy Twój program pocztowy z gotową wiadomością…';
-          window.location.href = 'mailto:' + form.getAttribute('data-mailto') +
-            '?subject=' + encodeURIComponent(v('subject')) + '&body=' + encodeURIComponent(bodyText);
+          window.location.href = mailto(draft);
         }
       });
     });

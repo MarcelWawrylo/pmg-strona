@@ -42,4 +42,5 @@ $headers = implode("\r\n", [
 $body = $message . "\n\n—\n" . $name . "\n" . $email . "\n(wiadomość z formularza na stronie PMG)";
 $sent = mail($c['mail_to'], '=?UTF-8?B?' . base64_encode('[Strona PMG] ' . $subject) . '?=', $body, $headers);
 
-$sent ? $respond(['ok' => true]) : $respond(['ok' => false, 'error' => 'Nie udało się wysłać wiadomości.'], 500);
+// mailto: strona pokaże przycisk wysyłki z programu pocztowego (tylko tu — nie przy błędzie pól ani limicie)
+$sent ? $respond(['ok' => true]) : $respond(['ok' => false, 'error' => 'Serwer nie przyjął wiadomości.', 'mailto' => true], 500);
