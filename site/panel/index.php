@@ -276,8 +276,13 @@ $pmgNaglowek = []; // moduły mogą nadpisać: tytul, opis, wstecz[href,etykieta
 // ---------- $me: ładowany z bazy przy każdym żądaniu (blokada/zmiana roli działa od razu) ----------
 $me = null;
 $wygasla = false;
+$wygasla12h = false;
 if (!empty($_SESSION['uid'])) {
-    if (time() - ($_SESSION['t'] ?? 0) > 7200) {
+    // A2 3.6: najwyżej 12 h od zalogowania, niezależnie od aktywności (także ?ping z panel.js nie przedłuża ponad ten czas).
+    // Sesja sprzed tej zmiany nie ma 'od' — liczymy jej 12 h od teraz zamiast wylogowywać wszystkich naraz.
+    if (!isset($_SESSION['od'])) $_SESSION['od'] = time();
+    $wygasla12h = time() - (int) $_SESSION['od'] > 43200;
+    if (time() - ($_SESSION['t'] ?? 0) > 7200 || $wygasla12h) {
         $wygasla = true;
         session_regenerate_id(true);
         $_SESSION = [];
@@ -351,8 +356,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit('To konto już istnieje — zaloguj się.');
                 }
                 session_regenerate_id(true);
+                unset($_SESSION['csrf']); // A2 3.3: nowy token formularzy po zalogowaniu
                 $_SESSION['uid'] = (int) pmg_db()->lastInsertId();
                 $_SESSION['t'] = time();
+                $_SESSION['od'] = time(); // A2 3.6: początek sesji (limit 12 h)
                 $_SESSION['ph'] = hash('sha256', $hash);
                 go();
             }
@@ -371,7 +378,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st = pmg_db()->prepare('SELECT * FROM pmg_uzytkownicy WHERE email = ? AND aktywny = 1');
             $st->execute([$email]);
             $u = $st->fetch();
-            $klucz = $u ? 'u' . $u['id'] : $email;
+            // A2 3.10: osobne przestrzenie nazw — wpisanie np. „u1” jako e-maila nie zużywa limitu konta o id 1.
+            $klucz = $u ? 'konto:' . $u['id'] : 'email:' . $email;
             if (!pmg_rate_ok('login_konto', 5, 900, $klucz)) { // liczone od razu — równoległe żądania nie obejdą limitu
                 $error = 'Za dużo prób logowania. Spróbuj za 15 minut.';
             } else {
@@ -391,8 +399,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo = ? WHERE id = ?')->execute([$u['haslo'], $u['id']]);
                     }
                     session_regenerate_id(true);
+                    unset($_SESSION['csrf']); // A2 3.3: nowy token formularzy po zalogowaniu
                     $_SESSION['uid'] = (int) $u['id'];
                     $_SESSION['t'] = time();
+                    $_SESSION['od'] = time(); // A2 3.6: początek sesji (limit 12 h)
                     $_SESSION['ph'] = hash('sha256', (string) $u['haslo']);
                     pmg_rate_clear('login_konto', $klucz);
                     pmg_db()->prepare('UPDATE pmg_uzytkownicy SET ostatnie_logowanie = NOW() WHERE id = ?')->execute([$u['id']]);
@@ -422,6 +432,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             pmg_db()->prepare('UPDATE pmg_uzytkownicy SET haslo = ?, token_hash = NULL, token_do = NULL WHERE id = ?')
                 ->execute([password_hash($haslo, PASSWORD_DEFAULT), $u['id']]);
             dziennik_wpis((int) $u['id'], 'konto', 'haslo_z_linku', (int) $u['id']); // A2 6.2
+            unset($_SESSION['csrf']); // A2 3.3: nowy token formularzy po ustawieniu hasła
             $_SESSION['flash'] = 'Hasło ustawione — możesz się zalogować.';
             go();
         }
@@ -485,7 +496,7 @@ if ($flash) {
 if ($wygasla || $bladSesji) {
     echo '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>' . ($me
         ? 'Nie zapisano zmian: formularz był otwarty zbyt długo albo w innej karcie się wylogowano. Wpisz zmiany ponownie i zapisz.'
-        : 'Sesja wygasła z powodu bezczynności — zaloguj się ponownie.' . ($bladSesji ? ' Ostatnie zmiany nie zostały zapisane.' : '')) . '</p></div>';
+        : ($wygasla12h ? 'Sesja wygasła, bo minęło 12 godzin od zalogowania — zaloguj się ponownie.' : 'Sesja wygasła z powodu bezczynności — zaloguj się ponownie.') . ($bladSesji ? ' Ostatnie zmiany nie zostały zapisane.' : '')) . '</p></div>';
 }
 $pmgAlerty = ob_get_clean();
 
