@@ -106,7 +106,7 @@ Zmiany zapisane w panelu widać na stronie w ciągu 5 minut (pamięć podręczna
 
 Cała zawartość `site/` **oprócz**: `graphify-out/` (narzędzie lokalne), `README.md` (opcjonalnie). Na serwerze **nie nadpisuj ani nie usuwaj**: `pmg-config.php` (leży poza katalogiem strony) albo awaryjnie `api/config.php`, oraz `uploads/` (zdjęcia z panelu).
 
-Po wgraniu sprawdź ręcznie (lokalny serwer PHP ignoruje `.htaccess`, więc tego nie dało się przetestować): `…/api/lib.php` i `…/uploads/aktualnosci/x.php` → błąd 403; nieistniejący adres → strona 404 w stylu strony; nagłówek `X-Robots-Tag: noindex` na `dev.`.
+Po wgraniu sprawdź ręcznie (lokalny serwer PHP ignoruje `.htaccess`, więc tego nie dało się przetestować): `…/api/lib.php`, `…/api/config.example.php`, `…/api/dane-startowe.php`, `…/api/seed-podcast.php`, `…/api/tresci-pola.php` i `…/uploads/aktualnosci/x.php` → błąd 403, a `…/api/aktualnosci.php` → dane JSON (publiczne endpointy działają); nieistniejący adres → strona 404 w stylu strony; nagłówek `X-Robots-Tag: noindex` na `dev.`.
 
 ## Zasady przy zmianach
 
