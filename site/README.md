@@ -59,6 +59,24 @@ Katalog domowy konta mieści się zwykle w `open_basedir`, więc PHP może tam c
 4. Kolejne osoby: **Konta → + Nowe konto** (rola: administrator albo redaktor z wybranymi modułami: Aktualności, Członkowie, PM Session, Podcast). Panel pokaże link ważny 72 h — skopiuj go i przekaż tej osobie (np. na Messengerze). Zapomniane hasło = **Resetuj hasło** i nowy link. Kont się nie usuwa, tylko blokuje.
 5. Kopia bazy: **Kopia bazy danych** w menu panelu → przycisk „Pobierz kopię bazy” pobiera plik `.sql` (zawiera e-maile i skróty haseł — przechowuj bezpiecznie; nie zawiera zdjęć z `uploads/`). Pełna kopia kończy się linią `-- KONIEC KOPII` — jeśli jej nie ma, pobieranie zostało przerwane. Przywracanie: import w phpMyAdmin.
 
+### Jedyny administrator bez hasła (procedura awaryjna)
+
+Zasada: w panelu zawsze są **co najmniej dwa aktywne konta administratora z hasłem**. Gdy zostaje jedno, panel pokazuje ostrzeżenie na stronie startowej. Własne hasło zmienia się w **Moje konto** (wymaga obecnego hasła), cudze: **Konta → Resetuj hasło**.
+
+Gdy jedyny administrator zapomni hasła, panel nie pomoże. Potrzebna jest osoba z dostępem do phpMyAdmin bazy na serwerze (kto ma ten dostęp: do ustalenia; dane dostępowe nie trafiają do repozytorium):
+
+1. Wygeneruj losowy ciąg, np. w Terminalu: `openssl rand -hex 32`.
+2. W phpMyAdmin, zakładka SQL (wstaw ten ciąg i e-mail administratora):
+   ```sql
+   UPDATE pmg_uzytkownicy
+   SET token_hash = SHA2('TU_WKLEJ_CIAG', 256), token_do = NOW() + INTERVAL 1 HOUR, aktywny = 1
+   WHERE email = 'adres@administratora';
+   ```
+   Panel porównuje `token_hash` z SHA-256 ciągu z linku (`panel/index.php`, ustawienie hasła; tak samo tworzy go `panel/_admin.php` przy zaproszeniu).
+3. W ciągu godziny otwórz `…/panel/?t=TU_WKLEJ_CIAG` (bez logowania) i ustaw nowe hasło (min. 12 znaków).
+
+Procedura wynika z kodu i nie była jeszcze uruchamiana na serwerze.
+
 ### Moduły panelu — co z nich wpływa na stronę
 
 | Moduł | Gdzie na stronie | Uwagi |
