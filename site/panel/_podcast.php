@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('podcast', 'dodanie', $id);
             }
-            $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano.' : 'Zapisano jako szkic (niewidoczny na stronie).';
+            $_SESSION['flash'] = $f['opublikowany'] ? 'Zapisano i opublikowano. Na stronie zmiana pojawi się w ciągu 5 minut.' : 'Zapisano jako szkic (niewidoczny na stronie).';
             go('?m=podcast');
         } catch (PDOException $e) { // przed RuntimeException: PDOException po nim dziedziczy, więc inaczej do formularza trafiłby surowy komunikat bazy
             drop_image($noweZdjecie);
@@ -135,6 +135,10 @@ if ($edit !== null) {
         'opis' => $edit['id'] ? (string) $edit['tytul'] : 'Odcinek bez zaznaczenia „Opublikuj” zostaje szkicem.',
         'wstecz' => ['href' => '?m=podcast', 'etykieta' => 'Podcast'],
     ];
+    // Strona podcastu nie ma kotwic do odcinków (okno odcinka otwiera się kliknięciem), więc link prowadzi do całej listy.
+    if (!empty($edit['id']) && !empty($edit['opublikowany'])) {
+        $pmgNaglowek['akcje'] = [['href' => '../podcast.html', 'etykieta' => 'Zobacz na stronie', 'rodzaj' => 'secondary', 'nowaKarta' => true]];
+    }
 } else {
     $odcinki = pmg_db()->query('SELECT o.id, o.numer, o.tytul, o.data, o.opublikowany, e.numer AS edycja_numer FROM pmg_odcinki o LEFT JOIN pmg_podcast_edycje e ON e.id = o.edycja_id ORDER BY o.kolejnosc, o.numer, o.id')->fetchAll();
     $pmgNaglowek = [
