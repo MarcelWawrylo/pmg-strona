@@ -40,6 +40,7 @@ const MODULY = [
     'stopka' => 'admin', 'konta' => 'admin', 'dziennik' => 'admin', 'kopia' => 'admin',
     'wiadomosci' => 'admin', // dane osobowe gości: tylko administrator, bez osobnego uprawnienia redaktora
     'konto' => 'konto', // „Moje konto”: każdy zalogowany (wyjątek w routerze)
+    'zmiany' => 'konto', // „Co nowego” (wersja panelu i lista zmian z _wersja.php): każdy zalogowany
 ];
 // Zakładki stron (?m=…&w=…): w => [etykieta, uprawnienie, część z api/tresci-pola.php albo null]. Jedno źródło prawdy dla routera,
 // paska zakładek i sprawdzania uprawnień. Część ≠ null = zakładka z tekstami (_tresci.php); 'rekrutacja' = _rekrutacja.php;
@@ -385,8 +386,11 @@ function blad_opisu_zdjecia($old)
 }
 
 // ---------- Etykiety i opisy stron panelu (nad routerem — pliki stron ich potrzebują) ----------
+$pmgZmiany = require __DIR__ . '/_wersja.php';
+$pmgWersja = $pmgZmiany[0]['wersja'];
 $etykietyModulow = [
-    'glowna' => 'Strona główna', 'czlonkowie' => 'O nas', 'aktualnosci' => 'Aktualności', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła', 'dolacz' => 'Dołącz', 'kontakt' => 'Kontakt',
+    'glowna' => 'Strona główna', 'czlonkowie' => 'O nas', 'aktualnosci' => 'Aktualności', 'pmsession' => 'PM Session', 'podcast' => 'Projekt Podcast', 'case' => 'Case Koła', 'dolacz' => 'Dołącz', 'kontakt' => 'Kontakt',
+    'zmiany' => 'Co nowego',
     'wiadomosci' => 'Wiadomości', 'stopka' => 'Stopka i kontakt', 'konta' => 'Konta', 'dziennik' => 'Dziennik zmian', 'kopia' => 'Kopia zapasowa',
     // Dawne klucze (przed W6): nie są pozycjami menu, ale dziennik pokazuje nimi wpisy loguj('tresci'|'ustawienia'|'rekrutacja').
     'tresci' => 'Teksty na stronie', 'ustawienia' => 'Stopka i kontakt', 'rekrutacja' => 'Rekrutacja',
@@ -396,10 +400,11 @@ $opisyModulow = [
     'czlonkowie' => 'Zarząd, sekcje i teksty strony O nas.',
     'aktualnosci' => 'Wpisy na stronie Aktualności i w kafelkach na stronie głównej oraz teksty strony Aktualności.',
     'pmsession' => 'Edycje konferencji, prelegenci, harmonogram i liczby na stronie PM Session oraz teksty tej strony.',
-    'podcast' => 'Odcinki na stronie Podcast: tytuł, opis, goście, linki do Spotify i Apple Podcasts. Edycje podcastu i teksty strony.',
+    'podcast' => 'Odcinki na stronie Projekt Podcast: tytuł, opis, goście, linki do Spotify i Apple Podcasts. Edycje podcastu i teksty strony.',
     'case' => 'Edycje Case Koła: karty w hubie i treść podstron (opis partnera, wyzwanie, rozwiązanie, rezultat, galeria) oraz teksty strony.',
     'dolacz' => 'Nabór otwarty lub zamknięty, link do formularza i teksty strony Dołącz. Zmiany widać w ciągu 5 minut.',
     'kontakt' => 'Nagłówki i opisy na stronie Kontakt.',
+    'zmiany' => 'Co się zmieniło na stronie i w panelu w kolejnych wersjach.',
     'stopka' => 'E-mail kontaktowy, linki do mediów społecznościowych i teksty w stopce każdej strony. Zmiany widać w ciągu 5 minut.',
     'wiadomosci' => 'Wiadomości wysłane z formularza na stronie Kontakt. Po 12 miesiącach usuwają się same.',
     'konta' => 'Kto ma dostęp do panelu i do których stron.',
@@ -651,7 +656,7 @@ if ($me && $m !== '') {
         $pmgNaglowek = ['tytul' => 'Nie ma takiej strony', 'opis' => ''];
         $tresc = '<div class="pmg-alert pmg-alert--error" role="alert">' . pmg_ikona('blad') . '<p>Nie ma takiej strony w panelu.</p></div>'
             . '<p class="pmg-after-alert"><a class="pmg-btn pmg-btn--secondary" href="index.php">Wróć do strony startowej</a></p>';
-    } elseif ($m !== 'konto' && !wolno(MODULY[$m])) {
+    } elseif (MODULY[$m] !== 'konto' && !wolno(MODULY[$m])) {
         $tresc = pmg_brak_dostepu();
     } else {
         $plik = __DIR__ . '/_' . (MODULY[$m] === 'admin' && $m !== 'wiadomosci' ? 'admin' : $m) . '.php';
@@ -775,6 +780,7 @@ if ($me && $m === '') { $db = pmg_db(); foreach ($pmgKafelki as $mk) {
           <span class="pmg-user__text"><span class="pmg-user__name"><?= h($me['imie_nazwisko']) ?></span><span class="pmg-user__role"><?= $me['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?></span></span>
         </div>
         <a class="pmg-nav__item" href="?m=konto"<?= $m === 'konto' ? ' aria-current="page"' : '' ?>><?= pmg_ikona('konto') ?><span>Moje konto</span></a>
+        <a class="pmg-nav__item" href="?m=zmiany"<?= $m === 'zmiany' ? ' aria-current="page"' : '' ?>><?= pmg_ikona('info') ?><span>Co nowego</span><span class="pmg-wersja">wersja <?= h($pmgWersja) ?></span></a>
         <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="logout"><button class="pmg-nav__item pmg-nav__item--button" type="submit"><?= pmg_ikona('wyloguj') ?><span>Wyloguj</span></button></form>
       </div>
     </div>
@@ -790,6 +796,7 @@ if ($me && $m === '') { $db = pmg_db(); foreach ($pmgKafelki as $mk) {
         <span class="pmg-user__text"><span class="pmg-user__name"><?= h($me['imie_nazwisko']) ?></span><span class="pmg-user__role"><?= $me['rola'] === 'admin' ? 'Administrator' : 'Redaktor' ?></span></span>
       </div>
       <a class="pmg-nav__item" href="?m=konto"<?= $m === 'konto' ? ' aria-current="page"' : '' ?>><?= pmg_ikona('konto') ?><span>Moje konto</span></a>
+        <a class="pmg-nav__item" href="?m=zmiany"<?= $m === 'zmiany' ? ' aria-current="page"' : '' ?>><?= pmg_ikona('info') ?><span>Co nowego</span><span class="pmg-wersja">wersja <?= h($pmgWersja) ?></span></a>
       <form method="post"><input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="logout"><button class="pmg-nav__item pmg-nav__item--button" type="submit"><?= pmg_ikona('wyloguj') ?><span>Wyloguj</span></button></form>
     </div>
   </div>

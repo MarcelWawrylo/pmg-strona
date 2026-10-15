@@ -127,6 +127,9 @@ a, button, summary, label, input, select, textarea {
 .pmg-user__text { min-width: 0; }
 .pmg-user__name { display: block; font: 600 14px/1.3 var(--pmg-font-body); color: var(--pmg-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pmg-user__role { display: block; font: 400 13px/1.3 var(--pmg-font-body); color: var(--pmg-text-2); }
+.pmg-wersja { margin-left: auto; font: 400 12px/1.3 var(--pmg-font-body); color: var(--pmg-text-2); white-space: nowrap; }
+.pmg-zmiany { margin: 0 0 var(--pmg-s4); padding-left: 20px; }
+.pmg-zmiany li { margin: 4px 0; }
 
 /* Pozycje nawigacji (wspólne dla sidebar i menu mobilnego) */
 .pmg-nav__list { list-style: none; margin: 0; padding: 0 8px; }

@@ -157,7 +157,10 @@
         e.returnValue = '';
       }
     });
-    window.addEventListener('pageshow', function () {
+    // Powrót „Wstecz” do formularza z pamięci przeglądarki (bfcache) pokazałby wartości sprzed zapisu (np. ostatni wpis
+    // w „Nowym wpisie”) — wczytujemy stronę od nowa z serwera. Przywracanie samych pól wyłącza autocomplete="off" na formularzu.
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) { location.reload(); return; }
       zmieniony = false;
       wysylany = false;
     });

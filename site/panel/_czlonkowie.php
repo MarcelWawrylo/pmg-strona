@@ -241,7 +241,7 @@ if ($editOsoba !== null) {
 <?php // Błąd ($error) wyświetla wspólny szablon w index.php — nie powielamy go tutaj. ?>
 
 <?php if ($editOsoba !== null): $v = function ($k) use (&$editOsoba) { return h($editOsoba[$k] ?? ''); }; ?>
-  <form class="pmg-card" method="post" enctype="multipart/form-data" data-pmg-niezapisane>
+  <form class="pmg-card" method="post" enctype="multipart/form-data" data-pmg-niezapisane autocomplete="off">
     <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="osoba_zapisz"><input type="hidden" name="id" value="<?= (int) $editOsoba['id'] ?>">
 
     <section class="pmg-form-section" aria-labelledby="sek-osoba">
@@ -313,7 +313,7 @@ if ($editOsoba !== null) {
   <?php endif; ?>
 
 <?php elseif ($editSekcja !== null): $v = function ($k) use (&$editSekcja) { return h($editSekcja[$k] ?? ''); }; ?>
-  <form class="pmg-card" method="post" data-pmg-niezapisane>
+  <form class="pmg-card" method="post" data-pmg-niezapisane autocomplete="off">
     <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="sekcja_zapisz"><input type="hidden" name="id" value="<?= (int) $editSekcja['id'] ?>">
     <label for="nazwa">Nazwa</label>
     <input type="text" id="nazwa" name="nazwa" maxlength="60" value="<?= $v('nazwa') ?>" required<?= blad_pola('nazwa') ?>><?= komunikat_pola('nazwa') ?>

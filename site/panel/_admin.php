@@ -88,7 +88,7 @@ if ($sub === 'stopka') { // zakładka „E-mail i media” strony Stopka i konta
     ?>
     <?php // Błąd ($error) wyświetla wspólny szablon w index.php — nie powielamy go tutaj. ?>
     <?php pmg_import_blok('ustawienia'); ?>
-    <form class="pmg-card" method="post" data-pmg-niezapisane>
+    <form class="pmg-card" method="post" data-pmg-niezapisane autocomplete="off">
       <input type="hidden" name="csrf" value="<?= h(csrf()) ?>">
 
       <section class="pmg-form-section" aria-labelledby="sek-social">
@@ -177,7 +177,7 @@ if ($sub !== 'konta') { echo '<div class="pmg-alert pmg-alert--error" role="aler
 $error = '';
 // Uprawnienia redaktora w kolejności menu (wartości kolumny SET moduly). Biała lista przy zapisie: 'tresci' ani 'admin' przez POST nie przejdą.
 const MODULY_REDAKTORA = [
-    'glowna' => 'Strona główna', 'czlonkowie' => 'O nas', 'aktualnosci' => 'Aktualności', 'pmsession' => 'PM Session', 'podcast' => 'Podcast', 'case' => 'Case Koła',
+    'glowna' => 'Strona główna', 'czlonkowie' => 'O nas', 'aktualnosci' => 'Aktualności', 'pmsession' => 'PM Session', 'podcast' => 'Projekt Podcast', 'case' => 'Case Koła',
     'dolacz' => 'Dołącz (teksty strony)', 'rekrutacja' => 'Rekrutacja (nabór i link na stronie Dołącz)', 'kontakt' => 'Kontakt',
 ];
 const KONTO_WLASNE = 'Nie możesz zmienić roli, zablokować ani zresetować własnego konta. Hasło zmienisz w „Moje konto”.';
@@ -371,7 +371,7 @@ if ($edit !== null) {
 <?php // Błąd ($error) wyświetla wspólny szablon w index.php — nie powielamy go tutaj. ?>
 
 <?php if ($edit !== null): ?>
-  <form class="pmg-card" method="post" data-pmg-niezapisane>
+  <form class="pmg-card" method="post" data-pmg-niezapisane autocomplete="off">
     <input type="hidden" name="csrf" value="<?= h(csrf()) ?>">
     <input type="hidden" name="a" value="<?= $edit['id'] ? 'edytuj' : 'zapros' ?>">
     <input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">

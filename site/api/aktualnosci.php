@@ -1,10 +1,10 @@
 <?php
-// Opublikowane wpisy Aktualności jako JSON (czyta js/main.js). Najnowsze pierwsze.
+// Opublikowane wpisy Aktualności jako JSON (czyta js/main.js). Najnowsze pierwsze; na_glownej = przypięty na stronie głównej.
 require __DIR__ . '/lib.php';
 
 try {
     $rows = pmg_db()->query(
-        'SELECT slug, data, kategoria, kolor, tytul, lead, zajawka, tresc, zdjecie, zdjecie_alt, autor
+        'SELECT slug, data, kategoria, kolor, tytul, lead, zajawka, tresc, zdjecie, zdjecie_alt, autor, na_glownej
          FROM pmg_aktualnosci WHERE opublikowany = 1 ORDER BY data DESC, id DESC LIMIT 50'
     )->fetchAll();
     // galerie wszystkich opublikowanych wpisów jednym zapytaniem; brak tabeli (schemat 8 jeszcze nie wdrożony z panelu) = wpisy bez galerii

@@ -75,7 +75,7 @@ const USTAWIENIA = [
 
 // Wersja schematu zapisana w pmg_ustawienia (klucz 'schema'). Zwiększ ją przy każdej zmianie w pmg_migrate() —
 // migracja uruchomi się wtedy raz, a nie przy każdym żądaniu do panelu.
-const PMG_SCHEMA = 14;
+const PMG_SCHEMA = 16;
 
 // Tworzy brakujące tabele (IF NOT EXISTS, rodzic → dziecko) i dokłada kolumny dodane później.
 // Wywoływana tylko z panelu; gdy wersja schematu w bazie jest aktualna, kończy się jednym szybkim SELECT-em.
@@ -369,6 +369,19 @@ function pmg_migrate()
     $pdo->exec("ALTER TABLE pmg_case_edycje ADD COLUMN IF NOT EXISTS linia_pod_logo TINYINT(1) NOT NULL DEFAULT 1 AFTER logo_styl");
     if ((int) $v < 14) {
         $pdo->exec("UPDATE pmg_case_edycje SET linia_pod_logo = IF(logo_styl IN ('jasne','jasne-wysokie'), 1, 0)");
+    }
+    // Schemat 15: kolejność edycji PM Session ze strzałek w panelu (podmenu PM Session w nagłówku strony). Istniejące edycje dostają
+    // kolejność, w jakiej menu pokazywało je dotąd: aktualna (bieżąca/zapowiedź) pierwsza, potem od najnowszej daty.
+    $pdo->exec('ALTER TABLE pmg_edycje ADD COLUMN IF NOT EXISTS kolejnosc SMALLINT NOT NULL DEFAULT 0');
+    if ((int) $v < 15) {
+        $pdo->exec('SET @k := 0');
+        $pdo->exec("UPDATE pmg_edycje SET kolejnosc = (@k := @k + 1) ORDER BY status IN ('biezaca','zapowiedz') DESC, data DESC, id DESC");
+    }
+    // Schemat 16: wpis Aktualności przypięty na stronie głównej (1 = pokazuj w „Aktualnościach” na głównej przed najnowszymi).
+    $pdo->exec('ALTER TABLE pmg_aktualnosci ADD COLUMN IF NOT EXISTS na_glownej TINYINT(1) NOT NULL DEFAULT 0 AFTER opublikowany');
+    // Schemat 16: karta „Podcast” na stronie głównej nazywa się teraz „Projekt Podcast” — tytuł wczytany do panelu bez zmian dostaje nową nazwę.
+    if ((int) $v < 16) {
+        $pdo->exec("UPDATE pmg_tresci SET wartosc = 'Projekt Podcast' WHERE klucz = 'index.projekt_3_tytul' AND wartosc = 'Podcast'");
     }
 
     // Dane startowe: 4 odcinki, które do tej pory były wpisane na sztywno w podcast.html. Tylko przy pierwszym
