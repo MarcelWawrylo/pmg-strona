@@ -193,8 +193,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ->execute([$f['numer'], $f['temat'], $dataZapisu, $f['miejsce'], $f['opis'], $statusZapisu, $id]);
                     loguj('pmsession', 'edycja', $id, 'Edycja ' . $f['numer'] . ($f['temat'] !== '' ? ': ' . $f['temat'] : '') . (in_array($obecnyStatus, PMS_AKTUALNE, true) && !in_array($status, PMS_AKTUALNE, true) ? ' (zdjęto status aktualnej edycji)' : ''));
                 } else {
-                    pmg_db()->prepare('INSERT INTO pmg_edycje (numer, temat, data, miejsce, opis, status) VALUES (?,?,?,?,?,?)')
-                        ->execute([$f['numer'], $f['temat'], $dataZapisu, $f['miejsce'], $f['opis'], $statusZapisu]);
+                    // nowa edycja na górze listy (i podmenu PM Session); kolejność zmienia się strzałkami
+                    $kolejnosc = (int) pmg_db()->query('SELECT COALESCE(MIN(kolejnosc), 1) - 1 FROM pmg_edycje')->fetchColumn();
+                    pmg_db()->prepare('INSERT INTO pmg_edycje (numer, temat, data, miejsce, opis, status, kolejnosc) VALUES (?,?,?,?,?,?,?)')
+                        ->execute([$f['numer'], $f['temat'], $dataZapisu, $f['miejsce'], $f['opis'], $statusZapisu, $kolejnosc]);
                     $id = (int) pmg_db()->lastInsertId();
                     loguj('pmsession', 'dodanie', $id, 'Edycja ' . $f['numer'] . ($f['temat'] !== '' ? ': ' . $f['temat'] : ''));
                 }
@@ -224,6 +226,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         // status = wybór z formularza (zostaje zaznaczony po błędzie), status_w_bazie = obecny stan (strefa usuwania).
         if ($error !== '' || $bledyPol) $editEdycja = array_merge($f, ['id' => $id, 'status' => $status, 'status_w_bazie' => $obecnyStatus ?: 'szkic']);
+
+    } elseif ($action === 'edycja_gora' || $action === 'edycja_dol') {
+        $id = (int) ($_POST['id'] ?? 0);
+        $kier = $action === 'edycja_gora' ? 'gora' : 'dol';
+        if (przesun('pmg_edycje', 'kolejnosc, id', $id, $kier)) loguj('pmsession', 'kolejnosc', $id, 'Edycja ' . nazwa_rekordu('SELECT numer FROM pmg_edycje WHERE id = ?', $id));
+        go_po_przesunieciu('?m=pmsession', 'e' . $id, $kier);
 
     // ---------- Prelegenci ----------
     } elseif ($action === 'prelegent_gora' || $action === 'prelegent_dol') {
@@ -484,7 +492,7 @@ if ($editPrelegent !== null) {
 <?php // Błąd ($error) wyświetla wspólny szablon w index.php — nie powielamy go tutaj. ?>
 
 <?php if ($editPrelegent !== null): $v = function ($k) use (&$editPrelegent) { return h($editPrelegent[$k] ?? ''); }; ?>
-  <form class="pmg-card" method="post" enctype="multipart/form-data" data-pmg-niezapisane>
+  <form class="pmg-card" method="post" enctype="multipart/form-data" data-pmg-niezapisane autocomplete="off">
     <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="prelegent_zapisz"><input type="hidden" name="id" value="<?= (int) $editPrelegent['id'] ?>"><input type="hidden" name="edycja_id" value="<?= (int) $editPrelegent['edycja_id'] ?>">
 
     <section class="pmg-form-section" aria-labelledby="sek-wystapienie">
@@ -553,7 +561,7 @@ if ($editPrelegent !== null) {
   <?php endif; ?>
 
 <?php elseif ($editHarmonogram !== null): $v = function ($k) use (&$editHarmonogram) { return h($editHarmonogram[$k] ?? ''); }; ?>
-  <form class="pmg-card" method="post" data-pmg-niezapisane>
+  <form class="pmg-card" method="post" data-pmg-niezapisane autocomplete="off">
     <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="harmonogram_zapisz"><input type="hidden" name="id" value="<?= (int) $editHarmonogram['id'] ?>"><input type="hidden" name="edycja_id" value="<?= (int) $editHarmonogram['edycja_id'] ?>">
     <label for="godzina">Godzina</label>
     <input type="time" id="godzina" name="godzina" value="<?= $v('godzina') !== '' ? h($fmtGodzina($editHarmonogram['godzina'])) : '' ?>" required<?= blad_pola('godzina') ?>><?= komunikat_pola('godzina') ?>
@@ -581,7 +589,7 @@ if ($editPrelegent !== null) {
   <?php endif; ?>
 
 <?php elseif ($editEdycja !== null): $v = function ($k) use (&$editEdycja) { return h($editEdycja[$k] ?? ''); }; ?>
-  <form class="pmg-card pmg-pms-edycja" method="post" data-pmg-niezapisane>
+  <form class="pmg-card pmg-pms-edycja" method="post" data-pmg-niezapisane autocomplete="off">
     <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="edycja_zapisz"><input type="hidden" name="id" value="<?= (int) $editEdycja['id'] ?>">
     <label for="numer">Numer (cyfry rzymskie)</label>
     <p class="pmg-hint" id="numer_h">Np. XIV.</p>
@@ -695,14 +703,15 @@ if ($editPrelegent !== null) {
   <?php pmg_import_blok('pmsession'); ?>
   <div class="pmg-card">
     <div class="pmg-card__head"><h2 class="pmg-h2">Edycje</h2></div>
+    <p class="pmg-hint">Podmenu PM Session w nagłówku strony pokazuje edycje w kolejności z tej listy (szkice pomija).</p>
     <div class="pmg-table-wrap pmg-table-wrap--flush">
       <table class="pmg-table pmg-table--klikalna">
         <caption class="pmg-vh">Edycje PM Session</caption>
         <thead><tr><th scope="col">Numer</th><th scope="col">Temat</th><th scope="col" class="pmg-num">Data</th><th scope="col">Status</th><th scope="col" class="pmg-num">Prelegenci</th><th scope="col" class="pmg-num">Harmonogram</th><th scope="col">Akcje</th></tr></thead>
         <tbody>
-        <?php $edycjeLista = pmg_db()->query('SELECT e.*, (SELECT COUNT(*) FROM pmg_prelegenci p WHERE p.edycja_id = e.id) AS liczba_prelegentow, (SELECT COUNT(*) FROM pmg_harmonogram hh WHERE hh.edycja_id = e.id) AS liczba_punktow FROM pmg_edycje e ORDER BY e.status = \'zapowiedz\' DESC, e.data DESC, e.id DESC')->fetchAll(); ?>
-        <?php foreach ($edycjeLista as $e): ?>
-          <tr>
+        <?php $edycjeLista = pmg_db()->query('SELECT e.*, (SELECT COUNT(*) FROM pmg_prelegenci p WHERE p.edycja_id = e.id) AS liczba_prelegentow, (SELECT COUNT(*) FROM pmg_harmonogram hh WHERE hh.edycja_id = e.id) AS liczba_punktow FROM pmg_edycje e ORDER BY e.kolejnosc, e.id')->fetchAll(); ?>
+        <?php foreach ($edycjeLista as $i => $e): $wylG = $i === 0; $wylD = $i === count($edycjeLista) - 1; ?>
+          <tr id="wiersz-e<?= (int) $e['id'] ?>">
             <td class="pmg-td-main" data-label="Numer"><a class="pmg-row-link" href="?m=pmsession&e=<?= (int) $e['id'] ?>">Edycja <?= h($e['numer']) ?></a></td>
             <td data-label="Temat"><?= h($e['temat']) ?></td>
             <td class="pmg-num" data-label="Data"><?php if ($e['data'] === null): ?>—<?php else: ?><time datetime="<?= h($e['data']) ?>"><?= h($e['data']) ?></time><?php endif; ?></td>
@@ -713,6 +722,11 @@ if ($editPrelegent !== null) {
             <td class="pmg-num" data-label="Prelegenci"><?= (int) $e['liczba_prelegentow'] ?></td>
             <td class="pmg-num" data-label="Harmonogram"><?= (int) $e['liczba_punktow'] ?></td>
             <td class="pmg-td-actions" data-label="Akcje">
+              <form method="post">
+                <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="id" value="<?= (int) $e['id'] ?>">
+                <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="edycja_gora"<?= $wylG ? ' disabled' : '' ?><?= fokus_strzalki('e' . (int) $e['id'], 'gora', $wylG, $wylD) ?> aria-label="Przesuń wyżej: edycja <?= h($e['numer']) ?>"><span aria-hidden="true">↑</span></button>
+                <button class="pmg-btn pmg-btn--secondary pmg-btn--sm" type="submit" name="a" value="edycja_dol"<?= $wylD ? ' disabled' : '' ?><?= fokus_strzalki('e' . (int) $e['id'], 'dol', $wylG, $wylD) ?> aria-label="Przesuń niżej: edycja <?= h($e['numer']) ?>"><span aria-hidden="true">↓</span></button>
+              </form>
               <?php if ($e['status'] !== 'zapowiedz'): // „wkrótce więcej”: prelegenci dopiero po zmianie na „Bieżąca edycja” ?>
               <a class="pmg-btn pmg-btn--text pmg-btn--sm" href="?m=pmsession&e=<?= (int) $e['id'] ?>#prelegenci">Prelegenci<span class="pmg-vh"> — edycja <?= h($e['numer']) ?></span></a>
               <a class="pmg-btn pmg-btn--secondary pmg-btn--sm" href="?m=pmsession&e=<?= (int) $e['id'] ?>&p=nowy">+ Nowy prelegent<span class="pmg-vh"> — edycja <?= h($e['numer']) ?></span></a>

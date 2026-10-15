@@ -22,14 +22,14 @@ function pms_prelegent_pub($p)
     ];
 }
 
-// ?lista=1: edycje do podmenu PM Session w nagłówku strony (js/main.js). Tylko bieżąca/zapowiedź i zakończone, które mają własny plik
+// ?lista=1: edycje do podmenu PM Session w nagłówku strony (js/main.js), w kolejności ze strzałek w panelu. Tylko bieżąca/zapowiedź i zakończone, które mają własny plik
 // pm-session-<numer>.html (jak pms_adres_strony() w panelu); szkic nigdy. Zwraca wyłącznie numer, status i adres strony.
 // 'wszystkich' = liczba edycji w bazie (także szkiców): gdy 0 (baza przed importem), menu zostaje w wersji statycznej z HTML.
 if (($_GET['lista'] ?? '') === '1') {
     try {
         $pdo = pmg_db();
         $lista = [];
-        foreach ($pdo->query("SELECT numer, status FROM pmg_edycje WHERE status IN ('biezaca','zapowiedz','zakonczona') ORDER BY status IN ('biezaca','zapowiedz') DESC, data DESC, id DESC")->fetchAll() as $r) {
+        foreach ($pdo->query("SELECT numer, status FROM pmg_edycje WHERE status IN ('biezaca','zapowiedz','zakonczona') ORDER BY kolejnosc, id")->fetchAll() as $r) {
             if (!preg_match('~^[IVXLC]{1,10}$~', $r['numer'])) continue;
             $plik = 'pm-session-' . strtolower($r['numer']) . '.html';
             if (!is_file(__DIR__ . '/../' . $plik)) continue;

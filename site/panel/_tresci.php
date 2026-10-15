@@ -119,7 +119,7 @@ $nr = 0;
 <?php // Błąd ($error) wyświetla wspólny szablon w index.php — nie powielamy go tutaj. ?>
 <?php if ($tekstyStopki) pmg_import_blok('tresci'); ?>
 
-<form class="pmg-card" method="post" data-pmg-niezapisane>
+<form class="pmg-card" method="post" data-pmg-niezapisane autocomplete="off">
   <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="zapisz">
   <button class="pmg-vh" type="submit" tabindex="-1" aria-hidden="true">Zapisz</button><?php // domyślny przycisk dla Entera w polu — inaczej wysłałby go pierwszy „Przywróć” ?>
   <?php foreach ($sekcjeCzesci as $c => $sekcje): ?>

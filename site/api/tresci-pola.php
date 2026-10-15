@@ -85,7 +85,7 @@ return [
           'etykieta' => 'Nasze projekty: tytuł karty 3',
           'typ' => 'krotki',
           'max' => 300,
-          'domyslny' => 'Podcast',
+          'domyslny' => 'Projekt Podcast',
         ],
         'index.projekt_3_opis' => [
           'etykieta' => 'Nasze projekty: opis karty 3',
@@ -451,7 +451,7 @@ i dedykowane rozwiązania',
       ],
     ],
     'podcast' => [
-      'etykieta' => 'Podcast',
+      'etykieta' => 'Projekt Podcast',
       'plik' => 'podcast.html',
       'pola' => [
         'podcast.hero_naglowek' => [

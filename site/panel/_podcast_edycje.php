@@ -112,7 +112,7 @@ if ($edit !== null) {
 <?php // Błąd ($error) wyświetla wspólny szablon w index.php — nie powielamy go tutaj. ?>
 
 <?php if ($edit !== null): ?>
-  <form class="pmg-card" method="post" data-pmg-niezapisane>
+  <form class="pmg-card" method="post" data-pmg-niezapisane autocomplete="off">
     <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="save"><input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
 
     <section class="pmg-form-section" aria-labelledby="sek-edycja">
