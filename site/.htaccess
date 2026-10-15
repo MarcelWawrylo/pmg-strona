@@ -5,6 +5,13 @@
 # Własna strona błędu 404
 ErrorDocument 404 /404.html
 
+# Stare adresy stron WordPressa (9 opublikowanych stron z kopii bazy z 30.09.2026) → nowe podstrony
+RedirectMatch 301 ^/strona-glowna/?$ /
+RedirectMatch 301 ^/projekty/?$ /
+RedirectMatch 301 ^/kontakt/?$ /kontakt.html
+RedirectMatch 301 ^/(krotka-historia|nasz-zespol)/?$ /o-nas.html
+RedirectMatch 301 ^/(harmonogram-i-prelegenci|harmonogram-niedostepny|pms-2021|pms-xi)/?$ /pm-session.html
+
 # Bez listowania katalogów
 Options -Indexes
 
