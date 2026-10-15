@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $pmgNaglowek = ['tytul' => 'Moje konto', 'opis' => (string) $me['email']];
 ?>
-<form class="pmg-card" method="post" data-pmg-niezapisane>
+<form class="pmg-card" method="post" data-pmg-niezapisane autocomplete="off">
   <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="imie">
   <h2 class="pmg-h2">Dane</h2>
   <label for="imie_nazwisko">Imię i nazwisko</label>

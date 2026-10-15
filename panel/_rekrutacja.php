@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <?php // Błąd ($error) wyświetla wspólny szablon w index.php — nie powielamy go tutaj. ?>
-<form class="pmg-card" method="post" data-pmg-niezapisane>
+<form class="pmg-card" method="post" data-pmg-niezapisane autocomplete="off">
   <input type="hidden" name="csrf" value="<?= h(csrf()) ?>">
 
   <fieldset class="pmg-fieldset">

@@ -60,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $f['data'] = (string) ($_POST['data'] ?? '');
         $f['kolor'] = array_key_exists((string) ($_POST['kolor'] ?? ''), KOLORY) ? $_POST['kolor'] : 'pink';
         $f['opublikowany'] = empty($_POST['opublikowany']) ? 0 : 1;
+        $f['na_glownej'] = empty($_POST['na_glownej']) ? 0 : 1;
         $old = null;
         $noweZdjecie = null; // plik wgrany w tym żądaniu — usuwany, jeśli zapis do bazy się nie uda
         if ($id) {
@@ -79,8 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $f['zdjecie'] = zdjecie('aktualnosci', $stareZdjecie);
             if ($f['zdjecie'] !== $stareZdjecie) $noweZdjecie = $f['zdjecie'];
             if ($id && $old) {
-                $st = pmg_db()->prepare('UPDATE pmg_aktualnosci SET data=?, kolor=?, tytul=?, lead=?, zajawka=?, tresc=?, zdjecie=?, zdjecie_alt=?, autor=?, opublikowany=? WHERE id=?');
-                $st->execute([$f['data'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $id]);
+                $st = pmg_db()->prepare('UPDATE pmg_aktualnosci SET data=?, kolor=?, tytul=?, lead=?, zajawka=?, tresc=?, zdjecie=?, zdjecie_alt=?, autor=?, opublikowany=?, na_glownej=? WHERE id=?');
+                $st->execute([$f['data'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $f['na_glownej'], $id]);
                 $noweZdjecie = null;
                 if ($f['zdjecie'] !== $stareZdjecie) drop_image($stareZdjecie);
                 loguj('aktualnosci', 'edycja', $id, $f['tytul']);
@@ -88,8 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $base = $slug = slugify($f['tytul']);
                 $st = pmg_db()->prepare('SELECT 1 FROM pmg_aktualnosci WHERE slug = ?');
                 for ($n = 2; $st->execute([$slug]) && $st->fetchColumn(); $n++) $slug = $base . '-' . $n;
-                $st = pmg_db()->prepare('INSERT INTO pmg_aktualnosci (slug, data, kolor, tytul, lead, zajawka, tresc, zdjecie, zdjecie_alt, autor, opublikowany) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
-                $st->execute([$slug, $f['data'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany']]);
+                $st = pmg_db()->prepare('INSERT INTO pmg_aktualnosci (slug, data, kolor, tytul, lead, zajawka, tresc, zdjecie, zdjecie_alt, autor, opublikowany, na_glownej) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
+                $st->execute([$slug, $f['data'], $f['kolor'], $f['tytul'], $f['lead'], $f['zajawka'], $f['tresc'], $f['zdjecie'], $f['zdjecie_alt'], $f['autor'], $f['opublikowany'], $f['na_glownej']]);
                 $noweZdjecie = null;
                 $id = (int) pmg_db()->lastInsertId();
                 loguj('aktualnosci', 'dodanie', $id, $f['tytul']);
@@ -225,11 +226,11 @@ if ($edit !== null) {
     // „!” zamiast „\”, bo działa też przy sql_mode NO_BACKSLASH_ESCAPES.
     $q = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 100);
     if ($q !== '') {
-        $st = pmg_db()->prepare('SELECT id, data, tytul, opublikowany FROM pmg_aktualnosci WHERE tytul LIKE ? ESCAPE \'!\' ORDER BY data DESC, id DESC');
+        $st = pmg_db()->prepare('SELECT id, data, tytul, opublikowany, na_glownej FROM pmg_aktualnosci WHERE tytul LIKE ? ESCAPE \'!\' ORDER BY data DESC, id DESC');
         $st->execute(['%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $q) . '%']);
         $wpisy = $st->fetchAll();
     } else {
-        $wpisy = pmg_db()->query('SELECT id, data, tytul, opublikowany FROM pmg_aktualnosci ORDER BY data DESC, id DESC')->fetchAll();
+        $wpisy = pmg_db()->query('SELECT id, data, tytul, opublikowany, na_glownej FROM pmg_aktualnosci ORDER BY data DESC, id DESC')->fetchAll();
     }
     $pmgNaglowek = [
         'akcje' => [
@@ -242,7 +243,7 @@ if ($edit !== null) {
 <?php // Błąd ($error) wyświetla wspólny szablon w index.php — nie powielamy go tutaj. ?>
 
 <?php if ($edit !== null): ?>
-  <form class="pmg-card" method="post" enctype="multipart/form-data" data-pmg-niezapisane>
+  <form class="pmg-card" method="post" enctype="multipart/form-data" data-pmg-niezapisane autocomplete="off">
     <input type="hidden" name="csrf" value="<?= h(csrf()) ?>"><input type="hidden" name="a" value="save"><input type="hidden" name="id" value="<?= (int) $edit['id'] ?>">
 
     <section class="pmg-form-section" aria-labelledby="sek-tresc">
@@ -288,6 +289,8 @@ if ($edit !== null) {
       <h2 class="pmg-form-section__title" id="sek-publikacja">Publikacja</h2>
       <label class="pmg-check"><input type="checkbox" name="opublikowany" value="1"<?= !empty($edit['opublikowany']) ? ' checked' : '' ?> aria-describedby="opublikowany_h"><span>Opublikuj na stronie</span></label>
       <p class="pmg-hint pmg-hint--check" id="opublikowany_h">Bez zaznaczenia = szkic, niewidoczny na stronie.</p>
+      <label class="pmg-check"><input type="checkbox" name="na_glownej" value="1"<?= !empty($edit['na_glownej']) ? ' checked' : '' ?> aria-describedby="na_glownej_h"><span>Przypnij na stronie głównej</span></label>
+      <p class="pmg-hint pmg-hint--check" id="na_glownej_h">Strona główna pokazuje 3 wpisy: najpierw przypięte, resztę miejsc zajmują najnowsze. Bez przypiętych wpisów są tam po prostu 3 najnowsze. Przypięcie działa tylko dla opublikowanego wpisu.</p>
     </section>
 
     <div class="pmg-form-actions">
@@ -365,7 +368,7 @@ if ($edit !== null) {
         <tr>
           <td class="pmg-td-main" data-label="Tytuł"><a class="pmg-row-link" href="?m=aktualnosci&id=<?= (int) $r['id'] ?>"><?= h($r['tytul']) ?></a></td>
           <td class="pmg-num" data-label="Data"><time datetime="<?= h($r['data']) ?>"><?= h($r['data']) ?></time></td>
-          <td data-label="Status"><?php if ($r['opublikowany']): ?><span class="pmg-chip pmg-chip--success">Opublikowany</span><?php else: ?><span class="pmg-chip pmg-chip--neutral">Szkic</span><?php endif; ?></td>
+          <td data-label="Status"><?php if ($r['opublikowany']): ?><span class="pmg-chip pmg-chip--success">Opublikowany</span><?php else: ?><span class="pmg-chip pmg-chip--neutral">Szkic</span><?php endif; ?><?php if ($r['na_glownej']): ?> <span class="pmg-chip pmg-chip--accent">Przypięty na głównej</span><?php endif; ?></td>
         </tr>
       <?php endforeach; ?>
       <?php if (!$wpisy && $q !== ''): ?>

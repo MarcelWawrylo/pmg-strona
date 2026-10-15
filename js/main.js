@@ -934,13 +934,14 @@
     });
   }
 
-  /* ---------- Strona główna: 3 najnowsze wpisy z panelu (gdy backend działa) ---------- */
+  /* ---------- Strona główna: 3 wpisy z panelu (gdy backend działa) — najpierw przypięte w panelu, resztę uzupełniają najnowsze ---------- */
   function initHomeNews() {
     var grid = $('.news-grid');
     if (!grid) return;
     loadNews().then(function (posts) {
       if (!posts) return;
-      grid.innerHTML = posts.slice(0, 3).map(function (p) {
+      var pin = function (p) { return Number(p.na_glownej) === 1; };
+      grid.innerHTML = posts.filter(pin).concat(posts.filter(function (p) { return !pin(p); })).slice(0, 3).map(function (p) {
         var img = p.zdjecie ? pictureHtml(p.obraz, p.zdjecie, { sizes: '(max-width: 640px) calc(100vw - 40px), (max-width: 960px) calc(50vw - 30px), 400px', w: 1600, h: 900, lazy: true }) : '<span>[ zdjęcie 16:9 ]</span>';
         var href = 'aktualnosci.html#wpis-' + esc(p.slug);
         return '<li class="news-tile"><div class="news-tile__img news-tile__img--' + esc(p.kolor) + '" aria-hidden="true">' + img + '</div>' +
